@@ -2,6 +2,8 @@
 
 更新日期：2026-10-23。
 
+当前任务已进入 [S2 生态接入](tasks/S2-ecosystem.md)。用户授权完整清单接入、真实验证通过后的 main 合并，以及 OpenCode/DeepSeek 官方模型和本机浏览器登录验证。下文为已完成 S1 基线；S2 新增能力必须逐项实际验证后更新状态。
+
 先读 [STATUS.md](STATUS.md)、[docs/QUESTIONS.md](docs/QUESTIONS.md)，再读 [规格](docs/SPEC.md)、[任务](docs/TASKS.md) 和 [开发计划](tasks/S1-toolkit.md)。
 
 用户已批准开发，确定只做区块链工具聚合，尽可能复用成熟技术。README 按该定位覆盖，测试只保留够用的实际检查，错误局部修复和复测。

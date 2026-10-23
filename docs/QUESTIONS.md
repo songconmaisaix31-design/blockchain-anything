@@ -15,6 +15,9 @@
 | D07 | 开发、实际运行、必要验证、提交和推送已授权；远程为 `songconmaisaix31-design/blockchain-anything` |
 | D08 | 只做够用的测试；错误在发生位置修复并仅复测相关部分 |
 | D09 | 通过 Orca CLI 安排互斥文件范围；Worker 固定分支和 Worktree，负责开发、验证、返修、提交和推送 |
+| D10 | 接入用户补充的完整生态清单，真实验证通过后合并主线；S2 记录逐项完成状态 |
+| D11 | 可使用 OpenCode 与 DeepSeek 官方 Flash 模型承担开发工作，不使用 Alibaba 路由 |
+| D12 | 使用本机浏览器登录态及 Google 账户完成官方登录和服务验证 |
 
 ## 操作边界
 
