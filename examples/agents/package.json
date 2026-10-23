@@ -1,0 +1,14 @@
+{
+  "name": "bca-agent-examples",
+  "private": true,
+  "type": "module",
+  "description": "Optional official host frameworks for BCA examples",
+  "dependencies": {
+    "@coinbase/agentkit": "0.10.4",
+    "zod-to-json-schema": "3.25.2",
+    "viem": "2.57.10",
+    "solana-agent-kit": "2.0.10",
+    "@solana-agent-kit/plugin-token": "2.0.9",
+    "@solana/web3.js": "1.98.4"
+  }
+}

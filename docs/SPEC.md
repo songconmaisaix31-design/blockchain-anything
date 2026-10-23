@@ -10,7 +10,7 @@ BCA 将成熟区块链 SDK 的常用操作提供给 CLI、MCP 和 TypeScript 调
 - 版本和组合关系通过 EAS Schema 字段及 `refUID` 表达。验证结论以具体声明、签名和链状态为限。
 - 文件哈希说明内容一致，签名说明签署账户，链上记录说明交易与状态。关于来源、质量和实体身份的陈述需要调用者判断可信度。
 - API 凭证只允许保存描述和外部密钥引用，不将秘密写入声明或公开存储。
-- 首批网络适配为 EVM；自有身份、授权、Hash 和智能合约系统不属于工具聚合实现。
+- S2 扩展到 Sui、Aptos、Solana/SAS 与 Sign Protocol，沿用各 SDK 的原生语义；自有身份、授权、Hash 和智能合约系统不属于工具聚合实现。
 
 ## 成熟组件
 
@@ -45,11 +45,13 @@ Node.js 24、TypeScript ESM、Incur、官方 MCP TypeScript SDK、EAS 官方 SDK
 
 ## 入口和结构
 
-`src/toolkit.ts` 导出 `createToolkit()`。共享工具目录和 `invoke(name, input)`，实现放在 `src/providers/`。目录只列实际实现操作。
+`src/toolkit.ts` 导出 `createToolkit()`。共享工具目录和 `invoke(name, input)`，实现分布于 providers、bridge、development、chains、storage、wallets、agents、trading、provenance、identity。目录只列实际实现操作；配置、真实验证和受信范围另行记录。
 
 CLI 提供 `bca tools`、`bca call <name> --input '<JSON>'`、`bca <family> <operation> --input '<JSON>'` 和 `bca mcp`，结构化返回，错误退出码非零。MCP 使用官方 SDK 注册同一工具目录，stdio 的 stdout 只输出协议内容。SDK 导出相同 toolkit。
 
-当前 MCP 传输为 stdio。公开 HTTP、认证服务、多租户、权限发行、跨链桥、全球信誉和通用 ZK 不属于本轮工具包范围。
+MCP 服务入口为 stdio，createMcpServer 可交给官方 SDK HTTP handler 托管；外部 MCP 客户端支持 stdio/Streamable HTTP。OAuth 复用 mcp-remote。公开托管 HTTP 服务、多租户、权限发行、跨链桥、全球信誉和自研通用 ZK 不属于本轮工具包范围。
+
+S2 来源验证调用官方 CLI 或 verifier ABI；钱包使用 Safe/x402；Agent 框架提供兼容入口，不实现上层任务循环。详细支持边界见 integrations 与 tasks/S2-progress.md。默认不结算支付、不下单、不部署公共链合约。
 
 ## 验证和交付
 

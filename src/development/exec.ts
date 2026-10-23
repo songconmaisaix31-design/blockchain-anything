@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { realpath, stat } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import type { Config } from '../config.js';
@@ -49,6 +50,7 @@ function childEnv(extra?: Record<string, string | undefined>): NodeJS.ProcessEnv
   delete env.BCA_PRIVATE_KEY;
   delete env.BCA_MCP_SERVERS;
   delete env.BCA_MCP_CONFIG;
+  for (const key of Object.keys(env)) if (key.startsWith('BCA_') && /KEY|TOKEN|AUTH|SECRET|PASSWORD/.test(key)) delete env[key];
   for (const [key, value] of Object.entries(extra ?? {})) {
     if (value === undefined) delete env[key];
     else env[key] = value;
@@ -58,10 +60,19 @@ function childEnv(extra?: Record<string, string | undefined>): NodeJS.ProcessEnv
 
 export function run(command: string, args: string[], options: RunOptions): Promise<RunResult> {
   const maxBytes = options.maxBytes ?? 1024 * 1024;
+  let executable = command;
+  if (['forge', 'cast', 'anvil'].includes(command)) {
+    // Foundry's npm launcher 1.7.1 does not forward child exit status.
+    // Run its official platform binary directly when installed.
+    const arch = process.arch === 'x64' ? 'amd64' : process.arch;
+    const platform = process.platform === 'win32' ? 'win32' : process.platform;
+    try { executable = createRequire(import.meta.url).resolve(`@foundry-rs/${command}-${platform}-${arch}/bin/${command}${process.platform === 'win32' ? '.exe' : ''}`); }
+    catch { /* Fall back to the user's native installation on PATH. */ }
+  }
   return new Promise((resolveRun, rejectRun) => {
     let child;
     try {
-      child = spawn(command, args, {
+      child = spawn(executable, args, {
         cwd: options.cwd,
         shell: false,
         windowsHide: true,

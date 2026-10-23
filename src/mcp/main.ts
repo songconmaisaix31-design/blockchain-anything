@@ -2,10 +2,12 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import { serveStdio, type StdioServerHandle } from '@modelcontextprotocol/server/stdio';
 import { createToolkit } from '../toolkit.js';
+import { Console } from 'node:console';
+import { VERSION } from '../version.js';
 
 export function createMcpServer(): McpServer {
   const toolkit = createToolkit();
-  const server = new McpServer({ name: 'bca', version: '0.1.0' }, {
+  const server = new McpServer({ name: 'bca', version: VERSION }, {
     instructions: '使用 tools/list 查看实际工具与严格输入 Schema。写入或签署必须有进程配置授权和 submit=true；链上字段公开，IPFS add 会向配置的节点传输文件。',
   });
   for (const tool of toolkit.tools) {
@@ -29,6 +31,8 @@ export function createMcpServer(): McpServer {
 }
 
 export function startMcpServer(): StdioServerHandle {
+  // Third-party SDK diagnostics must never share the stdio protocol stream.
+  globalThis.console = new Console({ stdout: process.stderr, stderr: process.stderr });
   const server = createMcpServer();
   return serveStdio(() => server, {
     onerror: () => { process.stderr.write('MCP 传输或协议处理失败\n'); },

@@ -9,7 +9,7 @@
 | I 集成 | 合并 A/B、必要配置衔接、一个真实 smoke 脚本 | 类型/构建；官方合约生命周期、CLI/MCP、CID/IPFS 和包入口运行 |
 | 主 Agent | README、规格、决定、计划、状态、最终检查和提交 | 与实际结果一致，最终分支 push |
 
-固定 Worker、Worktree、Branch 和 `write_paths` 见 [开发计划](../tasks/S1-toolkit.md)。跨范围修改通过 Handoff；领域错误交回原 Worker。
+S1 历史分工见 [开发计划](../tasks/S1-toolkit.md)。S2 已由主 Agent 直接接手，当前分支 codex/bca-s2-complete；逐项状态见 [S2 进度](../tasks/S2-progress.md)。不恢复已停止的 Worker 任务。
 
 A、B、I 已完成并提交推送，代码已合并到 `codex/bca-toolkit`。实际验收通过结果见 [STATUS](../STATUS.md)，复测入口见 [运行检查指南](guides/verification.md)。
 
@@ -22,6 +22,6 @@ A、B、I 已完成并提交推送，代码已合并到 `codex/bca-toolkit`。�
 
 ## 扩展规则
 
-其他公链、Safe/外部钱包、签名协议、ZK 和领域导入器沿用成熟组件，完成实际运行后加入支持清单。
+其他公链、Safe/外部钱包、签名协议、ZK 和领域导入器沿用成熟组件；已实现入口与实际验收状态分别列在 S2 进度，不因工具目录新增而标记全部完成。
 
 若开展原生 Codex 验证，使用真实 SQLite、HTTP 服务和控制器会话文件，逐一定位 event_id；限定 Agent 创建的公开 Git 项目、固定任务与上下文，关闭控制器原生文件和命令工具。本次标准 MCP stdio 验证不等同于该验证。

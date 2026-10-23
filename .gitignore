@@ -7,3 +7,5 @@ coverage/
 .env.*
 !.env.example
 *.tsbuildinfo
+examples/contracts/out/
+examples/contracts/cache/

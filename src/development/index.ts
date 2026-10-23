@@ -1,18 +1,19 @@
 import { createRequire } from 'node:module';
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync, statSync } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { basename, join, relative, resolve, sep } from 'node:path';
+import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { readWorkingFile } from '../providers/files.js';
 import { z } from 'zod';
 import type { Config } from '../config.js';
 import { defineTool } from '../types.js';
 import { addressSchema } from '../providers/common.js';
 import { parseJsonOutput, resolveWorkingDir, resolveWorkingPath, run, runVersion } from './exec.js';
 
-const { version: solcVersion, compile: solcCompile } = createRequire(import.meta.url)('solc') as {
+function solc() { return createRequire(import.meta.url)('solc') as {
   version(): string;
   compile(input: string, callbacks?: { import: (path: string) => { contents: string } | { error: string } }): string;
-};
+}; }
 
 function requireRpc(config: Config): { rpcUrl: string; chainId: bigint } {
   if (!config.rpcUrl || !config.chainId) throw new Error('需要 BCA_RPC_URL 和 BCA_CHAIN_ID');
@@ -38,7 +39,7 @@ async function readSkillRoot(): Promise<string> {
 
 function inside(root: string, target: string): boolean {
   const path = relative(root, target);
-  return path !== '..' && !path.startsWith(`..${sep}`) && !path.startsWith(sep);
+  return path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path);
 }
 
 const timeoutSchema = z.number().int().positive().max(600_000).optional();
@@ -55,14 +56,14 @@ export function developmentTools(config: Config) {
           runVersion('anvil', cwd, config.timeoutMs),
           runVersion('slither', cwd, config.timeoutMs),
         ]);
-        const hardhatCli = await stat(join(cwd, 'node_modules', 'hardhat', 'internal', 'cli', 'cli.js')).catch(() => null);
+        const hardhatPackage = await readFile(join(cwd, 'node_modules', 'hardhat', 'package.json'), 'utf8').then((text) => JSON.parse(text) as { version: string }).catch(() => null);
         return {
           workingRoot: cwd,
           tools: {
             forge, cast, anvil, slither,
-            hardhat: hardhatCli?.isFile() ? 'local node_modules/hardhat' : null,
+            hardhat: hardhatPackage?.version ?? null,
           },
-          solc: { version: solcVersion(), mode: 'javascript', note: 'solc npm 包，离线编译；版本由安装包决定。' },
+          solc: { version: solc().version(), mode: 'javascript', note: 'solc npm 包，离线编译；版本由安装包决定。' },
           rpc: { configured: Boolean(config.rpcUrl && config.chainId), chainId: config.chainId?.toString() ?? null },
           skillsRoot: process.env.BCA_SKILLS_ROOT ?? join(homedir(), '.agents', 'skills'),
         };
@@ -76,7 +77,7 @@ export function developmentTools(config: Config) {
       async ({ path, optimizer }) => {
         const entry = await resolveWorkingPath(config, path);
         if (!entry.toLowerCase().endsWith('.sol')) throw new Error('path 必须指向 .sol 文件');
-        const source = await readFile(entry, 'utf8');
+        const source = (await readWorkingFile(config, path)).toString('utf8');
         const root = await resolveWorkingDir(config);
         const key = relative(root, entry).split(sep).join('/');
         const input = {
@@ -89,15 +90,18 @@ export function developmentTools(config: Config) {
         };
         let output: any;
         try {
-          output = JSON.parse(solcCompile(JSON.stringify(input), {
+          output = JSON.parse(solc().compile(JSON.stringify(input), {
             import: (importPath: string) => {
-              const candidate = resolve(root, importPath);
-              if (!inside(root, candidate)) return { error: `import 超出 BCA_WORKING_ROOT：${importPath}` };
-              try {
-                return { contents: readFileSync(candidate, 'utf8') };
-              } catch {
-                return { error: `无法解析 import：${importPath}；仅支持 BCA_WORKING_ROOT 内的路径` };
+              for (const base of [root, join(root, 'node_modules')]) {
+                try {
+                  const candidate = realpathSync(resolve(base, importPath));
+                  if (!inside(root, candidate)) continue;
+                  const info = statSync(candidate);
+                  if (!info.isFile() || info.size > config.maxFileBytes) continue;
+                  return { contents: readFileSync(candidate, 'utf8') };
+                } catch { /* Try the next in-project dependency root. */ }
               }
+              return { error: `无法解析工作区或 node_modules 内的 import：${importPath}` };
             },
           }));
         } catch (error) {
@@ -118,7 +122,7 @@ export function developmentTools(config: Config) {
           }
         }
         return {
-          compiler: solcVersion(),
+          compiler: solc().version(),
           success: !diagnostics.some((item: { severity: string }) => item.severity === 'error'),
           contracts,
           diagnostics,
@@ -163,9 +167,11 @@ export function developmentTools(config: Config) {
       z.strictObject({ dir: z.string().default('.'), timeoutMs: timeoutSchema }), false,
       async ({ dir, timeoutMs }) => {
         const cwd = await resolveWorkingDir(config, dir);
-        const cli = join(cwd, 'node_modules', 'hardhat', 'internal', 'cli', 'cli.js');
-        const exists = await stat(cli).catch(() => null);
-        if (!exists?.isFile()) throw new Error('项目目录没有本地 Hardhat；先安装项目依赖');
+        const packagePath = join(cwd, 'node_modules', 'hardhat', 'package.json');
+        const pkg = JSON.parse(await readFile(packagePath, 'utf8')) as { bin?: string | Record<string, string> };
+        const bin = typeof pkg.bin === 'string' ? pkg.bin : pkg.bin?.hardhat;
+        if (!bin) throw new Error('本地 Hardhat 未声明 CLI bin');
+        const cli = await resolveWorkingPath(config, join(cwd, 'node_modules', 'hardhat', bin));
         const result = await run(process.execPath, [cli, 'compile'], { cwd, timeoutMs: timeoutMs ?? config.timeoutMs });
         return { exitCode: result.exitCode, ok: result.exitCode === 0, stdout: result.stdout.trim().slice(0, 8000), stderr: result.stderr.trim().slice(0, 4000) };
       }),
@@ -179,7 +185,9 @@ export function developmentTools(config: Config) {
         const cwd = await resolveWorkingDir(config);
         const resolved = await resolveWorkingPath(config, target);
         const relativeTarget = relative(cwd, resolved).split(sep).join('/') || '.';
-        const result = await run('slither', [relativeTarget, '--json', '-'], { cwd, timeoutMs: timeoutMs ?? config.timeoutMs });
+        const args = [relativeTarget, '--json', '-'];
+        if (process.env.BCA_SOLC_PATH) args.push('--solc', process.env.BCA_SOLC_PATH);
+        const result = await run('slither', args, { cwd, timeoutMs: timeoutMs ?? config.timeoutMs });
         let parsed: unknown = null;
         try { parsed = parseJsonOutput(result, 'slither'); } catch { /* 原样返回 */ }
         if (result.exitCode !== 0 && !parsed) {
@@ -192,7 +200,8 @@ export function developmentTools(config: Config) {
       z.strictObject({}), true,
       async () => {
         const cwd = await resolveWorkingDir(config);
-        return checkChain(config, cwd);
+        const { chainId } = await checkChain(config, cwd);
+        return { chainId };
       }),
 
     defineTool('dev_cast_block_number', '通过配置的 RPC 读取真实最新区块号。',
@@ -263,8 +272,9 @@ export function developmentTools(config: Config) {
       async ({ name }) => {
         const root = await readSkillRoot();
         if (name.includes('..') || name.includes('/') || name.includes('\\')) throw new Error('name 必须为技能目录名');
-        const path = join(root, name, 'SKILL.md');
-        if (!inside(root, path)) throw new Error('路径超出 BCA_SKILLS_ROOT');
+        const path = realpathSync(join(root, name, 'SKILL.md'));
+        if (!inside(realpathSync(root), path)) throw new Error('路径超出 BCA_SKILLS_ROOT');
+        if (statSync(path).size > config.maxFileBytes) throw new Error('SKILL.md 超过文件大小上限');
         const text = await readFile(path, 'utf8');
         return { name, path, bytes: Buffer.byteLength(text), content: text };
       }),

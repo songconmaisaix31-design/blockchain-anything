@@ -1,19 +1,15 @@
 # BCA 交接
 
-更新日期：2026-10-23。
+更新：2026-10-23。已批准的开发要求继续有效：只聚合成熟区块链基础设施，尽量复用官方 SDK/CLI/MCP/Skills；测试够用即可，错误局部修复、局部复测。
 
-用户已批准开发；项目只做成熟区块链工具聚合，复用官方 SDK/CLI/MCP/Skills，不自研协议；只做够用的测试，发现错误后局部修复、局部复测。原始目标与完整生态清单见 ChatGPT/Codex 桌面端线程 `01a166cb-b930-7970-b9b4-9b00d2239c5e`，关键结论已整理在 `.work/takeover-context.md`。
+本轮分支 codex/bca-s2-complete，基于生态分支 4194200；工具由 54 增至 104。代码入口为 src/toolkit.ts，新增实现按 chains/storage/wallets/agents/trading/provenance/identity 分组。README 已重写，配置见 .env.example 与 examples/services。
 
-当前分支 `codex/bca-ecosystem`。S1 的 20 个工具已完成并验证；S2 已由主 Agent 直接接手，交付 54 个工具：
+先读 [STATUS](STATUS.md) 和 [S2 逐项清单](tasks/S2-progress.md)。本轮通过了 build、check:s2、check:bridge、真实打包安装、本地 EAS 生命周期、OZ 编译/生成、Forge、Slither 分析、Sui/Aptos/Solana 公开读取、Arweave、VC、AgentKit 钱包详情、Solana Agent Kit balance、CCXT 公开行情和 Python MCP 示例。无需反复跑这些不相关路径。
 
-- MCP 桥接 6 个：标准 `mcpServers` 配置、stdio/Streamable HTTP、发现、调用、资源、提示。
-- 开发工具 12 个：solc 离线编译、Forge/Hardhat/Slither、Cast、Skills。
-- viem 6 个、EAS 扩展 10 个（批量、时间戳、Delegated、PrivateData）。
+下一步需要的是待验收项目的服务凭据、真实原生样本或已部署组件，详见清单。缺失时保持未验收；不硬编码凭据、不发送生产交易、不执行付费订阅。Kaito 没有已核实通用接口，GOAT 已停止维护。
 
-先读 [STATUS.md](STATUS.md)、[S2 进度](tasks/S2-progress.md)、[MCP 服务](docs/integrations/services.md)、[开发工具](docs/integrations/development.md) 和 [链与存储](docs/integrations/chains-storage.md)。
+AgentKit 工厂与 Solana Agent Kit 在独立 Worker 内执行。AgentKit 0.10.4 背景 analytics 存在未处理拒绝；不能去掉隔离后仍声称运行稳定。工具超时不代表链上操作未提交，不自动重试。
 
-仍未完成：外部 MCP 供应商的真实调用、Sign/SAS/Sui/Aptos/Walrus/Seal/Arweave、来源/身份、钱包/Agent 框架；`main` 尚未合并。当前阻塞是本机代理到外网上游超时（DeepSeek 可通）、GitHub 不可达，以及 Alchemy 账户手机验证需要用户完成。没有经过真实调用通过的项目不得标记为完成。
+新鲜 checkout 使用 Node 24、npm ci、npm run build。可选 Agent 宿主依赖需按 examples/agents 单独安装；来源验证工具需在 PATH 安装各官方 CLI。不要将开发机 .work 内临时程序和测试凭据当作产品依赖。
 
-必要检查已通过：`npm run typecheck`、`npm run build`、`npm run check:bridge`、真实 Anvil 上的 viem 与 EAS 扩展脚本、solc 离线编译、Skills 读取。具体命令和未执行项见 STATUS。
-
-远程为 `https://github.com/songconmaisaix31-design/blockchain-anything.git`；网络恢复后先推送当前分支，再按 S2 进度继续。
+所有生态项目真实验收后再合并 main，这一条件尚未满足。代码推送开发分支用于继续接入与审阅；保持 npm private:true。

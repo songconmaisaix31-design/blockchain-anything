@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "coinbase-wallet": {
+      "preset": "coinbase-wallet",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote@0.15.2",
+        "https://wallet-mcp.coinbase.com"
+      ]
+    }
+  }
+}

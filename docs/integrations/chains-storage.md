@@ -1,53 +1,32 @@
 # 链与存储
 
-更新日期：2026-10-23。当前已实际接入 viem 和 EAS 扩展；其他链/存储仍待逐项实现与验证。
+所有操作保留原生数据结构与标识，SDK 在调用时加载。以 `bca tools <name>` 的输入 Schema 为准。
 
-## viem
+| 组件 | 工具 | 配置与边界 |
+| --- | --- | --- |
+| ethers / viem | evm_*、viem_* | BCA_RPC_URL + BCA_CHAIN_ID；实际网络不符立即失败 |
+| EAS SDK | eas_*（20 个） | EAS/Registry 地址；包含批量、delegation、时间戳、PrivateData；不把签名有效等同于发行者可信 |
+| [Sign Protocol](https://docs.sign.global/developer-center/sign-protocol-client-sdk) | sign_schema、sign_attestation、sign_attest、sign_revoke | BCA_SIGN_CHAIN 为官方 EvmChains 名称，如 baseSepolia；同时核对 RPC 与该链；写入需开发密钥和 submit |
+| [Sui](https://sdk.mystenlabs.com/sui) | sui_balance、sui_object、sui_transaction、sui_transaction_inspect | BCA_SUI_RPC_URL 为 gRPC base URL；BCA_SUI_NETWORK 明确网络标签；inspect 离线解析交易 |
+| [Aptos](https://aptos.dev/build/sdks/ts-sdk) | aptos_ledger、aptos_account、aptos_view | BCA_APTOS_RPC_URL 含 /v1；view 支持标量参数 |
+| [Solana / SAS](https://github.com/solana-foundation/solana-attestation-service) | solana_balance、sas_attestation、sas_schema | BCA_SOLANA_RPC_URL；sas-lib 解码并检查 owner；调用方核对 schema、credential、signer 和 expiry |
+| multiformats / Kubo | content_*、ipfs_* | raw CID 与 UnixFS 根 CID 分开；IPFS add 需写入授权 |
+| [Walrus](https://docs.wal.app/usage/web-api.html) | walrus_read、walrus_store | BCA_WALRUS_AGGREGATOR / BCA_WALRUS_PUBLISHER；官方 HTTP /v1/blobs；上传文件可能消耗存储额度 |
+| [Seal](https://seal-docs.wal.app/) | seal_encrypt | Sui RPC + BCA_SEAL_SERVERS JSON；校验官方 key server，保留 packageId/id，返回密文不返回对称密钥 |
+| [Arweave](https://github.com/ArweaveTeam/arweave-js) | arweave_info、arweave_transaction、arweave_read、arweave_verify | 默认 arweave.net，可配置网关；有界读取；验签不代表网络已确认 |
 
-实现位于 `src/chains/viem.ts`，使用安装版本 viem 2.57.10。每次调用先核对 RPC 的实际 chain ID 与 `BCA_CHAIN_ID`，不匹配立即失败。
+Seal 服务器配置格式：
 
-| 工具 | 作用 |
-| --- | --- |
-| `viem_chain` | 连接、chain ID 核对、最新区块号 |
-| `viem_block` | 区块字段（不返回完整交易） |
-| `viem_balance` | 原生币余额（wei 字符串） |
-| `viem_read` | 只读合约调用（ABI 由调用者提供） |
-| `viem_transaction` | 交易与回执；未找到时 `found=false` |
-| `viem_logs` | 明确范围的 `eth_getLogs` |
+```json
+[
+  { "objectId": "0x<64个十六进制字符>", "weight": 1 }
+]
+```
 
-`BCA_IPV4_ONLY=true` 时使用 Node `http`/`https` 强制 IPv4 的 `fetchFn`，仅用于本机双栈异常环境；默认关闭。
+从 Seal 官方部署说明选择网络匹配的对象和 packageId，勿把示意值当作部署地址。S2 仅提供加密入口；策略部署、SessionKey 授权与解密仍由官方 Seal 集成承担。
 
-## EAS 扩展
+## 真实验证
 
-在原有 10 个 EAS 工具上新增：
+2026-10-23：Anvil 上 EAS 生命周期通过；此前已验证的 viem 与 EAS 扩展保留原结果。Sui testnet balance、Aptos testnet ledger（chain_id=2）、Solana devnet balance 读取通过。Arweave 网关信息、离线原生交易签名验证通过；Sui Transaction 离线解析通过。
 
-| 工具 | 作用 |
-| --- | --- |
-| `eas_multi_attest` | 一次交易批量声明，返回回执中的全部 UID |
-| `eas_multi_revoke` | 一次交易批量撤销 |
-| `eas_timestamp` | 官方合约链上时间戳 |
-| `eas_delegated_sign` / `eas_delegated_attest` | 官方 Delegated EIP-712 签名与中继提交 |
-| `eas_delegated_sign_revoke` / `eas_delegated_revoke` | Delegated 撤销签名与中继提交 |
-| `eas_private_data_build` | 官方 PrivateData 构造 Merkle 树与多值披露证明 |
-| `eas_private_data_verify` | 验证多值披露证明 |
-| `eas_private_data_verify_tree` | 从完整树重算根并比较 |
-
-PrivateData 的 Merkle 选择披露只证明被披露字段与根的关系，不等同于通用 ZK；链下验签仍不检查撤销、时间戳、有效期和发行者信任。
-
-## 实际验证（2026-10-23，真实 Anvil 31337）
-
-使用官方 `eas-contracts` artifacts 部署真实 SchemaRegistry 与 EAS 合约，然后通过统一 toolkit 调用：
-
-- 注册 Schema，`eas_multi_attest` 一次发布 2 条声明，返回 2 个不同 UID；`eas_get` 均能读回。
-- `eas_timestamp` 返回非零链上时间戳。
-- `eas_private_data_build` 生成根 `0x4784c6316dec257be063a96bf841e99b40f53562c45aaa7ced69c558633373aa`；`verify` 为 true，`verify_tree` 根匹配。
-- `eas_delegated_sign` + `eas_delegated_attest` 得到 UID `0x48ed3b8bfb02490f2f20f479b1f7ed3f50e92db723964943364bd4cbd060f6aa`；随后 Delegated 撤销成功，`revocationTime` 非零。
-- `eas_multi_revoke` 一次撤销 2 条声明，链上状态均更新。
-
-viem 在同一 Anvil 上完成：`viem_chain`、`viem_block`、`viem_balance`、部署 Counter、`viem_read`（0→1）、`viem_transaction`（交易与回执）和 `viem_logs`（0 条）全部通过。
-
-## 未完成
-
-- Sign Protocol、Solana Attestation Service、Sui SDK、Aptos SDK。
-- Walrus、Seal、Arweave。
-- 上述项目需要真实 SDK 安装、官方接口核对和实际调用；没有通过前不标记为支持。
+Sign/SAS 尚缺选定网络的真实声明样本；Walrus 上传/读取、Seal 真实 key server 加密尚未验证。未发送公共链交易、未上传用户文件。公开读路径验证不替代签署、存储和权限路径验收。

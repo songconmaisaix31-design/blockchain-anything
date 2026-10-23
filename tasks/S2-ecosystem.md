@@ -1,5 +1,7 @@
 # S2 成熟区块链生态接入
 
+> 本文保留初始轨道与授权范围。原 Worker 执行已停止，本轮由主 Agent 直接接手；实际实现与验收以 [S2-progress.md](S2-progress.md) 为准。
+
 日期：2026-10-23。基线 `a133367f45dcb87476aec137d17adc5b6d233b18`。用户授权接入其完整项目清单，实际测试通过后合并主线；继续只做工具聚合、复用成熟技术、局部修复和够用的测试。
 
 主 Agent 负责官方资料核对、浏览器授权、公共文档、协调、最终检查与 main 合并。开发客户端使用 Orca 管理的 OpenCode 2.0.31，显式选择官方 `deepseek/deepseek-flash`；本机 `auth list` 已确认 DeepSeek 凭证已保存。官方说明旧 V4 Flash 名称目前由 V4.1 Flash 提供服务；禁止切换到 Alibaba。每条轨道固定 Worker、Worktree、Branch，独占以下路径，不修改他人文件。完成后 commit/push，集成 Agent 最后统一连接工具目录和依赖。

@@ -3,6 +3,8 @@ import { Cli, Help, z } from 'incur';
 import { startMcpServer } from '../mcp/main.js';
 import { createToolkit } from '../toolkit.js';
 import type { ToolDefinition } from '../types.js';
+import { Console } from 'node:console';
+import { VERSION } from '../version.js';
 
 function describeTool(tool: ToolDefinition) {
   return {
@@ -40,7 +42,7 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
   const inputOptions = z.strictObject({ input: z.string().describe('工具输入的 JSON 对象；空输入也需传入 {}') });
   const cli = Cli.create('bca', {
     description: '成熟区块链工具聚合；bca tools 查看 Schema，bca mcp 启动官方 MCP stdio 服务',
-    version: '0.1.0',
+    version: VERSION,
     format: 'json',
     sync: false,
     update: false,
@@ -92,7 +94,7 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
   if (argv.length === 0 || argv.every((argument) => ['--help', '-h', '--json'].includes(argument))) {
     process.stdout.write(`${Help.formatRoot('bca', {
       description: '成熟区块链工具聚合',
-      version: '0.1.0',
+      version: VERSION,
       commands: [
         { name: 'tools [name]', description: '查看实际工具、完整输入 Schema 和读写标记' },
         { name: 'call <name> --input <JSON>', description: '调用共享工具' },
@@ -107,6 +109,7 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
 }
 
 if (import.meta.main) {
+  globalThis.console = new Console({ stdout: process.stderr, stderr: process.stderr });
   try {
     await main();
   } catch (error) {

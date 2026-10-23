@@ -11,6 +11,8 @@ export interface McpPreset {
   auth: McpAuth;
   docs: string;
   note?: string;
+  command?: string;
+  args?: string[];
 }
 
 /**
@@ -49,16 +51,16 @@ export const MCP_PRESETS: McpPreset[] = [
     id: 'tenderly',
     label: 'Tenderly',
     transport: 'http',
-    url: null,
+    url: 'https://mcp.tenderly.co/mcp',
     auth: 'account',
     docs: 'https://tenderly.co/blog/validating-agentic-workflows-with-tenderly-mcp-server/',
-    note: '官方托管 MCP；公开端点未核实，按官方文档配置。',
+    note: '官方托管 MCP，使用 OAuth 或操作者提供的授权头。',
   },
   {
     id: 'chainstack',
     label: 'Chainstack',
     transport: 'http',
-    url: null,
+    url: 'https://mcp.chainstack.com/mcp',
     auth: 'account',
     docs: 'https://github.com/chainstacklabs/mcp-server',
     note: '旧 rpc-nodes-mcp 已废弃；按统一 Chainstack MCP 文档配置。',
@@ -67,16 +69,16 @@ export const MCP_PRESETS: McpPreset[] = [
     id: 'thirdweb',
     label: 'thirdweb AI',
     transport: 'http',
-    url: null,
+    url: 'https://api.thirdweb.com/mcp',
     auth: 'account',
     docs: 'https://portal.thirdweb.com/changelog/nebula-is-now-thirdweb-ai',
-    note: '原 Nebula；公开 MCP 地址未核实，按官方文档配置。',
+    note: '原 Nebula；需要带 secretKey 查询参数的完整 URL，参见官方文档。',
   },
   {
     id: 'nansen',
     label: 'Nansen',
     transport: 'http',
-    url: null,
+    url: 'https://mcp.nansen.ai/ra/mcp',
     auth: 'api-key',
     docs: 'https://academy.nansen.ai/articles/2711728-get-started-with-nansen-mcp',
     note: '需要 Nansen 账户/API 权限。',
@@ -85,7 +87,7 @@ export const MCP_PRESETS: McpPreset[] = [
     id: 'dune',
     label: 'Dune',
     transport: 'http',
-    url: null,
+    url: 'https://api.dune.com/mcp/v1',
     auth: 'api-key',
     docs: 'https://dune.com/blog/dune-mcp',
     note: '需要 Dune 账户/API 权限。',
@@ -94,24 +96,24 @@ export const MCP_PRESETS: McpPreset[] = [
     id: 'tokenterminal',
     label: 'Token Terminal',
     transport: 'http',
-    url: null,
-    auth: 'api-key',
+    url: 'https://mcp.tokenterminal.com/mcp',
+    auth: 'oauth',
     docs: 'https://tokenterminal.com/docs/mcp/introduction',
-    note: '官方远程 MCP；需要订阅权限。',
+    note: '官方 OAuth 2.1；免费层提供有限 research 调用，订阅影响额度。',
   },
   {
     id: 'messari',
     label: 'Messari',
     transport: 'http',
-    url: null,
-    auth: 'api-key',
-    docs: 'https://docs.messari.io/api-reference/endpoints/ai/ai-api',
-    note: '官方文档注明企业权限要求。',
+    url: 'https://mcp.messari.io/mcp',
+    auth: 'oauth',
+    docs: 'https://docs.messari.io/mcp-server/hosted',
+    note: '官方 OAuth 流程使用 Messari API key；数据权限取决于账户。',
   },
   {
     id: 'goplus',
     label: 'GoPlus',
-    transport: 'http',
+    transport: 'stdio',
     url: null,
     auth: 'api-key',
     docs: 'https://github.com/GoPlusSecurity/goplus-mcp',
@@ -123,8 +125,16 @@ export const MCP_PRESETS: McpPreset[] = [
     transport: 'stdio',
     url: null,
     auth: 'local',
+    command: 'npx',
+    args: ['-y', '@openzeppelin/contracts-mcp@0.8.0'],
     docs: 'https://github.com/OpenZeppelin/openzeppelin-mcp',
-    note: '本地 npx/uvx 启动；命令由操作者配置。',
+    note: '官方 Contracts MCP 固定版本，通过独立进程复用；上游许可 AGPL-3.0-only。',
+  },
+  {
+    id: 'coinbase-wallet', label: 'Coinbase Wallet MCP', transport: 'http',
+    url: 'https://wallet-mcp.coinbase.com', auth: 'oauth',
+    docs: 'https://docs.cdp.coinbase.com/ai-agents/coinbase-for-agents/wallet-mcp',
+    note: '替代旧 Base MCP；由官方钱包授权流程连接。',
   },
   {
     id: 'slither',
@@ -221,8 +231,10 @@ function parseServer(name: string, raw: unknown): ResolvedServer {
   const preset = presetId ? PRESET_BY_ID.get(presetId) : undefined;
   if (presetId && !preset) throw new Error(`MCP 服务 ${name} 的 preset ${presetId} 未知`);
   const description = optionalString(server.description, `${name}.description`);
-  const urlValue = optionalString(server.url, `${name}.url`) ?? preset?.url ?? undefined;
-  const commandValue = optionalString(server.command, `${name}.command`);
+  const explicitUrl = optionalString(server.url, `${name}.url`);
+  const explicitCommand = optionalString(server.command, `${name}.command`);
+  const commandValue = explicitCommand ?? (explicitUrl ? undefined : preset?.command);
+  const urlValue = explicitUrl ?? (commandValue ? undefined : preset?.url ?? undefined);
 
   if (urlValue && commandValue) throw new Error(`MCP 服务 ${name} 不能同时配置 url 和 command`);
   if (urlValue) {
@@ -241,7 +253,7 @@ function parseServer(name: string, raw: unknown): ResolvedServer {
   if (!commandValue) throw new Error(`MCP 服务 ${name} 需要 url 或 command`);
   const command = expand(commandValue, `${name}.command`);
   if (/[\r\n\0]/.test(command)) throw new Error(`MCP 服务 ${name}.command 包含非法字符`);
-  const rawArgs = server.args;
+  const rawArgs = server.args ?? (explicitCommand ? undefined : preset?.args);
   if (rawArgs !== undefined && !Array.isArray(rawArgs)) throw new Error(`MCP 服务 ${name}.args 必须为数组`);
   const args = (rawArgs ?? []).map((item, index) => {
     if (typeof item !== 'string') throw new Error(`MCP 服务 ${name}.args[${index}] 必须为字符串`);
@@ -266,8 +278,6 @@ function parseDocument(text: string, source: string): Record<string, ResolvedSer
   return servers;
 }
 
-let cached: { key: string; servers: Record<string, ResolvedServer> } | undefined;
-
 export function configSource(): { inline: boolean; file: string | null } {
   const inline = Boolean(process.env.BCA_MCP_SERVERS);
   return { inline, file: process.env.BCA_MCP_CONFIG ?? null };
@@ -279,20 +289,12 @@ export async function loadMcpServers(): Promise<Record<string, ResolvedServer>> 
   if (inline && file) throw new Error('BCA_MCP_SERVERS 与 BCA_MCP_CONFIG 只能设置一个');
   if (!inline && !file) return {};
   if (inline) {
-    const key = `inline:${inline}`;
-    if (cached?.key === key) return cached.servers;
-    const servers = parseDocument(inline, 'BCA_MCP_SERVERS');
-    cached = { key, servers };
-    return servers;
+    return parseDocument(inline, 'BCA_MCP_SERVERS');
   }
   const path = isAbsolute(file!) ? file! : resolve(process.cwd(), file!);
   const text = await readFile(path, 'utf8');
   if (Buffer.byteLength(text) > 1024 * 1024) throw new Error('BCA_MCP_CONFIG 文件超过 1MB');
-  const key = `file:${path}:${text.length}`;
-  if (cached?.key === key) return cached.servers;
-  const servers = parseDocument(text, 'BCA_MCP_CONFIG');
-  cached = { key, servers };
-  return servers;
+  return parseDocument(text, 'BCA_MCP_CONFIG');
 }
 
 export function describeServers(servers: Record<string, ResolvedServer>) {

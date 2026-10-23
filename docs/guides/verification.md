@@ -33,7 +33,7 @@ npm run smoke -- --scope package
 
 本地 Anvil 结果、官方 MCP SDK 结果、公共测试网结果和原生 Codex 控制器审计分别记录。此脚本没有执行公共网络写入、生产交易、npm 公开发布或原生 Codex SQLite/HTTP/会话/event_id 审计。
 
-## 2026-10-23 实际结果
+## S1 历史结果（2026-10-23）
 
 Node.js 24.19.0、Anvil 1.7.1、Kubo 0.43.1 环境中，`npm run typecheck` 和 `npm run build` 通过。`npm run smoke -- --scope onchain` 通过真实链上完整生命周期，chain ID 为 31337，撤销后 `revocationTime` 从 0 变为非零。`npm run smoke -- --scope ipfs` 通过离线 add/read 的逐字节比较与超限拒绝。本次检查输入为提交 `2209990` 中 README 的实际 2909 字节，声明内容使用这份文件及其 CID；下面记录的 CID 对应这份检查输入。
 
@@ -45,3 +45,17 @@ Node.js 24.19.0、Anvil 1.7.1、Kubo 0.43.1 环境中，`npm run typecheck` 和 
 公共 Base Sepolia 单独执行 `node dist/cli/main.js call eas_status --input '{}'`，RPC 为 `https://sepolia.base.org`，chain ID 明确设置为 84532，写入关闭并清除私钥配置。地址读取自官方 eas-contracts 的 `deployments/base-sepolia` JSON：EAS `0x4200000000000000000000000000000000000021`、Registry `0x4200000000000000000000000000000000000020`。实际返回版本分别为 `1.4.1-beta.3`、`1.3.1-beta.2`，连接、合约代码与 Registry 关联检查全部通过。
 
 A 的核心签名与配置拒绝检查，以及 B 的标准 CLI/三个 stdio 入口检查已在交付时通过。集成使用其记录，未重复执行完整 `core`、`interfaces` 范围。
+
+## S2 局部检查
+
+当前主路径结果与未验证项目见 [STATUS](../../STATUS.md)。只选修改涉及的范围：
+
+```sh
+npm run build
+npm run check:bridge
+npm run check:s2
+```
+
+check:s2 只使用真实离线 SDK，覆盖新增密码学/序列化和框架转换边界；check:bridge 使用真实官方 MCP stdio/HTTP 服务。它们不替代有凭据的供应商验收。SDK 工厂隔离入口需要先构建 dist。
+
+新增服务配置后，先运行 bridge_discover 并选一个符合授权范围的真实工具；CLI/SDK 新路径仅调用该项。编译错误在对应配置或 import 处修复后复测该命令；Slither finding 保留在结果中，不靠忽略警告取得假成功。

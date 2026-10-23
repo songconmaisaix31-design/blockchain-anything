@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "slither": { "preset": "slither", "command": "uvx", "args": ["--from", "git+https://github.com/trailofbits/slither-mcp", "slither-mcp"] }
+  }
+}

@@ -1,7 +1,9 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { z } from 'zod';
+import { VERSION } from '../version.js';
 import type { Config } from '../config.js';
+import { requireWrites } from '../config.js';
 import { defineTool } from '../types.js';
 import { configSource, describeServers, loadMcpServers, presetList, type ResolvedServer } from './config.js';
 
@@ -47,16 +49,20 @@ async function withClient<T>(config: Config, serverName: string, operation: (cli
     if (stderrChunks.length > 8) stderrChunks.shift();
   };
   stderr?.on('data', onStderr);
-  const client = new Client({ name: 'bca', version: '0.1.0' });
+  const client = new Client({ name: 'bca', version: VERSION });
   try {
     await client.connect(transport, { timeout: config.timeoutMs });
     return await operation(client, server);
   } catch (error) {
-    if (error instanceof Error && stderrChunks.length > 0) {
-      const detail = Buffer.concat(stderrChunks).toString('utf8').trim().slice(0, 2000);
-      if (detail) error.message = `${error.message}；上游 stderr：${detail}`;
+    let message = error instanceof Error ? error.message : '上游 MCP 操作失败';
+    const credentials = server.transport === 'http' ? Object.values(server.headers) : Object.values(server.env);
+    for (const value of credentials) {
+      if (value) message = message.split(value).join('[REDACTED]');
+      const token = value.replace(/^(Bearer|Basic)\s+/i, '');
+      if (token) message = message.split(token).join('[REDACTED]');
     }
-    throw error;
+    // Child stderr may contain arbitrary provider credentials. Do not relay it.
+    throw new Error(message);
   } finally {
     stderr?.off('data', onStderr);
     await client.close().catch(() => undefined);
@@ -117,8 +123,22 @@ export function bridgeTools(config: Config) {
         tool: z.string().min(1).describe('上游 tools/list 中的工具名'),
         arguments: z.record(z.string(), z.json()).default({}),
         timeoutMs: z.number().int().positive().max(300_000).optional(),
+        submit: z.literal(true).optional().describe('上游工具未明确声明只读时必填'),
       }), false,
-      async ({ server: serverName, tool, arguments: args, timeoutMs }) => withClient(config, serverName, async (client, server) => {
+      async ({ server: serverName, tool, arguments: args, timeoutMs, submit }) => withClient(config, serverName, async (client, server) => {
+        let cursor: string | undefined;
+        let found: Awaited<ReturnType<typeof client.listTools>>['tools'][number] | undefined;
+        for (let page = 0; page < 20; page++) {
+          const listed = await client.listTools(cursor ? { cursor } : undefined, { timeout: config.timeoutMs });
+          found = listed.tools.find((item) => item.name === tool);
+          if (found || !listed.nextCursor) break;
+          cursor = listed.nextCursor;
+        }
+        if (!found) throw new Error(`上游 MCP 未知工具：${tool}`);
+        if (found.annotations?.readOnlyHint !== true) {
+          requireWrites(config, false);
+          if (submit !== true) throw new Error('上游工具未明确声明只读，需要 submit=true');
+        }
         const result = await client.callTool({ name: tool, arguments: args as Record<string, unknown> }, { timeout: timeoutMs ?? config.timeoutMs });
         if (result.isError) {
           const text = textOfContent(result.content) || '上游未返回错误文本';
@@ -164,5 +184,9 @@ export function bridgeTools(config: Config) {
         } while (cursor && pages < maxPages);
         return { server: server.name, prompts, nextCursor: cursor ?? null, pages };
       })),
+
+    defineTool('bridge_get_prompt', '读取官方 MCP prompt 内容，保留上游 messages。',
+      z.strictObject({ server: serverNameSchema, name: z.string().min(1), arguments: z.record(z.string(), z.string()).optional() }), true,
+      async ({ server: name, ...input }) => withClient(config, name, async (client) => client.getPrompt(input, { timeout: config.timeoutMs }))),
   ];
 }

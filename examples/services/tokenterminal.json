@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "tokenterminal": {
+      "preset": "tokenterminal",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote@0.15.2",
+        "https://mcp.tokenterminal.com/mcp"
+      ]
+    }
+  }
+}

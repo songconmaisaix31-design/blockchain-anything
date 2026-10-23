@@ -2,65 +2,83 @@
 
 **Tokenize nothing, attest everything.**
 
-BCA 是面向开发者和 AI Agent 的区块链工具聚合项目。一个 TypeScript 包，同时提供 CLI、MCP 和 SDK，复用成熟的声明协议、公链客户端和内容存储工具。
+BCA 把成熟的区块链工具接到统一的 **TypeScript SDK、CLI 和 MCP** 入口。生成合约用 OpenZeppelin，编译测试用 Foundry，安全分析用 Slither，链交互用官方 SDK，数据查询接供应商 MCP，钱包与 Agent 沿用已有框架。
 
-文档、数据集、模型、Agent 定义、工作流和事件都可以通过现有协议记录内容摘要、发布声明、引用前序声明及查询撤销状态。BCA 保留原生链账户、EAS UID、交易哈希和 CID，不建设自有链、代币、身份协议或 Hash 格式。
+我们只做工具聚合：配置、输入校验、参数转换、结果返回。保留上游 ABI、交易哈希、EAS UID、CID、DID 和证明格式；不建设自有链、代币、钱包、跨链桥或证明协议。
 
-## 已实现的工具
+## S2 能力
 
-CLI 和 MCP 共用同一份目录与执行函数，提供 **54 个工具**。
+当前目录有 **104 个工具**，三个入口共用实现。工具数量表示已提供调用入口；逐项真实验证结果见 [S2 接入清单](tasks/S2-progress.md)。
 
-| 工具组 | 数量 | 能力 | 复用的基础设施 |
-| --- | --- | --- | --- |
-| EVM | 5 | 配置状态、网络/区块、余额、回执、EIP-191 消息验签 | ethers |
-| EAS | 20 | Schema 编解码/查询/注册、连接检查、声明发布/查询/撤销、链下签名/验签、批量声明/撤销、时间戳、Delegated、PrivateData | EAS 官方 SDK 与官方合约 |
-| Content | 2 | 实际文件 CID、CID 解析 | multiformats、CIDv1/raw、SHA-256 |
-| IPFS | 3 | 节点状态、文件添加、内容读取 | kubo-rpc-client、Kubo |
-| MCP | 6 | 操作者配置的 MCP 服务发现、tools/list、callTool、资源与提示读取 | 官方 MCP TypeScript SDK |
-| 开发 | 12 | 离线 Solidity 编译、Forge 构建/测试、Hardhat 编译、Slither 分析、Cast 只读调用、Skills 发现/读取 | solc、Forge/Cast、Hardhat、Slither、官方 Skills |
-| viem | 6 | 链/区块/余额、只读合约调用、交易与回执、事件日志 | viem |
+| 工具组 | 数量 | 复用与能力 |
+| --- | ---: | --- |
+| EVM / viem | 11 | ethers、viem：链、区块、余额、回执、日志、只读合约调用、消息验签 |
+| EAS | 20 | 官方 SDK：Schema、声明、撤销、链下签名、批量、delegation、时间戳、PrivateData |
+| 内容 / IPFS | 5 | multiformats、Kubo：raw CID、UnixFS add/read |
+| 外部 MCP | 7 | 官方 MCP SDK：发现、调用、资源、提示；HTTP / stdio |
+| 合约开发 / Skills | 12 | solc 0.8.35、Forge/Cast、Hardhat、Slither、已安装官方 Skills |
+| 其他链与声明 | 14 | Sui、Aptos、Solana Kit、SAS、Sign Protocol |
+| 存储与隐私 | 7 | Walrus HTTP、Seal SDK、arweave-js |
+| 钱包与支付 | 5 | Safe 查询/交易准备、x402 解码/授权验证 |
+| 市场与交易服务 | 4 | CCXT 公开行情、Hummingbot 状态 |
+| 来源与身份 | 12 | OTS、RISC Zero verifier、Cosign、SLSA、in-toto、C2PA、OpenLineage、did:key、VC-JWT、cheqd |
+| Agent 与意图服务 | 7 | AgentKit / Solana Agent Kit actions、Brian、Bankr、Heurist Mesh |
 
-外部 MCP 服务由操作者通过标准 `mcpServers` JSON 配置，工具调用者只能选择服务名和上游工具名，不能传入任意 URL、命令或 Token。公开 keyless 的 CoinGecko、Allium、Alchemy 等入口已在预设中登记；需要 OAuth 或账户权限的服务仍按官方流程授权，登录网页成功不等于 MCP 调用已通过。
+另提供 elizaOS action、官方 GAME Function、OpenAI function schema 和 Python MCP 消费示例，便于 Olas 等上层 Agent 调用 BCA。宿主框架负责模型、任务循环和钱包授权。
 
-文件的 raw CID 与 IPFS UnixFS 根 CID 分别返回。签名和内容摘要各自说明已执行的验证范围；发布者关于来源、质量和现实身份的声明仍需调用者判断可信度。
+## 快速开始
 
-## 安装与使用
-
-使用 Node.js 24 LTS；当前支持基线为 24.16.0。从仓库源码安装：
+需要 Node.js 24（>=24.16.0，<25）。仓库暂保持 `private: true`，从源码运行：
 
 ```sh
 npm ci
 npm run build
 node dist/cli/main.js tools
 node dist/cli/main.js tools content_cid
-node dist/cli/main.js content cid --input '{"path":"README.md"}'
-node dist/cli/main.js call evm_status --input '{}'
+node dist/cli/main.js call content_cid --input '{"path":"README.md"}'
+node dist/cli/main.js call dev_solidity_compile --input '{"path":"examples/contracts/src/ExampleToken.sol"}'
 ```
 
-JSON 参数示例适用于 Bash 和 PowerShell 7。需要短命令时可运行 `npm link`，随后使用 `bca`。
+`tools <name>` 返回完整输入 Schema 与读写标记。也可以运行 `npm link` 后使用 `bca`。参数示例适用于 Bash / PowerShell 7。
 
-`bca tools <name>` 返回完整输入 Schema 和读写标记。无网络配置时仍可计算 CID、编解码 Schema、验证个人消息。错误返回非零退出码。
+配置参考 [.env.example](.env.example)，按需要填入服务。显式加载环境文件：
+
+```sh
+node --env-file=.env dist/cli/main.js call eas_status --input '{}'
+```
+
+## 接入已有 MCP
+
+公开示例同时连接 CoinGecko 与 OpenZeppelin Contracts MCP：
+
+```sh
+BCA_MCP_CONFIG=examples/services/public.json node dist/cli/main.js call bridge_discover --input '{"server":"coingecko"}'
+BCA_MCP_CONFIG=examples/services/public.json node dist/cli/main.js call bridge_call --input '{"server":"coingecko","tool":"search_docs","arguments":{"query":"simple price endpoint","language":"typescript"}}'
+```
+
+先发现上游工具与 Schema，再按返回值调用。OpenZeppelin 通过固定版本的官方进程运行；首次启动需要下载 npm 包。Dune、Nansen、Allium、thirdweb、Chainstack、GoPlus 和 OAuth 服务的配置见 [服务指南](docs/integrations/services.md) 与 [示例](examples/services/)。
+
+BCA 读取标准 `mcpServers` JSON。HTTP 凭据由操作者配置；OAuth 复用 `mcp-remote`。上游未明确标为只读的工具，需要 `BCA_ALLOW_WRITES=true` 和本次 `submit:true`。
 
 ## MCP 与 SDK
 
-三个入口启动相同的官方 MCP stdio 服务：
-
 ```sh
 node dist/mcp/main.js
+# 等价入口
 node dist/cli/main.js mcp
 node dist/cli/main.js --mcp
 ```
 
-支持 `mcpServers` 格式的客户端可以使用以下配置，将目录替换为本机绝对路径：
+MCP 客户端配置：
 
 ```json
 {
   "mcpServers": {
     "bca": {
       "command": "node",
-      "args": ["C:/projects/blockchain-anything/dist/mcp/main.js"],
+      "args": ["/absolute/path/blockchain-anything/dist/mcp/main.js"],
       "env": {
-        "BCA_WORKING_ROOT": "C:/projects/blockchain-anything",
+        "BCA_WORKING_ROOT": "/absolute/path/blockchain-anything",
         "BCA_ALLOW_WRITES": "false"
       }
     }
@@ -68,57 +86,36 @@ node dist/cli/main.js --mcp
 }
 ```
 
-在已安装本地包的应用中使用相同的 SDK：
+在本地安装此包的应用中：
 
 ```ts
-import { createToolkit } from 'blockchain-anything';
+import { createToolkit, asFunctionTools } from 'blockchain-anything';
 
 const toolkit = createToolkit();
 const result = await toolkit.invoke('content_cid', { path: 'README.md' });
+const functions = asFunctionTools(toolkit);
 ```
 
-完整调用示例见 [使用指南](docs/guides/usage.md)。
+## 使用边界
 
-## 网络、存储与签署配置
+- EVM 操作核对配置的 chain ID；其他链使用明确配置的 RPC。金额和大整数保留字符串，原生协议标识不改写。
+- 链写入、签署、上传及可能执行交易的 Agent 调用需要写入开关和 `submit:true`。本地编译/测试会写构建产物；这些开发命令在工作目录内执行。
+- 私钥只从受控本地开发环境读取。Safe 入口只准备交易，x402 入口不结算，CCXT 入口只读取公开市场数据。
+- CID 表示内容一致，验签表示签名有效，来源工具按其原生报告返回。验证范围、信任、撤销和网络确认分别说明。
+- 文件读取拒绝目录越界和符号链接逃逸。配置的 SDK 工厂、Hardhat 配置、Forge 项目与 in-toto layout 都是可执行代码，应由操作者管理。
+- 不自动重试业务写入。超时或进程异常可能发生在提交后，应先查询原生交易或任务状态。
 
-根据 [.env.example](.env.example) 配置实际服务，并显式加载环境文件：
+## 开发约定
 
-```sh
-node --env-file=.env dist/cli/main.js eas status --input '{}'
-```
+优先使用成熟的官方 SDK、CLI、MCP 与 Skills；适配层保持薄。依赖固定版本并提交 lockfile。只做够用的验证：运行必要路径，出现问题就在对应位置修复、局部复测，不堆测试框架和覆盖率指标。
 
-- EVM：`BCA_RPC_URL`、`BCA_CHAIN_ID`。
-- EAS：`BCA_EAS_ADDRESS`、`BCA_SCHEMA_REGISTRY_ADDRESS`。
-- IPFS：`BCA_IPFS_URL`。
-- 外部 MCP：`BCA_MCP_CONFIG` 或 `BCA_MCP_SERVERS`，使用标准 `mcpServers` JSON；凭证只放在操作者配置或环境变量中。
-- 文件范围：`BCA_WORKING_ROOT`，并设置文件与读取大小限制。
-- 写入：默认关闭；需要 `BCA_ALLOW_WRITES=true` 和调用中的 `submit:true`。EAS 写入及签署还需要受控本地开发签署器。
-- 受限网络：仅当本机双栈导致 RPC 连接异常时设置 `BCA_IPV4_ONLY=true`。
+本轮已跑通 EAS 本地生命周期、真实 MCP 两种传输、OZ 合约生成与编译、Forge 测试、Slither 分析、三条公链的公开读取、VC/Arweave 验签，以及 AgentKit 的本地钱包读取。其余服务的配置、已实现入口和待验收条件在状态文档逐项列明；需要账户的服务尚未全部联网验收。
 
-网络没有隐式默认值。每次链调用核对实际 chain ID，EAS 调用还核对合约代码、Registry 关联与版本。交易只广播一次；等待回执失败时保留交易哈希供查询。
-
-私钥仅从受控本地进程配置读取，不作为 CLI 或 MCP 参数传递。生产钱包和密钥设施尚未接入。链上声明字段公开，IPFS add 会向配置的节点传输文件。详细配置及返回语义见 [适配器指南](docs/guides/providers.md)。
-
-## 开发要求
-
-- 尽可能复用成熟区块链基础设施、官方 SDK 和库。项目代码集中在配置、参数转换、错误传播与入口适配。
-- CLI、MCP 与 SDK 共用实现，保留原协议语义和标识。
-- 错误在发生位置报告，不返回伪造成功结果，不自动替换后端或重试业务写入。
-- 使用真实文件、SDK 和节点，禁止 mock、伪造 API 或虚构原生协议。
-- 只做够用的测试：运行必要主路径，发现错误后局部修改、局部复测；保留必要的类型和构建检查。
-- 修改文件遵守互斥所有权，使用文件编辑工具；开发、检查、返修和交付由对应 Worker 持续负责。
-
-## 支持边界与项目文档
-
-当前工具覆盖 EAS/EVM、CID/Kubo、MCP stdio/Streamable HTTP 客户端、Forge/Cast/Hardhat/Slither/solc 和 viem。EAS 已补齐批量声明/撤销、时间戳、Delegated 与 PrivateData；链下验签仍明确返回尚未执行的撤销、时间戳、有效期和信任检查。包保持 `private: true`。
-
-外部 MCP 供应商、Sign Protocol、SAS、Sui/Aptos、Walrus/Seal/Arweave、来源/身份（OTS、RISC Zero、cheqd、VC、in-toto、SLSA、Cosign、OpenLineage、C2PA）和钱包/Agent 框架仍在逐项接入；没有实际调用通过的项目不会标记为完成。实际验证命令、运行环境和未执行事项见 [STATUS](STATUS.md)，按需复测方法见 [运行检查指南](docs/guides/verification.md)。
-
-- [MCP 服务聚合](docs/integrations/services.md) · [开发工具](docs/integrations/development.md) · [链与存储](docs/integrations/chains-storage.md)
-- [产品规格](docs/SPEC.md) · [工具与公链资料](docs/TOOLBOX.md)
-- [REA 结构参考](docs/REA-REFERENCE.md) · [已审批决定](docs/QUESTIONS.md)
-- [开发任务](docs/TASKS.md) · [S2 进度](tasks/S2-progress.md) · [交接](HANDOFF.md)
+- [实际验证与限制](STATUS.md) · [S2 逐项进度](tasks/S2-progress.md) · [复测指南](docs/guides/verification.md)
+- [服务与 MCP](docs/integrations/services.md) · [开发与 Skills](docs/integrations/development.md) · [链与存储](docs/integrations/chains-storage.md)
+- [钱包与 Agent](docs/integrations/wallets-agents.md) · [来源与身份](docs/integrations/provenance.md)
+- [已审批决定](docs/QUESTIONS.md) · [规格](docs/SPEC.md) · [交接](HANDOFF.md)
 
 ## 许可证
 
-[MIT](LICENSE)。第三方组件保留各自的许可和署名。
+BCA 使用 [MIT](LICENSE)。第三方组件保留各自许可；例如 OpenZeppelin Contracts MCP 通过独立进程调用，遵循其 AGPL-3.0-only 许可。

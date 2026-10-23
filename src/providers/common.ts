@@ -24,6 +24,9 @@ export function safeError(error: unknown, config: Config): Error {
   const original = error instanceof Error ? error.message : '操作失败';
   let message = original;
   const secrets = [config.privateKey, config.rpcUrl, config.ipfsUrl].filter((v): v is string => Boolean(v));
+  for (const [name, value] of Object.entries(process.env)) {
+    if (value && value.length >= 4 && /(?:KEY|TOKEN|SECRET|PASSWORD|AUTH|CREDENTIAL)/i.test(name)) secrets.push(value);
+  }
   for (const endpoint of [config.rpcUrl, config.ipfsUrl]) {
     if (!endpoint) continue;
     const url = new URL(endpoint);
