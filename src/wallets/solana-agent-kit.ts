@@ -9,6 +9,16 @@ interface SolanaTokenMethods {
   getTokenDataByAddress(mint: unknown): Promise<Record<string, unknown>>;
 }
 
+function withTimeout<T>(config: WalletConfig, promise: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Solana 操作超过 BCA_TIMEOUT_MS')), config.base.timeoutMs);
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error) => { clearTimeout(timer); reject(error); },
+    );
+  });
+}
+
 async function agentFor(config: WalletConfig) {
   if (!config.solanaRpcUrl) throw new Error('需要 BCA_SOLANA_RPC_URL');
   const { Keypair } = await import('@solana/web3.js');
@@ -62,8 +72,8 @@ export function solanaAgentKitTools(config: WalletConfig) {
       true,
       async () => {
         const { agent, methods, signerMode, address } = await agentFor(config);
-        const uiAmount = await methods.get_balance(agent);
-        const lamports = await agent.connection.getBalance(agent.wallet.publicKey);
+        const uiAmount = await withTimeout(config, methods.get_balance(agent));
+        const lamports = await withTimeout(config, agent.connection.getBalance(agent.wallet.publicKey));
         return {
           sdk: 'solana-agent-kit',
           plugin: '@solana-agent-kit/plugin-token',
@@ -83,7 +93,7 @@ export function solanaAgentKitTools(config: WalletConfig) {
       true,
       async () => {
         const { agent, methods, signerMode } = await agentFor(config);
-        const tps = await methods.getTPS(agent);
+        const tps = await withTimeout(config, methods.getTPS(agent));
         return { sdk: 'solana-agent-kit', plugin: '@solana-agent-kit/plugin-token', signerMode, tps, connectionVerified: true };
       },
     ),
@@ -94,7 +104,7 @@ export function solanaAgentKitTools(config: WalletConfig) {
       true,
       async ({ ticker }) => {
         const { methods } = await agentFor(config);
-        const address = await methods.getTokenAddressFromTicker(ticker);
+        const address = await withTimeout(config, methods.getTokenAddressFromTicker(ticker));
         if (!address) throw new Error(`Dexscreener 未找到 Solana ticker：${ticker}`);
         return { sdk: 'solana-agent-kit', plugin: '@solana-agent-kit/plugin-token', ticker, address };
       },
@@ -107,7 +117,7 @@ export function solanaAgentKitTools(config: WalletConfig) {
       async ({ mint }) => {
         const { agent, methods, signerMode } = await agentFor(config);
         const { PublicKey } = await import('@solana/web3.js');
-        const data = await methods.getTokenDataByAddress(new PublicKey(mint));
+        const data = await withTimeout(config, methods.getTokenDataByAddress(new PublicKey(mint)));
         return { sdk: 'solana-agent-kit', plugin: '@solana-agent-kit/plugin-token', signerMode, mint, data };
       },
     ),
