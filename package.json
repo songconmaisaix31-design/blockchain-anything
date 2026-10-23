@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "description": "成熟区块链工具的 TypeScript、CLI 与 MCP 入口",
-  "engines": { "node": ">=24 <25" },
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/songconmaisaix31-design/blockchain-anything.git" },
+  "engines": { "node": ">=24.16.0 <25" },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
