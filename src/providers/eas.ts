@@ -87,7 +87,8 @@ export function easTools(config: Config) {
       async () => withEas(config, async ({ version, registryVersion }) => ({ chainId: config.chainId, easAddress: config.easAddress, registryAddress: config.registryAddress, version, registryVersion, connectionVerified: true, contractCodeVerified: true, registryAssociationVerified: true }))),
     defineTool('eas_schema_get', '从已核验的 SchemaRegistry 查询原生 Schema UID。', z.strictObject({ uid: uidSchema }), true,
       async ({ uid }) => withEas(config, async ({ registry }) => {
-        const schema = await registry.getSchema({ uid });
+        const record = await registry.getSchema({ uid });
+        const schema = { uid: record.uid, resolver: record.resolver, revocable: record.revocable, schema: record.schema };
         return { found: schema.uid !== ZeroHash, schema, chainId: config.chainId };
       })),
     defineTool('eas_schema_register', '向配置的 EAS SchemaRegistry 注册公开 Schema；交易需要支付网络费用。',
@@ -119,7 +120,12 @@ export function easTools(config: Config) {
       }),
     defineTool('eas_get', '查询 EAS 链上声明原始字段，包括 expirationTime 和 revocationTime。', z.strictObject({ uid: uidSchema }), true,
       async ({ uid }) => withEas(config, async ({ eas }) => {
-        const attestation = await eas.getAttestation(uid);
+        const record = await eas.getAttestation(uid);
+        const attestation = {
+          uid: record.uid, schema: record.schema, refUID: record.refUID,
+          time: record.time, expirationTime: record.expirationTime, revocationTime: record.revocationTime,
+          recipient: record.recipient, revocable: record.revocable, attester: record.attester, data: record.data,
+        };
         return { found: attestation.uid !== ZeroHash, attestation, chainId: config.chainId };
       })),
     defineTool('eas_revoke', '由签署账户执行 EAS 链上撤销，撤销状态公开且需要网络费用。',

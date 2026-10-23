@@ -53,6 +53,8 @@
 
 金额、chain ID、EAS 时间戳在工具输入中使用十进制字符串；`revocable` 使用 JSON boolean。`expirationTime` 默认 `"0"` 表示无过期时间；`recipient` 和 `resolverAddress` 默认零地址；`refUID` 默认零 bytes32；`valueWei` 默认 `"0"`。Schema 字段保留官方类型和值的语义，大整数使用字符串，ABI 解析由官方 SchemaEncoder 完成。
 
+`eas_schema_get` 的 `schema` 为具名对象，包含 `uid, resolver, revocable, schema`。`eas_get` 的 `attestation` 为具名对象，包含 `uid, schema, refUID, time, expirationTime, revocationTime, recipient, revocable, attester, data`，其中三个时间字段均为十进制字符串。读取结果按官方 SDK 字段显式投影。缺失 Schema 沿用 SDK 行为，抛出 `Schema not found`；缺失声明返回 `found:false`，并保留合约返回的完整零值字段。
+
 ## 写入与签名
 
 Schema 注册、声明、撤销和链下签署同时需要 `BCA_ALLOW_WRITES=true`、本地开发签署器及输入中的 `submit:true`。IPFS add 需要写入开启和 `submit:true`。所有这些工具标记为 `readOnly:false`。
@@ -81,3 +83,5 @@ EAS SDK 构造交易，ethers 完成填充、签署、提交与一次确认的�
 类型检查 `npm run typecheck` 与构建 `npm run build` 已通过。本轨道运行 `npx tsx .work/adapter-check.ts`，读取真实 README 文件，检查 CID、Schema 编解码、配置缺失、越界路径、严格输入和 EIP-191；在 Anvil chain ID 31337 部署官方 EAS/SchemaRegistry 1.7.1，检查合约代码、domain、链下签名、篡改拒绝、错误 chain ID 与无合约代码地址拒绝，全部通过。检查后已终止该脚本启动的 Anvil。
 
 完整 EAS Schema/attest/revoke 生命周期、Kubo add/read、CLI/MCP 与包入口检查由集成轨道的 `npm run smoke` 执行。公共 Base Sepolia 交易、生产交易、npm 发布及原生 Codex 控制器审计不属于本轨道已验证结果。
+
+EAS 读取局部检查 `npx tsx .work/eas-read-check.ts` 已通过：在独立 loopback Anvil 部署官方合约并准备真实 Schema/声明，核对两个读取工具的全部命名字段、缺失 UID 的实际结果和超过安全整数范围的十进制时间字符串。`npm run typecheck` 已通过；局部检查启动的 Anvil 已在 finally 中终止。
