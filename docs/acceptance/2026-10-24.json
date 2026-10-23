@@ -1,0 +1,246 @@
+{
+  "implementationSha": "683d08d66069f3d1af1ebafce9d7daa68aefad32",
+  "baselineSha": "3db7f1f739b87dea848851babebd0f0fae585a41",
+  "date": "2026-10-24",
+  "timezone": "Asia/Shanghai",
+  "regressions": {
+    "environment": {
+      "node": "v24.19.0",
+      "platform": "linux",
+      "arch": "x64"
+    },
+    "at": "2026-10-23T19:37:21.104Z",
+    "configurationIsolation": "passed: invalid signer/IPFS does not prevent CID or discovery",
+    "controlledRpc": "passed: raw topics/OR/null positions preserved; rate limit throws stage-specific unknown, malformed topic rejected",
+    "processTree": {
+      "timeoutElapsedMs": 508,
+      "timeoutLimitMs": 500,
+      "cleanupDeadlineMs": 2000,
+      "timeoutAndCheckElapsedMs": 1177,
+      "noFurtherDescendantWrites": true,
+      "outputLimit": "passed",
+      "cancellation": "passed",
+      "normalRun": "passed"
+    },
+    "failureContract": "passed: CLI exit 2; MCP isError true; official compiler diagnostics retained"
+  },
+  "onchain": {
+    "environment": {
+      "node": "v24.19.0",
+      "platform": "linux",
+      "arch": "x64"
+    },
+    "at": "2026-10-23T19:36:28.226Z",
+    "transactionDiagnosis": {
+      "hash": "0x91a470405a739d5e2f6220da745a478a3a6163196de98f686d0ea0a0b20d8a9f",
+      "chainId": 31337,
+      "blockNumber": "7",
+      "source": {
+        "file": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
+        "byteOffset": 6290,
+        "byteLength": 50,
+        "line": 183,
+        "excerpt": "ERC20InsufficientBalance(from, fromBalance, value)",
+        "pc": 2352,
+        "evidence": "matching runtime bytecode + solc sourceMap + trace PC"
+      },
+      "error": {
+        "abiItem": {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "sender",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "balance",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "needed",
+              "type": "uint256"
+            }
+          ],
+          "name": "ERC20InsufficientBalance",
+          "type": "error"
+        },
+        "args": [
+          "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          "0",
+          "20"
+        ],
+        "errorName": "ERC20InsufficientBalance"
+      },
+      "complete": true
+    },
+    "realLogs": {
+      "count": 2,
+      "includesNoise": false,
+      "positionalOrFilter": true,
+      "transactionStates": [
+        "confirmed",
+        "pending",
+        "not_found",
+        "failed"
+      ]
+    },
+    "contractWorkflow": {
+      "framework": "Foundry 1.7.1",
+      "dependency": "@openzeppelin/contracts 5.6.1",
+      "compiler": "0.8.35+commit.47b9dedd.Emscripten.clang",
+      "compile": "passed",
+      "test": "testTransfer passed",
+      "deployment": {
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "deployedTo": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+        "transactionHash": "0x8c4d294c10d292092d529161e559859d25b1d65207546e9983f2298c8a71b7ec"
+      },
+      "totalSupply": "1000"
+    },
+    "discovery": "passed: Chinese/English, unrelated query and unsupported chain"
+  },
+  "sessions": {
+    "upstream": "@openzeppelin/contracts-mcp@0.8.0",
+    "tool": "solidity-erc20",
+    "ephemeral": {
+      "calls": 2,
+      "starts": 2,
+      "elapsedMs": 546
+    },
+    "session": {
+      "calls": 2,
+      "starts": 1,
+      "includesExplicitDiscovery": true,
+      "elapsedMs": 259
+    },
+    "schemaDigest": "e6050cf71b08c2f62f77b0c34832a91cfc889588c8122eaa6a12d75d751c4013",
+    "upstreamTools": 33,
+    "malformedSupplierIsolation": "passed",
+    "credentialChangeInvalidates": "passed, no replay",
+    "disconnect": "passed, no replay",
+    "explicitReconnect": "passed",
+    "at": "2026-10-23T19:30:38.703Z"
+  },
+  "installation": {
+    "artifact": "blockchain-anything-0.3.0.tgz",
+    "shasum": "8ead6115e37bc49f039de278feec59d54e059f10",
+    "integrity": "sha512-NxJ1jlmel1M44Q4Ji7cJaHN9uoUlepur1J3NARMJlOqpgbVbt+w4x6c7tan/aJ/iE8OmBea/UqOsaOmgpKRurg==",
+    "entry": "npm exec --yes --package <actual.tgz> -- bca setup --client both --install",
+    "persistentRuntime": true,
+    "components": "official Foundry 1.7.1",
+    "preservedOtherClientConfig": true,
+    "preservedBcaEnv": true,
+    "backups": true,
+    "idempotent": true,
+    "installedMcpCid": "passed",
+    "installedWorkstationDiscovery": "passed",
+    "doctor": [
+      {
+        "name": "Node",
+        "status": "passed",
+        "value": "24.19.0",
+        "check": "local/configuration",
+        "repair": null
+      },
+      {
+        "name": "forge",
+        "status": "passed",
+        "value": "forge Version: 1.7.1",
+        "check": "local/configuration",
+        "repair": null
+      },
+      {
+        "name": "cast",
+        "status": "passed",
+        "value": "cast Version: 1.7.1",
+        "check": "local/configuration",
+        "repair": null
+      },
+      {
+        "name": "anvil",
+        "status": "passed",
+        "value": "anvil Version: 1.7.1",
+        "check": "local/configuration",
+        "repair": null
+      },
+      {
+        "name": "codex",
+        "status": "failed",
+        "reason": "程序不存在或 --version 失败",
+        "check": "local/configuration",
+        "repair": "按对应官方文档安装客户端；可仅使用另一个客户端"
+      },
+      {
+        "name": "claude",
+        "status": "failed",
+        "reason": "程序不存在或 --version 失败",
+        "check": "local/configuration",
+        "repair": "按对应官方文档安装客户端；可仅使用另一个客户端"
+      },
+      {
+        "name": "claude MCP config",
+        "status": "passed",
+        "value": {
+          "configured": true,
+          "runtimeExists": true,
+          "clientConnectionVerified": false
+        },
+        "check": "local/configuration",
+        "repair": null
+      },
+      {
+        "name": "codex MCP config",
+        "status": "passed",
+        "value": {
+          "configured": true,
+          "runtimeExists": true,
+          "clientConnectionVerified": false
+        },
+        "check": "local/configuration",
+        "repair": null
+      },
+      {
+        "name": "provider configuration",
+        "status": "passed",
+        "value": {
+          "evmConfigured": true,
+          "writesEnabled": false,
+          "connectionVerified": false
+        },
+        "check": "local/configuration",
+        "repair": null
+      },
+      {
+        "name": "configured MCP",
+        "status": "passed",
+        "value": {
+          "names": [],
+          "connectionVerified": false
+        },
+        "check": "local/configuration",
+        "repair": null
+      }
+    ],
+    "clientUiAuthorization": "not tested: configuration and real MCP launch only",
+    "platform": "linux",
+    "at": "2026-10-23T19:37:51.628Z"
+  },
+  "publicSourceRead": {
+    "chainId": 11155111,
+    "address": "0x2738d13E81e30bC615766A0410e7cF199FD59A83",
+    "blockNumber": "11978766",
+    "source": "Sourcify v2 + Sepolia PublicNode RPC",
+    "found": true,
+    "bytecodeMatched": true,
+    "observedDate": "2026-10-24 Asia/Shanghai",
+    "scope": "read-only, no verification submission"
+  },
+  "invalidSignerCall": {
+    "tool": "eas_offchain_sign",
+    "result": "配置错误 (signer)：BCA_PRIVATE_KEY 无效",
+    "onchainSubmitted": false
+  },
+  "validatedTreeSha": "1e7d875aed46b266812a16d5aa543c6eda302ed1"
+}
