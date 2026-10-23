@@ -10,7 +10,7 @@
 
 | 轨道 | 内容 | 实际验证 |
 | --- | --- | --- |
-| M / MCP 桥接 | `src/bridge/`：配置解析、预设、stdio/Streamable HTTP、discover/call/resources/prompts | `npm run check:bridge`：真实 stdio MCP 初始化、26 个工具（当时目录）、完整 Schema、真实 CID 调用、上游错误失败 |
+| M / MCP 桥接 | `src/bridge/`：配置解析、预设、stdio/Streamable HTTP、discover/call/resources/prompts | `npm run check:bridge`：真实 stdio + 本地 Streamable HTTP MCP 初始化、54 个工具、完整 Schema、真实 CID 调用、上游错误失败 |
 | D / 开发工具 | `src/development/`：solc 离线编译、Forge 构建/测试、Hardhat、Slither、Cast、Skills | `dev_status`、`dev_solidity_compile`（Counter 编译成功）、`dev_skill_list/read` 通过；Forge 因本机无 solc 且网络被阻断返回真实失败；Cast 受本会话 TCP 限制未复测 |
 | C / 链与存储（部分） | `src/chains/`：viem 6 个工具；EAS 新增批量、时间戳、Delegated、PrivateData 10 个工具 | 真实 Anvil：viem 部署/读写/回执/日志通过；EAS 多声明、时间戳、PrivateData、Delegated 签名/提交/撤销、批量撤销全部通过 |
 | I / 集成 | `src/toolkit.ts` 汇总 54 个工具；CLI/MCP/SDK 自动共享 | `npm run typecheck`、`npm run build`、`npm run check:bridge` 通过 |

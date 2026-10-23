@@ -23,7 +23,7 @@
 | 命令 | 结果 |
 | --- | --- |
 | `npm run typecheck`、`npm run build` | 通过 |
-| `npm run check:bridge` | 通过；真实 stdio MCP，初始化成功，26 个工具（当时目录），真实 CID，上游错误使外层失败 |
+| `npm run check:bridge` | 通过；真实 stdio + Streamable HTTP MCP，初始化成功，54 个工具，真实 CID，上游错误使外层失败 |
 | `node dist/cli/main.js call dev_status --input '{}'` | Forge/Cast/Anvil 1.7.1、Hardhat 本地依赖、solc 0.7.3、Slither 未安装 |
 | `node dist/cli/main.js call dev_solidity_compile --input '{"path":"examples/contracts/src/Counter.sol"}'` | 编译成功，返回 ABI/bytecode，无诊断 |
 | `node dist/cli/main.js call dev_skill_list --input '{"maxResults":5}'` | 读取本机 `~/.agents/skills` 成功 |

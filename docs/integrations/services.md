@@ -50,11 +50,12 @@
 
 ## 实际验证（2026-10-23）
 
-`npm run check:bridge` 使用仓库构建出的真实官方 MCP stdio 服务作为目标：
+`npm run check:bridge` 使用仓库构建出的真实官方 MCP 服务作为目标，同时覆盖 stdio 与 Streamable HTTP：
 
-- 初始化成功，协议版本 `2025-11-25`。
-- `tools/list` 返回 26 个工具（当时目录；后续新增工具后为 54 个），保留完整输入 Schema。
-- `bridge_call` 调用 `content_cid` 返回真实 CID `bafkreih3cs4k5237cwflkexvohtc5loacfx5dzl7gbpom6wsucdlmlev4a`。
+- stdio：初始化成功，协议版本 `2025-11-25`。
+- `tools/list` 返回 54 个工具，保留完整输入 Schema。
+- `bridge_call` 调用 `content_cid` 返回真实 CID `bafkreifuslw25z7cctxjyf6jeh7pnfoeiwu7vk6fxspesbwof4qt7nnkeq`。
 - 调用不存在的工具时外层以非零退出码失败，错误文本来自上游。
+- Streamable HTTP：本地官方 `createMcpHandler` + Node HTTP 服务，`bridge_discover` 与 `bridge_call` 返回与 stdio 相同的工具目录和 CID。
 
 **未执行**：任何外部供应商 MCP 的真实 `tools/list`/`callTool`。原因是本机代理 7890 的上游对 Google/GitHub/CoinGecko 等持续超时（DeepSeek 可通），不是代码层失败。OAuth 需要操作者浏览器授权，网页登录成功不代替 API 调用。
