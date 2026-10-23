@@ -1,0 +1,88 @@
+{
+  "mcpServers": {
+    "coingecko": {
+      "type": "http",
+      "url": "https://mcp.api.coingecko.com/mcp"
+    },
+    "openzeppelin": {
+      "type": "http",
+      "url": "https://mcp.openzeppelin.com/contracts/solidity/mcp"
+    },
+    "chainstack": {
+      "type": "http",
+      "url": "https://mcp.chainstack.com/mcp"
+    },
+    "slither": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/trailofbits/slither-mcp", "slither-mcp"],
+      "timeoutMs": 300000
+    },
+    "goplus": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "goplus-mcp@1.0.1", "--key", "${GOPLUS_API_KEY}", "--secret", "${GOPLUS_API_SECRET}"]
+    },
+    "thirdweb": {
+      "type": "http",
+      "url": "https://api.thirdweb.com/mcp?secretKey=${THIRDWEB_SECRET_KEY}"
+    },
+    "nansen": {
+      "type": "http",
+      "url": "https://mcp.nansen.ai/ra/mcp",
+      "headers": {
+        "NANSEN-API-KEY": "${NANSEN_API_KEY}"
+      }
+    },
+    "dune": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote@0.15.2", "https://api.dune.com/mcp/v1"],
+      "timeoutMs": 300000
+    },
+    "dune-api-key": {
+      "type": "http",
+      "url": "https://api.dune.com/mcp/v1",
+      "headers": {
+        "x-dune-api-key": "${DUNE_API_KEY}"
+      }
+    },
+    "allium": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote@0.15.2", "https://mcp.allium.so"]
+    },
+    "allium-api-key": {
+      "type": "http",
+      "url": "https://mcp.allium.so",
+      "headers": {
+        "Authorization": "Bearer ${ALLIUM_API_KEY}"
+      }
+    },
+    "tokenterminal": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote@0.15.2", "https://mcp.tokenterminal.com/mcp"]
+    },
+    "messari": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote@0.15.2", "https://mcp.messari.io/mcp"]
+    },
+    "coinbase-wallet": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote@0.15.2", "https://wallet-mcp.coinbase.com"]
+    },
+    "alchemy": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote@0.15.2", "https://mcp.alchemy.com/mcp"]
+    },
+    "tenderly": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote@0.15.2", "https://mcp.tenderly.co/mcp"]
+    }
+  }
+}
