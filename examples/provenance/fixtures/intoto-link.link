@@ -1,0 +1,25 @@
+{
+ "signatures": [
+  {
+   "keyid": "14bd27dd92b0a1f4e35ab0e031821267ae6b10e383b82963b034b735c8c8bea2",
+   "sig": "6ac741a42900daba59186a9a70f134a992cda7a48d97afe23e8a9b6477088682985e47f052eda0489551bc2c896866d852e9c71e8de044e2025a3a5090a5fb09"
+  }
+ ],
+ "signed": {
+  "_type": "link",
+  "byproducts": {},
+  "command": [],
+  "environment": {},
+  "materials": {
+   "artifact.txt": {
+    "sha256": "40f5ca95c12dd244663d2f7613b22fa706ed54bdaa51ca03fb9bd7a8fc1ffc06"
+   }
+  },
+  "name": "build",
+  "products": {
+   "artifact.txt": {
+    "sha256": "40f5ca95c12dd244663d2f7613b22fa706ed54bdaa51ca03fb9bd7a8fc1ffc06"
+   }
+  }
+ }
+}

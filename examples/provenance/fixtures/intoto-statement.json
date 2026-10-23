@@ -1,0 +1,26 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "intoto-artifact.txt",
+      "digest": {
+        "sha256": "40f5ca95c12dd244663d2f7613b22fa706ed54bdaa51ca03fb9bd7a8fc1ffc06"
+      }
+    }
+  ],
+  "predicateType": "https://slsa.dev/provenance/v1",
+  "predicate": {
+    "buildDefinition": {
+      "buildType": "https://example.test/local-bca-check",
+      "externalParameters": {}
+    },
+    "runDetails": {
+      "builder": {
+        "id": "https://github.com/songconmaisaix31-design/blockchain-anything"
+      },
+      "metadata": {
+        "invocationId": "bca-local-intoto-check"
+      }
+    }
+  }
+}
