@@ -1,0 +1,36 @@
+{
+  "name": "blockchain-anything",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "成熟区块链工具的 TypeScript、CLI 与 MCP 入口",
+  "engines": { "node": ">=24 <25" },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./mcp": { "types": "./dist/mcp/main.d.ts", "import": "./dist/mcp/main.js" }
+  },
+  "bin": { "bca": "dist/cli/main.js" },
+  "files": ["dist", "docs/guides", ".env.example"],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "smoke": "tsx scripts/smoke.ts"
+  },
+  "dependencies": {
+    "@ethereum-attestation-service/eas-sdk": "2.10.0",
+    "@modelcontextprotocol/client": "2.3.1",
+    "@modelcontextprotocol/server": "2.3.1",
+    "ethers": "6.17.0",
+    "incur": "0.7.1",
+    "kubo-rpc-client": "7.1.0",
+    "multiformats": "14.0.5",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}
