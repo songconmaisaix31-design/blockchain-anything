@@ -33,4 +33,8 @@ Node.js 24、TypeScript ESM。CLI 为 `src/cli/main.ts` → `dist/cli/main.js`�
 
 一次类型/构建与真实 smoke，覆盖文件 CID、官方 EAS 生命周期、签名及篡改拒绝、CLI/MCP、Kubo add/read、打包入口。只针对发现问题局部修复复测。没有公共测试网钱包和余额时明确记录未执行，不执行生产交易。
 
-主客户端为 Local Codex。开发使用 Orca 管理的原生 Codex；实际模型标识在返回信息可核实时记录。具体 Worktree、Dispatch、Commit 和命令结果在执行中补充。
+主客户端为 Local Codex。开发使用 Orca 1.4.230 管理的原生 Codex；A 的实际 provider 模型标识为 `gpt-6-astra`，由 Orca 状态返回。没有手动覆盖模型配置。
+
+Run：`run_9e6ec5edbcd6`。A 的 Worktree 为 `C:/Users/DW/orca/workspaces/blockchain-anything/bca-adapters`，Dispatch 为 `ctx_48443c9206f5`。B 的 Worktree 为 `C:/Users/DW/orca/workspaces/blockchain-anything/bca-interfaces`，Task 为 `task_d4a194b9d312`。两个路径独立，不共享文件写入。
+
+执行环境已核实 Node.js 24.16.0、npm 11.13.0 和 Anvil 1.7.1。B 的首次启动因 Codex 工作区发现超时退出，第二次启动未在默认时间内就绪；已按 Orca 返回结果清理对应终端并在同一 Task/Worktree 重试，未创建重复编辑任务。
