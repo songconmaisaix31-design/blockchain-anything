@@ -8,14 +8,19 @@ BCA 是面向开发者和 AI Agent 的区块链工具聚合项目。一个 TypeS
 
 ## 已实现的工具
 
-CLI 和 MCP 共用同一份目录与执行函数，提供 **20 个工具**。
+CLI 和 MCP 共用同一份目录与执行函数，提供 **54 个工具**。
 
 | 工具组 | 数量 | 能力 | 复用的基础设施 |
 | --- | --- | --- | --- |
 | EVM | 5 | 配置状态、网络/区块、余额、回执、EIP-191 消息验签 | ethers |
-| EAS | 10 | Schema 编解码/查询/注册、连接检查、声明发布/查询/撤销、链下签名/验签 | EAS 官方 SDK 与官方合约 |
+| EAS | 20 | Schema 编解码/查询/注册、连接检查、声明发布/查询/撤销、链下签名/验签、批量声明/撤销、时间戳、Delegated、PrivateData | EAS 官方 SDK 与官方合约 |
 | Content | 2 | 实际文件 CID、CID 解析 | multiformats、CIDv1/raw、SHA-256 |
 | IPFS | 3 | 节点状态、文件添加、内容读取 | kubo-rpc-client、Kubo |
+| MCP | 6 | 操作者配置的 MCP 服务发现、tools/list、callTool、资源与提示读取 | 官方 MCP TypeScript SDK |
+| 开发 | 12 | 离线 Solidity 编译、Forge 构建/测试、Hardhat 编译、Slither 分析、Cast 只读调用、Skills 发现/读取 | solc、Forge/Cast、Hardhat、Slither、官方 Skills |
+| viem | 6 | 链/区块/余额、只读合约调用、交易与回执、事件日志 | viem |
+
+外部 MCP 服务由操作者通过标准 `mcpServers` JSON 配置，工具调用者只能选择服务名和上游工具名，不能传入任意 URL、命令或 Token。公开 keyless 的 CoinGecko、Allium、Alchemy 等入口已在预设中登记；需要 OAuth 或账户权限的服务仍按官方流程授权，登录网页成功不等于 MCP 调用已通过。
 
 文件的 raw CID 与 IPFS UnixFS 根 CID 分别返回。签名和内容摘要各自说明已执行的验证范围；发布者关于来源、质量和现实身份的声明仍需调用者判断可信度。
 
@@ -85,8 +90,10 @@ node --env-file=.env dist/cli/main.js eas status --input '{}'
 - EVM：`BCA_RPC_URL`、`BCA_CHAIN_ID`。
 - EAS：`BCA_EAS_ADDRESS`、`BCA_SCHEMA_REGISTRY_ADDRESS`。
 - IPFS：`BCA_IPFS_URL`。
+- 外部 MCP：`BCA_MCP_CONFIG` 或 `BCA_MCP_SERVERS`，使用标准 `mcpServers` JSON；凭证只放在操作者配置或环境变量中。
 - 文件范围：`BCA_WORKING_ROOT`，并设置文件与读取大小限制。
 - 写入：默认关闭；需要 `BCA_ALLOW_WRITES=true` 和调用中的 `submit:true`。EAS 写入及签署还需要受控本地开发签署器。
+- 受限网络：仅当本机双栈导致 RPC 连接异常时设置 `BCA_IPV4_ONLY=true`。
 
 网络没有隐式默认值。每次链调用核对实际 chain ID，EAS 调用还核对合约代码、Registry 关联与版本。交易只广播一次；等待回执失败时保留交易哈希供查询。
 
@@ -103,13 +110,14 @@ node --env-file=.env dist/cli/main.js eas status --input '{}'
 
 ## 支持边界与项目文档
 
-当前工具覆盖 EAS/EVM、CID 和 Kubo；MCP 传输为 stdio。链下验签明确返回尚未执行的撤销、时间戳、有效期和信任检查。包保持 `private: true`。
+当前工具覆盖 EAS/EVM、CID/Kubo、MCP stdio/Streamable HTTP 客户端、Forge/Cast/Hardhat/Slither/solc 和 viem。EAS 已补齐批量声明/撤销、时间戳、Delegated 与 PrivateData；链下验签仍明确返回尚未执行的撤销、时间戳、有效期和信任检查。包保持 `private: true`。
 
-实际验证命令、运行环境和未执行事项见 [STATUS](STATUS.md)，按需复测方法见 [运行检查指南](docs/guides/verification.md)。公共测试网写入、生产交易、npm 公开发布及原生 Codex 控制器事件审计分别记录，普通 MCP client 检查不替代原生控制器审计。
+外部 MCP 供应商、Sign Protocol、SAS、Sui/Aptos、Walrus/Seal/Arweave、来源/身份（OTS、RISC Zero、cheqd、VC、in-toto、SLSA、Cosign、OpenLineage、C2PA）和钱包/Agent 框架仍在逐项接入；没有实际调用通过的项目不会标记为完成。实际验证命令、运行环境和未执行事项见 [STATUS](STATUS.md)，按需复测方法见 [运行检查指南](docs/guides/verification.md)。
 
+- [MCP 服务聚合](docs/integrations/services.md) · [开发工具](docs/integrations/development.md) · [链与存储](docs/integrations/chains-storage.md)
 - [产品规格](docs/SPEC.md) · [工具与公链资料](docs/TOOLBOX.md)
 - [REA 结构参考](docs/REA-REFERENCE.md) · [已审批决定](docs/QUESTIONS.md)
-- [开发任务](docs/TASKS.md) · [本轮执行记录](tasks/S1-toolkit.md) · [交接](HANDOFF.md)
+- [开发任务](docs/TASKS.md) · [S2 进度](tasks/S2-progress.md) · [交接](HANDOFF.md)
 
 ## 许可证
 

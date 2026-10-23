@@ -29,6 +29,8 @@
     "incur": "0.7.1",
     "kubo-rpc-client": "7.1.0",
     "multiformats": "14.0.5",
+    "solc": "0.7.3",
+    "viem": "2.57.10",
     "zod": "4.6.7"
   },
   "devDependencies": {

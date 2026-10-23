@@ -1,45 +1,41 @@
 # BCA 当前状态
 
-更新日期：2026-10-23。用户已审批方案并授权开发，产品定位为成熟区块链工具聚合。
+更新日期：2026-10-23。S1 基线已完成；S2 已由主 Agent 直接接手，当前交付 **54 个工具**，其中 MCP 桥接、开发工具、viem 与 EAS 扩展已完成实际验证。
 
-S2 已开始：按 [生态接入计划](tasks/S2-ecosystem.md) 接入新增项目。当前主工作区分支为 `codex/bca-ecosystem`；五个 Orca/OpenCode Worker 已启动，并确认使用官方 DeepSeek V4.1 Flash。新增能力尚未验收；用户授权在完整接入与实际验证通过后合并 main。以下为已完成的 S1 基线。
+## 进行中的 S2
+
+五个 OpenCode/DeepSeek Worker 在 17:44–21:10 期间没有产生代码或提交。用户确认后，主 Agent 已通过 Orca 结束这些 Dispatch/终端并保留 worktree，改为直接实现。逐项状态见 [S2 进度](tasks/S2-progress.md)。
 
 | 内容 | 状态 |
 | --- | --- |
-| 设计与工具研究 | 已完成，基线 `87df777` |
-| README 与开发要求 | 已按最新指令更新 |
-| SDK、CLI、MCP | 已集成，共用 20 个实际工具 |
-| 实际依赖与构建 | 固定依赖和 lockfile 已提交，类型检查与构建通过 |
-| 真实签名和入口检查 | CID、Schema、EIP-191、Anvil EAS 链下签名及三个 MCP stdio 入口通过 |
-| Kubo | 隔离离线节点的 add/read、字节一致性和读取上限检查通过 |
-| Base Sepolia | 官方 EAS/Registry 的只读连接、代码、关联和版本检查通过 |
-| EAS 链上生命周期 | 真实 Anvil 上官方合约 register/get、attest/get/receipt/revoke 全部通过 |
-| 安装包 | npm pack 后隔离安装，CLI 与官方 MCP client 检查通过 |
-| 原生 Codex 控制器验证 | 未执行 |
-| 生产交易与 npm 发布 | 未执行 |
+| S1：EAS/EVM、CID、Kubo，20 个工具 | 已完成，见下文 |
+| MCP 桥接（6 个工具） | 已实现；真实 stdio MCP 初始化、发现、调用、错误传播通过 |
+| 开发工具（12 个工具） | 已实现；solc 离线编译、Skills 读取通过；Forge 受本机 solc/网络限制，Cast 受本会话 TCP 限制 |
+| viem（6 个工具） | 已实现；真实 Anvil 部署、读写、回执、日志通过 |
+| EAS 扩展（+10 个工具） | 已实现；真实 Anvil 批量声明/撤销、时间戳、Delegated、PrivateData 通过 |
+| 外部 MCP 供应商真实调用 | 未完成：本机代理上游超时；Alchemy 待用户手机验证 |
+| Sign/SAS/Sui/Aptos/Walrus/Seal/Arweave | 未开始 |
+| 来源/身份与钱包/Agent 轨道 | 未开始 |
+| main 合并、推送 | 未完成：GitHub 不可达 |
 
-S1 分支 `codex/bca-toolkit`，远程 origin 指向用户指定的 GitHub 仓库。主工作区 Node.js `v24.16.0`，开发检查环境 Node.js `v24.19.0`；npm `11.13.0`、Orca `1.4.230`、Anvil `1.7.1`、Kubo `0.43.1`。集成提交为 `bcb60029304a255a12c6fb0c75bb00b73cfd43d6`，包含 A、B 和 EAS 读取字段修复。
-
-## 验证命令与结果
+## 验证命令与结果（2026-10-23）
 
 | 命令 | 结果 |
 | --- | --- |
 | `npm run typecheck`、`npm run build` | 通过 |
-| `npm ci --ignore-scripts --no-audit --no-fund`、`npm run build` | 主工作区安装 471 个包并构建成功 |
-| `node dist/cli/main.js tools`、`node dist/cli/main.js content cid --input '{"path":"README.md"}'` | 主工作区入口运行成功，返回实际工具目录及当前 README 的 raw CID |
-| `npx tsx .work/adapter-check.ts` | A：实际文件 CID、Schema、EIP-191、真实官方合约域和链下签名及相关拒绝行为通过 |
-| `npx tsx .work/eas-read-check.ts` | A 局部复测：完整命名字段、大整数、缺失记录语义通过 |
-| `node .work/check-interfaces.mjs`、`node .work/check-help.mjs` | B：CLI、SDK 导出及三个 stdio 入口通过 |
-| `npm run smoke -- --scope onchain` | chain ID 31337，真实 EAS 生命周期通过，撤销时间从零变为非零 |
-| `npm run smoke -- --scope ipfs` | 离线 Kubo add/read 字节一致，超限读取拒绝 |
-| `npm run smoke -- --scope package` | 真实安装包 CLI JSON/错误退出与官方 MCP 的 20 工具、调用、结构化错误通过 |
-| `node dist/cli/main.js call eas_status --input '{}'` | 显式配置 Base Sepolia 84532、官方地址且关闭写入后，只读检查通过 |
+| `npm run check:bridge` | 通过；真实 stdio MCP，初始化成功，26 个工具（当时目录），真实 CID，上游错误使外层失败 |
+| `node dist/cli/main.js call dev_status --input '{}'` | Forge/Cast/Anvil 1.7.1、Hardhat 本地依赖、solc 0.7.3、Slither 未安装 |
+| `node dist/cli/main.js call dev_solidity_compile --input '{"path":"examples/contracts/src/Counter.sol"}'` | 编译成功，返回 ABI/bytecode，无诊断 |
+| `node dist/cli/main.js call dev_skill_list --input '{"maxResults":5}'` | 读取本机 `~/.agents/skills` 成功 |
+| `dev_forge_build`（offline） | 真实失败：没有匹配 `^0.7.0` 的 solc，且无法下载；工具返回 `ok:false`，未伪造成功 |
+| 真实 Anvil viem 脚本 | `viem_chain/block/balance`、部署 Counter、`viem_read` 0→1、`viem_transaction`、`viem_logs` 全部通过 |
+| 真实 Anvil EAS 脚本 | 多声明 2 个 UID、时间戳、PrivateData 证明、Delegated 签名/提交/撤销、批量撤销全部通过 |
 | `git diff --check` | 通过 |
-
-`.work` 中的局部检查脚本保留在对应 Worker 工作目录；仓库提供统一的 `scripts/smoke.ts` 复测入口。按问题范围复测，没有重复运行已通过的完整检查。实际输入文件版本、CID、公共网络配置和复现方法见 [运行检查指南](docs/guides/verification.md)，轨道提交见 [S1 记录](tasks/S1-toolkit.md)。各检查创建的 Anvil、Kubo 和 MCP 子进程均已终止。
 
 ## 真实限制与未执行操作
 
-当前适配为 EVM/EAS、CID 和 Kubo；MCP 使用 stdio。环境变量私钥签署仅用于受控本地开发，生产钱包尚未集成。链下验签未执行撤销、时间戳、有效期和来源信任检查，结果明确返回这些标记。
-
-公共测试网写入、生产交易、npm 公开发布和原生 Codex SQLite/HTTP/会话/event_id 审计未执行。包保持 `private: true`。安装存在上游传递依赖弃用提示；本轮未执行完整依赖安全审计。
+- 外部 MCP 供应商（CoinGecko、Alchemy、Allium、Tenderly、Chainstack、thirdweb、Nansen、Dune、Token Terminal、Messari、GoPlus、Kaito）尚未完成真实 `tools/list`/`callTool`。预设和配置入口已实现；本机代理到外网上游持续超时。
+- Alchemy 官方强制手机短信/语音验证；Allium 登录页 CDP 读取超时。网页登录成功不等于 MCP 授权完成。
+- Slither 未安装；Forge 没有本机 solc，网络被阻断无法下载。
+- 公共测试网写入、生产交易、npm 公开发布、生产钱包和原生 Codex 控制器审计未执行。包保持 `private: true`。
+- `main` 尚未合并；本轮提交尚不能推送，原因是 GitHub 连接失败。
