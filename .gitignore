@@ -1,0 +1,9 @@
+.work/
+.bca/
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
