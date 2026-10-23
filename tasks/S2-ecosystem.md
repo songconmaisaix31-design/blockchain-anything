@@ -4,6 +4,8 @@
 
 主 Agent 负责官方资料核对、浏览器授权、公共文档、协调、最终检查与 main 合并。开发客户端使用 Orca 管理的 OpenCode 2.0.31，显式选择官方 `deepseek/deepseek-flash`；本机 `auth list` 已确认 DeepSeek 凭证已保存。官方说明旧 V4 Flash 名称目前由 V4.1 Flash 提供服务；禁止切换到 Alibaba。每条轨道固定 Worker、Worktree、Branch，独占以下路径，不修改他人文件。完成后 commit/push，集成 Agent 最后统一连接工具目录和依赖。
 
+Orca 运行 `run_f881ab4d9b55` 已启动五个开发 Worker。各工作区使用忽略的本地 `opencode.json`，限定 `enabled_providers` 为 `deepseek`，主模型和小模型均为 `deepseek/deepseek-flash`，官方 API 地址为 `https://api.deepseek.com`。五个实际终端均已显示 `DeepSeek V4.1 Flash 1017 DeepSeek`。主分支工作区使用 `codex/bca-ecosystem`；全部新增能力仍处于开发和实际验证阶段。
+
 | 轨道 / 分支 | 负责项目 | 独占 write_paths |
 | --- | --- | --- |
 | M / `codex/bca-services` | 官方 MCP 连接；OpenZeppelin、Slither MCP、Tenderly、GoPlus、Alchemy、thirdweb、Chainstack、Nansen、Dune、CoinGecko、Allium、Token Terminal、Messari、Coinbase Wallet、Bankr/Brian/Heurist 可用的官方服务；Kaito 官方可用接口核查 | `src/bridge/`、`docs/integrations/services.md`、`examples/services/`、`scripts/check-services.ts` |

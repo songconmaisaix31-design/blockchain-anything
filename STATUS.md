@@ -2,7 +2,7 @@
 
 更新日期：2026-10-23。用户已审批方案并授权开发，产品定位为成熟区块链工具聚合。
 
-S2 已开始：按 [生态接入计划](tasks/S2-ecosystem.md) 接入新增项目。新增能力尚未验收；用户授权在完整接入与实际验证通过后合并 main。以下为已完成的 S1 基线。
+S2 已开始：按 [生态接入计划](tasks/S2-ecosystem.md) 接入新增项目。当前主工作区分支为 `codex/bca-ecosystem`；五个 Orca/OpenCode Worker 已启动，并确认使用官方 DeepSeek V4.1 Flash。新增能力尚未验收；用户授权在完整接入与实际验证通过后合并 main。以下为已完成的 S1 基线。
 
 | 内容 | 状态 |
 | --- | --- |
@@ -18,7 +18,7 @@ S2 已开始：按 [生态接入计划](tasks/S2-ecosystem.md) 接入新增项�
 | 原生 Codex 控制器验证 | 未执行 |
 | 生产交易与 npm 发布 | 未执行 |
 
-当前分支 `codex/bca-toolkit`，远程 origin 指向用户指定的 GitHub 仓库。主工作区 Node.js `v24.16.0`，开发检查环境 Node.js `v24.19.0`；npm `11.13.0`、Orca `1.4.230`、Anvil `1.7.1`、Kubo `0.43.1`。集成提交为 `bcb60029304a255a12c6fb0c75bb00b73cfd43d6`，包含 A、B 和 EAS 读取字段修复。
+S1 分支 `codex/bca-toolkit`，远程 origin 指向用户指定的 GitHub 仓库。主工作区 Node.js `v24.16.0`，开发检查环境 Node.js `v24.19.0`；npm `11.13.0`、Orca `1.4.230`、Anvil `1.7.1`、Kubo `0.43.1`。集成提交为 `bcb60029304a255a12c6fb0c75bb00b73cfd43d6`，包含 A、B 和 EAS 读取字段修复。
 
 ## 验证命令与结果
 
