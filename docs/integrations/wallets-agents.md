@@ -188,7 +188,7 @@ PYTHONPATH=.work/pysite python examples/agents/game_bca_plugin.py --check
 | --- | --- |
 | `npm run typecheck` | 通过 |
 | `npm run build` | 通过 |
-| `npx tsx scripts/check-wallets.ts` | 35 个工具；Anvil 地址/余额/本地转账、Solana 余额/TPS/ticker、Safe 预测/签名、x402 supported/签名/verify、Mesh 目录/schema、CCXT ticker、elizaOS 35 actions、缺 key 明确失败均通过；Solana token_data 与 Hummingbot 为真实上游/安装阻塞 |
+| `npx tsx scripts/check-wallets.ts` | 35 个工具；Anvil 地址/余额/本地转账、Solana 余额/TPS/ticker、Safe 预测/签名、x402 supported/签名/`/verify`（真实返回余额不足）、Mesh 目录/schema、CCXT ticker、elizaOS 35 actions、缺 key 明确失败均执行；Solana token_data 与 Hummingbot 为真实上游/安装阻塞 |
 | `npx tsx examples/agents/eliza-plugin.ts --invoke` | 真实 AgentRuntime 注册并调用 action |
 | `PYTHONPATH=.work/pysite python examples/agents/game_bca_plugin.py --check` | `content_cid` 返回真实 README CID，GAME Function/Worker 构建成功 |
 | `PYTHONPATH=.work/olas-site python examples/agents/olas_bca_behaviour.py` | 真实 `Behaviour.act()` 返回 README CID；`aea --version` 为 2.2.9 |
