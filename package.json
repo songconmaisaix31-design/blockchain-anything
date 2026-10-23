@@ -18,7 +18,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "smoke": "tsx scripts/smoke.ts"
+    "smoke": "tsx scripts/smoke.ts",
+    "check:bridge": "tsx scripts/check-bridge.ts"
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-sdk": "2.10.0",
