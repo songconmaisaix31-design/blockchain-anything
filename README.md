@@ -109,7 +109,7 @@ const functions = asFunctionTools(toolkit);
 
 优先使用成熟的官方 SDK、CLI、MCP 与 Skills；适配层保持薄。依赖固定版本并提交 lockfile。只做够用的验证：运行必要路径，出现问题就在对应位置修复、局部复测，不堆测试框架和覆盖率指标。
 
-本轮已跑通 EAS 本地生命周期、真实 MCP 两种传输、OZ 合约生成与编译、Forge 测试、Slither 分析、三条公链的公开读取、VC/Arweave 验签，以及 AgentKit 的本地钱包读取。其余服务的配置、已实现入口和待验收条件在状态文档逐项列明；需要账户的服务尚未全部联网验收。
+本轮已实际运行 EAS 生命周期、Kubo 文件往返、CLI/MCP 与打包安装、Safe 官方合约、Hardhat/Cast、Sign/SAS/多链读取、Walrus 测试网上传读回、Seal 加密、RISC Zero 链上验证，以及 Cosign/SLSA/in-toto/C2PA 来源工具。验收发现的 Safe 本地网络配置缺口已局部修复。详细输入、结果、失败原因和剩余服务条件见 [2026-10-23 验收报告](docs/acceptance/2026-10-23.md)；104 个工具表示入口数量，尚未全部业务验收。
 
 - [实际验证与限制](STATUS.md) · [S2 逐项进度](tasks/S2-progress.md) · [复测指南](docs/guides/verification.md)
 - [服务与 MCP](docs/integrations/services.md) · [开发与 Skills](docs/integrations/development.md) · [链与存储](docs/integrations/chains-storage.md)

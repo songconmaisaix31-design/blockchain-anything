@@ -59,3 +59,5 @@ npm run check:s2
 check:s2 只使用真实离线 SDK，覆盖新增密码学/序列化和框架转换边界；check:bridge 使用真实官方 MCP stdio/HTTP 服务。它们不替代有凭据的供应商验收。SDK 工厂隔离入口需要先构建 dist。
 
 新增服务配置后，先运行 bridge_discover 并选一个符合授权范围的真实工具；CLI/SDK 新路径仅调用该项。编译错误在对应配置或 import 处修复后复测该命令；Slither finding 保留在结果中，不靠忽略警告取得假成功。
+
+本次完整真实验收、样本标识、失败与局部复测见 [2026-10-23 报告](../acceptance/2026-10-23.md)。不需要为文档或单点修复重跑全部供应商。

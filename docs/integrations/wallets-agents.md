@@ -15,6 +15,8 @@
 
 默认服务地址可用 BCA_BRIAN_URL、BCA_BANKR_URL、BCA_MESH_URL 替换为操作者指定的正式服务。BCA 不在工具输入中接收 Token。
 
+Safe 在本地或私有链上需要通过 `BCA_SAFE_CONTRACT_NETWORKS` 传入官方 Protocol Kit 的 `contractNetworks` 地址配置，例如 `{"31337":{"multiSendAddress":"0x...","multiSendCallOnlyAddress":"0x..."}}`。地址必须对应该链上已部署的官方合约；也支持 singleton、proxy factory、fallback handler 等原生地址字段，ABI 使用 SDK 内置版本。已收录部署的公共链无需此配置。参见 [Safe 初始化文档](https://docs.safe.global/reference-sdk-protocol-kit/initialization/init)。
+
 ## Agent 框架
 
 BCA 复用宿主已创建的 Agent/Wallet 实例，不拥有模型循环、角色记忆和调度。
@@ -48,4 +50,4 @@ python examples/agents/olas_mcp.py /absolute/path/blockchain-anything/dist/mcp/m
 
 [GOAT](https://github.com/goat-sdk/goat) 上游声明停止维护；本项目记录迁移到现有 AgentKit / Solana Agent Kit / MCP 的路径，不新引入归档包。
 
-Safe 真实钱包、x402 facilitator 验签、Hummingbot、Brian、Bankr、Mesh 业务调用尚需操作者服务配置。CCXT registry 与配置原生代理后的 Kraken BTC/USD 行情读取通过；未执行任何下单或支付。
+Safe 官方合约本地部署后的查询与批量待签 hash 验证通过；x402 公共 facilitator 的 supported 读取通过。x402 支付授权验签、Hummingbot、Brian、Bankr、Mesh 业务调用尚需操作者服务配置。CCXT registry 与配置原生代理后的 Kraken BTC/USD 行情读取通过；未执行任何下单或支付。

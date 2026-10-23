@@ -6,7 +6,11 @@
 
 先读 [STATUS](STATUS.md) 和 [S2 逐项清单](tasks/S2-progress.md)。本轮通过了 build、check:s2、check:bridge、真实打包安装、本地 EAS 生命周期、OZ 编译/生成、Forge、Slither 分析、Sui/Aptos/Solana 公开读取、Arweave、VC、AgentKit 钱包详情、Solana Agent Kit balance、CCXT 公开行情和 Python MCP 示例。无需反复跑这些不相关路径。
 
-下一步需要的是待验收项目的服务凭据、真实原生样本或已部署组件，详见清单。缺失时保持未验收；不硬编码凭据、不发送生产交易、不执行付费订阅。Kaito 没有已核实通用接口，GOAT 已停止维护。
+最新真实运行见 [验收报告](docs/acceptance/2026-10-23.md)：新增 Safe、Hardhat/Cast、Sign/SAS、Walrus/Seal、x402 supported、cheqd、RISC Zero、Cosign/SLSA/in-toto/C2PA 验收。Safe 自定义网络缺口通过原生 contractNetworks 修复，并完成批量待签 hash 局部复测。
+
+Slither MCP 示例也已固定官方源码和 uv.lock 中的依赖版本，cwd 与项目对齐；发现 23 工具，实际分析返回 9 合约，详见开发指南。
+
+下一步需要的是待验收项目的服务凭据、Bitcoin 节点和 OpenLineage 后端，详见清单。缺失时保持未验收；不硬编码凭据、不发送生产交易、不执行付费订阅。Kaito 没有已核实通用接口，GOAT 已停止维护。
 
 AgentKit 工厂与 Solana Agent Kit 在独立 Worker 内执行。AgentKit 0.10.4 背景 analytics 存在未处理拒绝；不能去掉隔离后仍声称运行稳定。工具超时不代表链上操作未提交，不自动重试。
 

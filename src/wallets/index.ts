@@ -11,7 +11,22 @@ async function safeClient(config: Config, safeAddress: string) {
   const chainId = await createPublicClient({ transport: http(provider, { timeout: config.timeoutMs, retryCount: 0 }) }).getChainId();
   if (!config.chainId || BigInt(chainId) !== config.chainId) throw new Error('Safe RPC 与 BCA_CHAIN_ID 不匹配');
   const { default: Safe } = createRequire(import.meta.url)('@safe-global/protocol-kit') as typeof import('@safe-global/protocol-kit');
-  return Safe.init({ provider, safeAddress });
+  // Local/private networks must point the official SDK at their deployed contracts.
+  const contracts = process.env.BCA_SAFE_CONTRACT_NETWORKS;
+  const contractNetworks = contracts ? z.record(z.string().regex(/^[1-9][0-9]*$/), z.strictObject({
+    safeSingletonAddress: addressSchema.optional(),
+    safeProxyFactoryAddress: addressSchema.optional(),
+    multiSendAddress: addressSchema.optional(),
+    multiSendCallOnlyAddress: addressSchema.optional(),
+    fallbackHandlerAddress: addressSchema.optional(),
+    signMessageLibAddress: addressSchema.optional(),
+    createCallAddress: addressSchema.optional(),
+    simulateTxAccessorAddress: addressSchema.optional(),
+    safeWebAuthnSignerFactoryAddress: addressSchema.optional(),
+    safeWebAuthnSharedSignerAddress: addressSchema.optional(),
+    extensibleFallbackHandlerAddress: addressSchema.optional(),
+  })).parse(JSON.parse(contracts)) : undefined;
+  return Safe.init({ provider, safeAddress, contractNetworks });
 }
 
 export function walletTools(config: Config) {

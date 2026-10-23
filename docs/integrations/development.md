@@ -14,7 +14,7 @@
 
 Forge/Cast 优先使用已安装的官方平台二进制，避免 Foundry npm 1.7.1 启动脚本丢失失败退出码。其他情况使用 PATH 中的本机程序。进程采用固定参数、shell=false、超时和输出上限。开发工具会执行项目配置、构建或分析命令，应只用于操作者信任的项目；文件边界检查不是进程沙箱。
 
-`examples/contracts/` 包含 Counter 与引用 OpenZeppelin ERC20 的 ExampleToken。离线 solc 编译 ExampleToken、Forge Counter 测试已通过。Slither 对 Counter 的真实分析成功并返回一个 solc-version 提示，保留 exitCode=255 和原始 detector，未把它当成无问题报告。Hardhat 适配已实现，本轮没有安装独立 Hardhat 项目做编译验收。
+`examples/contracts/` 包含 Counter 与引用 OpenZeppelin ERC20 的 ExampleToken。离线 solc 编译 ExampleToken、Forge Counter 测试已通过。Slither 对 Counter 的真实分析成功并返回一个 solc-version 提示，保留 exitCode=255 和原始 detector，未把它当成无问题报告。追加验收已通过独立 Counter 项目的 Hardhat 2.22.4 实际编译和 artifact 检查，复用本机 solc 0.8.35；上游提示 Node 24 和该编译器版本支持不完整，不能视为全面兼容。Cast 的 chain/block/balance/call 四条路径已通过真实 Anvil 验收。
 
 ## Skills 安装与读取
 
@@ -39,3 +39,7 @@ BCA_SKILLS_ROOT=.agents/skills node dist/cli/main.js call dev_skill_read --input
 | [Heurist](https://github.com/heurist-network/heurist-mesh-skill) | 官方仓库 Skill，skills CLI 安装 | 读取入口就绪，Mesh 服务需 key |
 
 技能读取和工作流执行分别验收，不将“目录中出现一个 SKILL.md”当作交易或审计流程已通过。
+
+Slither MCP 示例固定官方源码提交 `17755731bf7aba6e5ed4d72e116d9d394430b1e2`，并采用该提交 `uv.lock` 中的 FastMCP 2.14.3、MCP 1.25.0、Pydantic 2.12.5。实际发现浮动升级到 Pydantic 2.14.1 等组合时，上游 `tools/list` 序列化出现循环引用；固定官方版本后工具发现恢复。首次使用先在终端安装/运行示例中的 uvx 命令，确认环境可下载依赖；受代理限制时通过 MCP 的 env 显式传入所需代理变量。
+
+`examples/services/slither.json` 的 `cwd` 为仓库内 `examples/contracts`；从仓库根目录启动 BCA。分析其他项目时，将 cwd 和上游 request.path 同时指向那个项目，确保原生 Slither 的相对 import 按项目目录解析。先发现工具 Schema，例如 list_contracts 需要 `{"request":{"path":"/absolute/project"}}`；同时检查上游 structuredContent.success，MCP isError=false 本身不表示分析成功。

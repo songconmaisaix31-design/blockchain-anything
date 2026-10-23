@@ -29,4 +29,4 @@ Seal 服务器配置格式：
 
 2026-10-23：Anvil 上 EAS 生命周期通过；此前已验证的 viem 与 EAS 扩展保留原结果。Sui testnet balance、Aptos testnet ledger（chain_id=2）、Solana devnet balance 读取通过。Arweave 网关信息、离线原生交易签名验证通过；Sui Transaction 离线解析通过。
 
-Sign/SAS 尚缺选定网络的真实声明样本；Walrus 上传/读取、Seal 真实 key server 加密尚未验证。未发送公共链交易、未上传用户文件。公开读路径验证不替代签署、存储和权限路径验收。
+追加真实验收：Sign 在 Base Sepolia 读取 schema 0x1；SAS 在 devnet 读取真实 Schema 与 attestation；Walrus 官方免费测试网 publisher 上传验收自生成的 71 字节文本并通过 aggregator 原样读回；Seal 使用两个官方测试网 key server 及示例策略 packageId 完成 threshold=2 加密。未使用用户文件、生产资金或签署公共链业务交易。Sign 写入/撤销、Seal 解密授权尚未验收，具体标识与范围见 [验收报告](../acceptance/2026-10-23.md)。

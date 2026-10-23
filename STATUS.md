@@ -2,6 +2,8 @@
 
 更新：2026-10-23。S2 在已有 54 个工具基础上新增 50 个，当前 **104 个工具**共用 SDK/CLI/MCP 入口。五个生态方向均已有适配代码和使用文档；整体联网验收尚未完成，需要凭据、部署与真实样本的项目见 [逐项清单](tasks/S2-progress.md)。不把入口实现和全部外部服务已验收混为一谈。
 
+最新追加验收见 [2026-10-23 实际运行报告](docs/acceptance/2026-10-23.md) 与 [原始结果摘要](docs/acceptance/2026-10-23.json)。
+
 ## 本轮实际运行
 
 环境：Node 24.19.0；固定 npm lockfile；官方 SDK、真实文件、真实本地 Anvil。只执行必要主路径，出错后局部修复与复测。
@@ -27,8 +29,20 @@
 | OpenTimestamps | 官方 hello-world.txt.ots 的 ots_info 通过；未验证 Bitcoin 确认时间 |
 | OpenZeppelin Skills | 官方 skills CLI 安装与 BCA 读取；不代表完整合约开发工作流验收 |
 | CCXT Kraken ticker | 通过：复用 CCXT httpsProxy 配置后读到 BTC/USD 公开行情 |
+| Kubo / 包安装复验 | 本轮真实离线 add/read、字节一致检查；实际打包安装后的 104 工具 CLI/MCP 通过 |
+| Safe | 官方 Safe 1.4.1 + Anvil；查询与 batch hash 对照合约通过；新增 contractNetworks 配置 |
+| Hardhat / Cast | Counter 实际编译生成 artifact；Cast 四个只读工具通过；Hardhat 2 有运行时版本支持警告 |
+| Sign / SAS | Base Sepolia schema；Solana devnet Schema 与 attestation 读取通过 |
+| Walrus / Seal | 官方免费测试网 71 字节上传读回一致；两个官方 key server 的 threshold=2 加密通过 |
+| x402 / cheqd | 公共 facilitator supported、testnet DID 查询通过 |
+| Cosign / SLSA / in-toto | 官方程序对真实签名文件与来源证明验证通过 |
+| C2PA | 官方媒体样本验证返回签名/hash 成功，保留 signingCredential.untrusted |
+| RISC Zero | Base Sepolia 官方 verifier 对有效 proof 通过、错误 journalDigest 拒绝 |
+| Slither MCP | 固定官方源码/依赖并对齐 cwd 后，发现 23 工具、实际分析返回 9 合约 |
+| ots_verify | 实际执行失败：缺 Bitcoin 节点 cookie/rpcpassword；未确认时间戳 |
 
-S1 已记录的 Kubo 离线 add/read、EAS 扩展、viem 读写与基础包检查仍保留原结果，未因不相关修改反复运行。历史复测记录见 [verification](docs/guides/verification.md)。
+
+本轮按用户要求重新运行核心、接口、打包和 Kubo。此前 EAS 扩展、viem 读写仍保留原结果，未因 Safe 局部修改反复运行。历史复测记录见 [verification](docs/guides/verification.md)。
 
 ## 本轮局部修复
 
@@ -43,12 +57,16 @@ S1 已记录的 Kubo 离线 add/read、EAS 扩展、viem 读写与基础包检�
 - Solana Agent Kit 的 Vercel 工具对象以数字索引为键：适配器优先保留原生 id/name，修复后真实 balance action 通过。
 - Worker 继承 --input-type 时无法启动文件入口：过滤该入口参数，局部验证错误传播正常。Forge 非法参数也已确认返回非零退出码 2。
 
+- 本轮真实 Safe 部署发现 SDK 需要自定义网络合约地址：增加 BCA_SAFE_CONTRACT_NETWORKS，直接复用 Protocol Kit；仅复测查询/批量待签 hash，通过。
+
+- Slither MCP 浮动依赖导致 tools/list 循环引用：示例固定官方源码和 uv.lock 版本；对齐 cwd 后，真实分析成功。
+
 ## 尚未验收
 
 服务凭据：Alchemy、Tenderly、Chainstack、thirdweb、Nansen、Dune、Allium、Token Terminal、Messari、GoPlus、Coinbase Wallet、Brian、Bankr、Mesh、Hummingbot。
 
-真实网络/证明样本：Sign、SAS、Walrus、Seal、Safe、x402 facilitator、cheqd、RISC Zero、Cosign、SLSA、in-toto、C2PA、OpenLineage；Hardhat 项目与 Slither MCP 进程也未做完整验收。完整 elizaOS / GAME 托管 Agent / Olas 服务的宿主验证状态见框架指南。
+剩余具体路径：Sign 创建/撤销、x402 支付授权验证、OTS 的 Bitcoin 数据源、OpenLineage 后端。完整 elizaOS / GAME 托管 Agent / Olas 服务及完整 Skills 工作流尚未完成。Safe、SAS、Walrus、Seal、cheqd 与来源工具只按上表列出的范围验收。
 
 Kaito 无已核实通用官方接口，不能声称已适配。GOAT 已归档，不新增其运行依赖。
 
-未进行公共链写入、资金划转、生产交易、付费订阅、npm 发布或原生 Codex 控制器审计。包保持 private:true。依照已批准的“全部项目真实验证后合并主线”条件，当前保留开发分支，尚不声明 S2 全量验收或合并 main。
+本轮使用官方免费 Walrus 测试网 publisher 上传了自生成验收文本；未使用用户文件或生产资金，未执行公共链业务交易签署、资金划转、生产交易、付费订阅、npm 发布或原生 Codex 控制器审计。包保持 private:true。依照已批准的“全部项目真实验证后合并主线”条件，当前保留开发分支，尚不声明 S2 全量验收或合并 main。
