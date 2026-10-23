@@ -4,7 +4,7 @@ import type { TransactionReceipt } from 'ethers';
 import type { EAS as EasInstance, SchemaRegistry as RegistryInstance, Transaction, SchemaItem, SignedOffchainAttestation } from '@ethereum-attestation-service/eas-sdk';
 import { z } from 'zod';
 import type { Config } from '../config.js';
-import { requireWrites } from '../config.js';
+import { requireWrites, assertConfiguration } from '../config.js';
 import { defineTool } from '../types.js';
 import { addressSchema, bytesSchema, submitSchema, uidSchema, uint64Schema, uint256Schema, TransactionFailure } from './common.js';
 import { withProvider } from './evm.js';
@@ -21,6 +21,7 @@ interface EasContext {
 }
 
 async function withEas<T>(config: Config, operation: (context: EasContext) => Promise<T>): Promise<T> {
+  assertConfiguration(config, 'eas');
   if (!config.easAddress || !config.registryAddress) throw new Error('需要 BCA_EAS_ADDRESS 和 BCA_SCHEMA_REGISTRY_ADDRESS');
   const easAddress = config.easAddress;
   const registryAddress = config.registryAddress;

@@ -2,12 +2,13 @@ import { create } from 'kubo-rpc-client';
 import { CID } from 'multiformats/cid';
 import { z } from 'zod';
 import type { Config } from '../config.js';
-import { requireWrites } from '../config.js';
+import { requireWrites, assertConfiguration } from '../config.js';
 import { defineTool } from '../types.js';
 import { submitSchema } from './common.js';
 import { readWorkingFile } from './files.js';
 
 function client(config: Config) {
+  assertConfiguration(config, 'ipfs');
   if (!config.ipfsUrl) throw new Error('需要 BCA_IPFS_URL');
   return create({ url: config.ipfsUrl, timeout: config.timeoutMs });
 }

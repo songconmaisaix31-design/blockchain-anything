@@ -1,6 +1,6 @@
 # 官方服务与 MCP
 
-BCA 使用官方 MCP TypeScript Client，支持 stdio 与 Streamable HTTP。配置仅由操作者提供：`BCA_MCP_CONFIG` 指向 JSON 文件，或 `BCA_MCP_SERVERS` 为 JSON 字符串，两者互斥。`url`、`headers`、`args`、`env` 支持 `${ENV_NAME}` 展开；缺变量立即失败。
+BCA 使用官方 MCP TypeScript Client，支持 stdio 与 Streamable HTTP。配置仅由操作者提供：`BCA_MCP_CONFIG` 指向 JSON 文件，或 `BCA_MCP_SERVERS` 为 JSON 字符串，两者互斥。`url`、`headers`、`args`、`env` 支持 `${ENV_NAME}` 展开；缺变量只使对应服务不可用，其他有效服务仍可连接。
 
 | 工具 | 行为 |
 | --- | --- |
@@ -10,7 +10,7 @@ BCA 使用官方 MCP TypeScript Client，支持 stdio 与 Streamable HTTP。配�
 | bridge_resources / bridge_read_resource | 资源、资源模板列表与原生读取 |
 | bridge_prompts / bridge_get_prompt | 提示列表与带参数获取 |
 
-每次调用关闭连接，不自动重试业务。发现、读取配置没有副作用；调用时先检查上游工具：只有 `readOnlyHint === true` 的工具可在只读模式执行，其他工具要求写入开关与 `submit:true`。注解是供应商声明，操作者仍需选择可信服务。发现时最多检查 20 页，超过上限明确失败。
+无 session 的调用结束后关闭连接。连续工作流使用 `bridge_open → bridge_refresh → bridge_call → bridge_close`，详见 [会话指南](../guides/workstations.md)。上游 `readOnlyHint` 仅作参考，明确的官方映射或操作者 `readOnlyTools` 许可允许只读调用；其余要求写入开关与 `submit:true`。不自动重试业务。完整刷新最多读取 20 页，超过上限明确失败。
 
 配置会在每次调用重读，同长度修改和环境变量变更立即生效。URL/凭据不作为工具输入；子进程 stderr 不转发到协议输出。请求头和配置中的秘密会从异常中屏蔽。
 

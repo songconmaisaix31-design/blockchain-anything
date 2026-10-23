@@ -1,5 +1,11 @@
 import { readConfig } from './config.js';
 import { bridgeTools } from './bridge/index.js';
+import { BridgeSessions } from './bridge/session.js';
+import { catalogTools, metadataFor, type Verification } from './workstations/catalog.js';
+import { evmWorkstationTools } from './workstations/evm.js';
+import { workspaceTools } from './development/workspace.js';
+import { setupTools } from './setup.js';
+import { resultExitCode } from './outcome.js';
 import { chainTools } from './chains/index.js';
 import { developmentTools } from './development/index.js';
 import { agentTools } from './agents/index.js';
@@ -17,19 +23,30 @@ import type { Toolkit } from './types.js';
 
 export function createToolkit(): Toolkit {
   const config = readConfig();
-  const implementations = [...evmTools(config), ...easTools(config), ...contentTools(config), ...ipfsTools(config), ...bridgeTools(config), ...developmentTools(config), ...chainTools(config), ...storageTools(config), ...walletTools(config), ...tradingTools(config), ...provenanceTools(config), ...identityTools(config), ...agentTools(config)];
-  const tools = implementations.map(({ name, description, inputSchema, readOnly }) => ({ name, description, inputSchema, readOnly }));
+  const sessions = new BridgeSessions(config);
+  const verified = new Map<string, Verification>();
+  let toolkit: Toolkit;
+  const invoke = (name: string, input: unknown) => toolkit.invoke(name, input);
+  const implementations = [...evmTools(config), ...easTools(config), ...contentTools(config), ...ipfsTools(config), ...bridgeTools(config, sessions), ...developmentTools(config), ...chainTools(config), ...storageTools(config), ...walletTools(config), ...tradingTools(config), ...provenanceTools(config), ...identityTools(config), ...agentTools(config)];
+  implementations.push(...workspaceTools(config), ...evmWorkstationTools(config, invoke), ...setupTools(config, invoke));
+  implementations.push(...catalogTools(config, () => toolkit.tools, verified));
+  const tools = implementations.map((tool) => ({ name: tool.name, description: tool.description, inputSchema: tool.inputSchema, readOnly: tool.readOnly, metadata: metadataFor(tool) }));
   const byName = new Map(implementations.map((tool) => [tool.name, tool]));
-  return {
+  toolkit = {
     tools,
+    close: () => sessions.closeAll(),
     async invoke(name, input) {
       const tool = byName.get(name);
       if (!tool) throw new Error(`未知工具：${name}`);
       try {
-        return serializable(await tool.execute(input));
+        const result = serializable(await tool.execute(input));
+        verified.set(name, { scope: '最近一次调用的输入范围；不推广到其他网络/参数', at: new Date().toISOString(), succeeded: resultExitCode(result) === 0 });
+        return result;
       } catch (error) {
+        verified.set(name, { scope: '最近一次调用失败', at: new Date().toISOString(), succeeded: false });
         throw safeError(error, config);
       }
     },
   };
+  return toolkit;
 }

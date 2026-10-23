@@ -5,6 +5,8 @@ import { createToolkit } from '../toolkit.js';
 import type { ToolDefinition } from '../types.js';
 import { Console } from 'node:console';
 import { VERSION } from '../version.js';
+import { resultExitCode } from '../outcome.js';
+import { setupSchema } from '../setup.js';
 
 function describeTool(tool: ToolDefinition) {
   return {
@@ -13,6 +15,7 @@ function describeTool(tool: ToolDefinition) {
     inputSchema: z.toJSONSchema(tool.inputSchema, { io: 'input' }),
     readOnly: tool.readOnly,
     annotations: { readOnlyHint: tool.readOnly },
+    metadata: tool.metadata,
   };
 }
 
@@ -39,6 +42,11 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
   }
 
   const toolkit = createToolkit();
+  const invoke = async (name: string, input: unknown) => {
+    const result = await toolkit.invoke(name, input);
+    process.exitCode = resultExitCode(result);
+    return result;
+  };
   const inputOptions = z.strictObject({ input: z.string().describe('工具输入的 JSON 对象；空输入也需传入 {}') });
   const cli = Cli.create('bca', {
     description: '成熟区块链工具聚合；bca tools 查看 Schema，bca mcp 启动官方 MCP stdio 服务',
@@ -58,6 +66,16 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
       return describeTool(tool);
     },
   });
+  cli.command('setup', {
+    description: '配置 Codex / Claude Code；--install 准备持久运行目录与固定官方组件',
+    options: setupSchema.omit({ submit: true }),
+    run: ({ options }) => invoke('system_setup', { ...options, submit: true }),
+  });
+  cli.command('doctor', {
+    description: '逐项诊断安装/配置，--connect 只连接配置的 EVM，--server 指定 MCP',
+    options: z.strictObject({ dir: z.string().default('.'), connect: z.boolean().default(false), server: z.string().optional() }),
+    run: ({ options }) => invoke('system_doctor', options),
+  });
   cli.command('call', {
     description: '按照完整工具名调用共享工具',
     args: z.strictObject({ name: z.string().describe('工具名称，例如 content_cid') }),
@@ -66,7 +84,7 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
       if (!toolkit.tools.some((tool) => tool.name === args.name)) {
         throw new Error('未知工具；使用 bca tools 查看可用名称');
       }
-      return toolkit.invoke(args.name, parseInput(options.input));
+      return invoke(args.name, parseInput(options.input));
     },
   });
 
@@ -86,7 +104,7 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
       destructive: !tool.readOnly,
       options: inputOptions,
       hint: `完整输入 Schema：bca tools ${tool.name}；readOnly=${tool.readOnly}`,
-      run: ({ options }) => toolkit.invoke(tool.name, parseInput(options.input)),
+      run: ({ options }) => invoke(tool.name, parseInput(options.input)),
     });
   }
   for (const family of families.values()) cli.command(family);
@@ -105,7 +123,8 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     return;
   }
 
-  await cli.serve(argv, { exit: (code) => { process.exitCode = code; } });
+  try { await cli.serve(argv, { exit: (code) => { if (code !== 0 || !process.exitCode) process.exitCode = code; } }); }
+  finally { await toolkit.close(); }
 }
 
 if (import.meta.main) {

@@ -29,7 +29,8 @@ export function safeError(error: unknown, config: Config): Error {
   }
   for (const endpoint of [config.rpcUrl, config.ipfsUrl]) {
     if (!endpoint) continue;
-    const url = new URL(endpoint);
+    let url: URL;
+    try { url = new URL(endpoint); } catch { continue; }
     secrets.push(url.username, url.password, decodeURIComponent(url.username), decodeURIComponent(url.password));
     url.searchParams.forEach((value) => secrets.push(value));
     for (const part of url.pathname.split('/')) if (part) secrets.push(part);

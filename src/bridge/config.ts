@@ -159,6 +159,7 @@ export const MCP_PRESETS: McpPreset[] = [
 const PRESET_BY_ID = new Map(MCP_PRESETS.map((preset) => [preset.id, preset]));
 
 type RawServer = {
+  readOnlyTools?: unknown;
   preset?: unknown;
   transport?: unknown;
   url?: unknown;
@@ -171,6 +172,7 @@ type RawServer = {
 };
 
 export interface ResolvedStdioServer {
+  readOnlyTools: string[];
   name: string;
   transport: 'stdio';
   command: string;
@@ -182,6 +184,7 @@ export interface ResolvedStdioServer {
 }
 
 export interface ResolvedHttpServer {
+  readOnlyTools: string[];
   name: string;
   transport: 'http';
   url: string;
@@ -227,6 +230,8 @@ function parseServer(name: string, raw: unknown): ResolvedServer {
   if (!SERVER_NAME.test(name)) throw new Error(`MCP 服务名 ${name} 非法`);
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error(`MCP 服务 ${name} 必须为对象`);
   const server = raw as RawServer;
+  if (server.readOnlyTools !== undefined && (!Array.isArray(server.readOnlyTools) || !server.readOnlyTools.every((item) => typeof item === 'string' && item.length > 0))) throw new Error(`MCP 服务 ${name}.readOnlyTools 必须为工具名数组`);
+  const readOnlyTools = (server.readOnlyTools ?? []) as string[];
   const presetId = optionalString(server.preset, `${name}.preset`);
   const preset = presetId ? PRESET_BY_ID.get(presetId) : undefined;
   if (presetId && !preset) throw new Error(`MCP 服务 ${name} 的 preset ${presetId} 未知`);
@@ -247,7 +252,7 @@ function parseServer(name: string, raw: unknown): ResolvedServer {
     for (const [key, value] of Object.entries(headers)) {
       if (/[\r\n\0]/.test(value)) throw new Error(`MCP 服务 ${name}.headers.${key} 包含非法字符`);
     }
-    return { name, transport: 'http', url, headers, description, preset: presetId };
+    return { name, transport: 'http', url, headers, description, preset: presetId, readOnlyTools };
   }
 
   if (!commandValue) throw new Error(`MCP 服务 ${name} 需要 url 或 command`);
@@ -261,10 +266,10 @@ function parseServer(name: string, raw: unknown): ResolvedServer {
   });
   const env = stringRecord(server.env, `${name}.env`, ENV_NAME);
   const cwd = optionalString(server.cwd, `${name}.cwd`);
-  return { name, transport: 'stdio', command, args, env, cwd, description, preset: presetId };
+  return { name, transport: 'stdio', command, args, env, cwd, description, preset: presetId, readOnlyTools };
 }
 
-function parseDocument(text: string, source: string): Record<string, ResolvedServer> {
+function parseDocument(text: string, source: string): { servers: Record<string, ResolvedServer>; errors: Record<string, string> } {
   let raw: unknown;
   try { raw = JSON.parse(text); } catch { throw new Error(`${source} 不是有效 JSON`); }
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error(`${source} 必须为 JSON 对象`);
@@ -274,8 +279,12 @@ function parseDocument(text: string, source: string): Record<string, ResolvedSer
   const entries = Object.entries(map as Record<string, unknown>);
   if (entries.length > 64) throw new Error('MCP 服务数量超过 64');
   const servers: Record<string, ResolvedServer> = {};
-  for (const [name, value] of entries) servers[name] = parseServer(name, value);
-  return servers;
+  const errors: Record<string, string> = {};
+  for (const [name, value] of entries) {
+    try { servers[name] = parseServer(name, value); }
+    catch (error) { errors[name] = error instanceof Error ? error.message : '配置无效'; }
+  }
+  return { servers, errors };
 }
 
 export function configSource(): { inline: boolean; file: string | null } {
@@ -283,11 +292,11 @@ export function configSource(): { inline: boolean; file: string | null } {
   return { inline, file: process.env.BCA_MCP_CONFIG ?? null };
 }
 
-export async function loadMcpServers(): Promise<Record<string, ResolvedServer>> {
+export async function loadMcpConfiguration(): Promise<{ servers: Record<string, ResolvedServer>; errors: Record<string, string> }> {
   const inline = process.env.BCA_MCP_SERVERS;
   const file = process.env.BCA_MCP_CONFIG;
   if (inline && file) throw new Error('BCA_MCP_SERVERS 与 BCA_MCP_CONFIG 只能设置一个');
-  if (!inline && !file) return {};
+  if (!inline && !file) return { servers: {}, errors: {} };
   if (inline) {
     return parseDocument(inline, 'BCA_MCP_SERVERS');
   }
@@ -297,12 +306,16 @@ export async function loadMcpServers(): Promise<Record<string, ResolvedServer>> 
   return parseDocument(text, 'BCA_MCP_CONFIG');
 }
 
+export async function loadMcpServers(): Promise<Record<string, ResolvedServer>> {
+  return (await loadMcpConfiguration()).servers;
+}
+
 export function describeServers(servers: Record<string, ResolvedServer>) {
   return Object.values(servers).map((server) => server.transport === 'http'
     ? {
         name: server.name,
         transport: server.transport,
-        endpoint: (() => { const url = new URL(server.url); return `${url.origin}${url.pathname}`; })(),
+        endpoint: (() => { const url = new URL(server.url); return url.origin; })(),
         headerNames: Object.keys(server.headers).sort(),
         preset: server.preset ?? null,
         description: server.description ?? null,

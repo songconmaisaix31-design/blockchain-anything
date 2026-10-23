@@ -34,6 +34,7 @@ export interface RunOptions {
   timeoutMs: number;
   maxBytes?: number;
   env?: Record<string, string | undefined>;
+  signal?: AbortSignal;
 }
 
 export interface RunResult {
@@ -44,7 +45,7 @@ export interface RunResult {
   truncated: boolean;
 }
 
-function childEnv(extra?: Record<string, string | undefined>): NodeJS.ProcessEnv {
+export function childEnv(extra?: Record<string, string | undefined>): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env };
   // 子进程不需要 BCA 的签署私钥或 MCP 凭据；默认不继承。
   delete env.BCA_PRIVATE_KEY;
@@ -58,17 +59,28 @@ function childEnv(extra?: Record<string, string | undefined>): NodeJS.ProcessEnv
   return env;
 }
 
-export function run(command: string, args: string[], options: RunOptions): Promise<RunResult> {
-  const maxBytes = options.maxBytes ?? 1024 * 1024;
+export function resolveExecutable(command: string): string {
   let executable = command;
   if (['forge', 'cast', 'anvil'].includes(command)) {
     // Foundry's npm launcher 1.7.1 does not forward child exit status.
     // Run its official platform binary directly when installed.
     const arch = process.arch === 'x64' ? 'amd64' : process.arch;
     const platform = process.platform === 'win32' ? 'win32' : process.platform;
-    try { executable = createRequire(import.meta.url).resolve(`@foundry-rs/${command}-${platform}-${arch}/bin/${command}${process.platform === 'win32' ? '.exe' : ''}`); }
+    const moduleName = `@foundry-rs/${command}-${platform}-${arch}/bin/${command}${process.platform === 'win32' ? '.exe' : ''}`;
+    try {
+      executable = process.env.BCA_COMPONENTS_DIR
+        ? createRequire(resolve(process.env.BCA_COMPONENTS_DIR, 'package.json')).resolve(moduleName)
+        : createRequire(import.meta.url).resolve(moduleName);
+    }
     catch { /* Fall back to the user's native installation on PATH. */ }
   }
+  return executable;
+}
+
+export function run(command: string, args: string[], options: RunOptions): Promise<RunResult> {
+  const maxBytes = options.maxBytes ?? 1024 * 1024;
+  const executable = resolveExecutable(command);
+  if (options.signal?.aborted) return Promise.reject(new Error(`${command} 已取消，未启动`));
   return new Promise((resolveRun, rejectRun) => {
     let child;
     try {
@@ -76,6 +88,7 @@ export function run(command: string, args: string[], options: RunOptions): Promi
         cwd: options.cwd,
         shell: false,
         windowsHide: true,
+        detached: process.platform !== 'win32',
         env: childEnv(options.env),
         stdio: ['ignore', 'pipe', 'pipe'],
       });
@@ -88,15 +101,52 @@ export function run(command: string, args: string[], options: RunOptions): Promi
     let total = 0;
     let timedOut = false;
     let truncated = false;
+    let stopping = false;
+    let failure: string | undefined;
+    let cleanupTimer: ReturnType<typeof setTimeout> | undefined;
+    const dispose = () => {
+      clearTimeout(timer);
+      clearTimeout(cleanupTimer);
+      options.signal?.removeEventListener('abort', cancel);
+    };
+    const stop = (reason: string) => {
+      if (stopping) return;
+      stopping = true;
+      failure = reason;
+      // The deadline includes pipes held by descendants. Never report a clean
+      // stop when the OS operation or the close event cannot confirm it.
+      cleanupTimer = setTimeout(() => {
+        dispose();
+        child.stdout?.destroy(); child.stderr?.destroy(); child.unref();
+        rejectRun(new Error(`${reason}；进程树清理未在 2000ms 内确认，请按本次 PID ${child.pid} 检查；提交状态未知`));
+      }, 2000);
+      if (!child.pid) return;
+      if (process.platform === 'win32') {
+        const killer = spawn('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], { shell: false, windowsHide: true, stdio: 'ignore' });
+        const killTimer = setTimeout(() => killer.kill(), 1500);
+        killer.once('close', (code) => {
+          clearTimeout(killTimer);
+          if (code !== 0) failure = `${reason}；taskkill 未确认清理成功 (${code})`;
+        });
+        killer.once('error', () => { failure = `${reason}；taskkill 无法启动，清理未确认`; });
+      } else {
+        try { process.kill(-child.pid, 'SIGKILL'); }
+        catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ESRCH') failure = `${reason}；无法终止进程组，清理未确认`;
+        }
+      }
+    };
+    const cancel = () => stop(`${command} 已取消`);
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill('SIGKILL');
+      stop(`${command} 超过 ${options.timeoutMs}ms 未完成`);
     }, options.timeoutMs);
+    options.signal?.addEventListener('abort', cancel, { once: true });
     const collect = (target: Buffer[], chunk: Buffer) => {
       total += chunk.byteLength;
       if (total > maxBytes) {
         truncated = true;
-        child.kill('SIGKILL');
+        stop(`${command} 输出超过 ${maxBytes} 字节上限`);
         return;
       }
       target.push(chunk);
@@ -104,17 +154,13 @@ export function run(command: string, args: string[], options: RunOptions): Promi
     child.stdout?.on('data', (chunk: Buffer) => collect(stdout, chunk));
     child.stderr?.on('data', (chunk: Buffer) => collect(stderr, chunk));
     child.on('error', (error) => {
-      clearTimeout(timer);
+      dispose();
       rejectRun(new Error(`无法运行 ${command}：${error.message}`));
     });
     child.on('close', (code) => {
-      clearTimeout(timer);
-      if (timedOut) {
-        rejectRun(new Error(`${command} 超过 ${options.timeoutMs}ms 未完成`));
-        return;
-      }
-      if (truncated) {
-        rejectRun(new Error(`${command} 输出超过 ${maxBytes} 字节上限`));
+      dispose();
+      if (failure) {
+        rejectRun(new Error(`${failure}；不自动重放操作`));
         return;
       }
       resolveRun({

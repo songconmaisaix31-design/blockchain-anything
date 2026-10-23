@@ -80,12 +80,13 @@ export function developmentTools(config: Config) {
         const source = (await readWorkingFile(config, path)).toString('utf8');
         const root = await resolveWorkingDir(config);
         const key = relative(root, entry).split(sep).join('/');
+        const sourceContents: Record<string, string> = { [key]: source };
         const input = {
           language: 'Solidity',
           sources: { [key]: { content: source } },
           settings: {
             optimizer: { enabled: optimizer, runs: 200 },
-            outputSelection: { '*': { '*': ['abi', 'evm.bytecode.object', 'evm.deployedBytecode.object'] } },
+            outputSelection: { '*': { '*': ['abi', 'evm.bytecode.object', 'evm.deployedBytecode.object', 'evm.deployedBytecode.sourceMap'] } },
           },
         };
         let output: any;
@@ -98,7 +99,9 @@ export function developmentTools(config: Config) {
                   if (!inside(root, candidate)) continue;
                   const info = statSync(candidate);
                   if (!info.isFile() || info.size > config.maxFileBytes) continue;
-                  return { contents: readFileSync(candidate, 'utf8') };
+                  const contents = readFileSync(candidate, 'utf8');
+                  sourceContents[importPath] = contents;
+                  return { contents };
                 } catch { /* Try the next in-project dependency root. */ }
               }
               return { error: `无法解析工作区或 node_modules 内的 import：${importPath}` };
@@ -115,6 +118,7 @@ export function developmentTools(config: Config) {
           for (const [name, contract] of Object.entries(names as Record<string, any>)) {
             contracts.push({
               file, name,
+              sourceMap: contract.evm?.deployedBytecode?.sourceMap ?? null,
               abi: contract.abi,
               bytecode: contract.evm?.bytecode?.object ? `0x${contract.evm.bytecode.object}` : '0x',
               deployedBytecode: contract.evm?.deployedBytecode?.object ? `0x${contract.evm.deployedBytecode.object}` : '0x',
@@ -123,6 +127,8 @@ export function developmentTools(config: Config) {
         }
         return {
           compiler: solc().version(),
+          sources: Object.fromEntries(Object.entries(output.sources ?? {}).map(([path, info]) => [path, { ...(info as object), content: sourceContents[path] ?? null }])),
+          taskStatus: diagnostics.some((item: { severity: string }) => item.severity === 'error') ? 'business_failed' : 'succeeded',
           success: !diagnostics.some((item: { severity: string }) => item.severity === 'error'),
           contracts,
           diagnostics,
@@ -142,7 +148,7 @@ export function developmentTools(config: Config) {
         const result = await run('forge', args, { cwd, timeoutMs: timeoutMs ?? config.timeoutMs });
         let parsed: unknown = null;
         try { parsed = parseJsonOutput(result, 'forge build'); } catch { /* 原样返回 stderr */ }
-        return { exitCode: result.exitCode, ok: result.exitCode === 0, result: parsed, stderr: result.stderr.trim().slice(0, 4000) };
+        return { taskStatus: result.exitCode === 0 ? 'succeeded' : 'business_failed', exitCode: result.exitCode, ok: result.exitCode === 0, result: parsed, stdout: result.stdout, stderr: result.stderr };
       }),
 
     defineTool('dev_forge_test', '在指定项目目录运行真实 forge test --json，返回测试套件结果；失败原样返回。',
@@ -160,7 +166,7 @@ export function developmentTools(config: Config) {
         const result = await run('forge', args, { cwd, timeoutMs: timeoutMs ?? config.timeoutMs });
         let parsed: unknown = null;
         try { parsed = parseJsonOutput(result, 'forge test'); } catch { /* 原样返回 stderr */ }
-        return { exitCode: result.exitCode, ok: result.exitCode === 0, result: parsed, stderr: result.stderr.trim().slice(0, 4000) };
+        return { taskStatus: result.exitCode === 0 ? 'succeeded' : 'business_failed', exitCode: result.exitCode, ok: result.exitCode === 0, result: parsed, stdout: result.stdout, stderr: result.stderr };
       }),
 
     defineTool('dev_hardhat_compile', '在项目目录用其本地安装的 Hardhat CLI 执行 compile；不安装依赖、不替换编译器。',
@@ -173,7 +179,7 @@ export function developmentTools(config: Config) {
         if (!bin) throw new Error('本地 Hardhat 未声明 CLI bin');
         const cli = await resolveWorkingPath(config, join(cwd, 'node_modules', 'hardhat', bin));
         const result = await run(process.execPath, [cli, 'compile'], { cwd, timeoutMs: timeoutMs ?? config.timeoutMs });
-        return { exitCode: result.exitCode, ok: result.exitCode === 0, stdout: result.stdout.trim().slice(0, 8000), stderr: result.stderr.trim().slice(0, 4000) };
+        return { taskStatus: result.exitCode === 0 ? 'succeeded' : 'business_failed', exitCode: result.exitCode, ok: result.exitCode === 0, stdout: result.stdout, stderr: result.stderr };
       }),
 
     defineTool('dev_slither_analyze', '对工作根目录内的 Solidity 文件或目录运行真实 Slither，并返回官方 JSON 分析结果。',
@@ -193,7 +199,8 @@ export function developmentTools(config: Config) {
         if (result.exitCode !== 0 && !parsed) {
           throw new Error(`slither 失败：${result.stderr.trim().slice(0, 2000) || '未安装或目标无效'}`);
         }
-        return { exitCode: result.exitCode, result: parsed, stderr: result.stderr.trim().slice(0, 4000) };
+        const analyzed = !!parsed && typeof parsed === 'object' && 'success' in parsed && parsed.success === true;
+        return { taskStatus: analyzed ? 'succeeded' : 'execution_failed', exitCode: result.exitCode, result: parsed, stderr: result.stderr };
       }),
 
     defineTool('dev_cast_chain_id', '通过配置的 RPC 读取真实 chain ID，并与 BCA_CHAIN_ID 核对。',

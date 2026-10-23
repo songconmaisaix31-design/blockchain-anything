@@ -5,10 +5,12 @@ export interface ToolDefinition {
   description: string;
   inputSchema: z.ZodObject;
   readOnly: boolean;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Toolkit {
   tools: ToolDefinition[];
+  close(): Promise<void>;
   invoke(name: string, input: unknown): Promise<unknown>;
 }
 

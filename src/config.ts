@@ -1,6 +1,7 @@
 import { getAddress, Wallet } from 'ethers';
 
 export interface Config {
+  issues?: Partial<Record<'evm' | 'signer' | 'eas' | 'ipfs', string[]>>;
   rpcUrl?: string;
   chainId?: bigint;
   easAddress?: string;
@@ -40,21 +41,33 @@ export function readConfig(): Config {
   if (env.BCA_ALLOW_WRITES && !['true', 'false'].includes(env.BCA_ALLOW_WRITES)) {
     throw new Error('BCA_ALLOW_WRITES 必须为 true 或 false');
   }
-  if (env.BCA_CHAIN_ID && !/^[1-9][0-9]*$/.test(env.BCA_CHAIN_ID)) {
-    throw new Error('BCA_CHAIN_ID 必须为十进制正整数');
+  const issues: NonNullable<Config['issues']> = {};
+  function vendor<T>(group: keyof typeof issues, check: () => T): T | undefined {
+    try { return check(); } catch (error) {
+      (issues[group] ??= []).push(error instanceof Error ? error.message : '供应商配置无效');
+      return undefined;
+    }
   }
-  if (env.BCA_PRIVATE_KEY) {
-    try { new Wallet(env.BCA_PRIVATE_KEY); } catch { throw new Error('BCA_PRIVATE_KEY 无效'); }
-  }
+  const chainId = vendor('evm', () => {
+    if (!env.BCA_CHAIN_ID) return undefined;
+    if (!/^[1-9][0-9]*$/.test(env.BCA_CHAIN_ID)) throw new Error('BCA_CHAIN_ID 必须为十进制正整数');
+    return BigInt(env.BCA_CHAIN_ID);
+  });
+  vendor('signer', () => {
+    if (env.BCA_PRIVATE_KEY) {
+      try { new Wallet(env.BCA_PRIVATE_KEY); } catch { throw new Error('BCA_PRIVATE_KEY 无效'); }
+    }
+  });
   return {
-    rpcUrl: endpoint(env.BCA_RPC_URL, 'BCA_RPC_URL'),
-    chainId: env.BCA_CHAIN_ID ? BigInt(env.BCA_CHAIN_ID) : undefined,
-    easAddress: address(env.BCA_EAS_ADDRESS, 'BCA_EAS_ADDRESS'),
-    registryAddress: address(env.BCA_SCHEMA_REGISTRY_ADDRESS, 'BCA_SCHEMA_REGISTRY_ADDRESS'),
+    issues,
+    rpcUrl: vendor('evm', () => endpoint(env.BCA_RPC_URL, 'BCA_RPC_URL')),
+    chainId,
+    easAddress: vendor('eas', () => address(env.BCA_EAS_ADDRESS, 'BCA_EAS_ADDRESS')),
+    registryAddress: vendor('eas', () => address(env.BCA_SCHEMA_REGISTRY_ADDRESS, 'BCA_SCHEMA_REGISTRY_ADDRESS')),
     privateKey: env.BCA_PRIVATE_KEY || undefined,
     allowWrites: env.BCA_ALLOW_WRITES === 'true',
     workingRoot: env.BCA_WORKING_ROOT || process.cwd(),
-    ipfsUrl: endpoint(env.BCA_IPFS_URL, 'BCA_IPFS_URL'),
+    ipfsUrl: vendor('ipfs', () => endpoint(env.BCA_IPFS_URL, 'BCA_IPFS_URL')),
     maxFileBytes: positiveInteger(env.BCA_MAX_FILE_BYTES, 'BCA_MAX_FILE_BYTES', 16 * 1024 * 1024),
     maxReadBytes: positiveInteger(env.BCA_MAX_READ_BYTES, 'BCA_MAX_READ_BYTES', 1024 * 1024),
     timeoutMs: positiveInteger(env.BCA_TIMEOUT_MS, 'BCA_TIMEOUT_MS', 30_000),
@@ -62,14 +75,21 @@ export function readConfig(): Config {
 }
 
 export function requireWrites(config: Config, signer = true): void {
+  if (signer) assertConfiguration(config, 'signer');
   if (!config.allowWrites) throw new Error('写入未开启：需要 BCA_ALLOW_WRITES=true');
   if (signer && !config.privateKey) throw new Error('签署需要 BCA_PRIVATE_KEY（仅限本地开发）');
+}
+
+export function assertConfiguration(config: Config, group: keyof NonNullable<Config['issues']>): void {
+  const issues = config.issues?.[group];
+  if (issues?.length) throw new Error(`配置错误 (${group})：${issues.join('；')}`);
 }
 
 export function configurationStatus(config: Config) {
   const evm = Boolean(config.rpcUrl && config.chainId);
   const eas = evm && Boolean(config.easAddress && config.registryAddress);
   return {
+    configurationErrors: config.issues ?? {},
     evm: { configured: evm, rpcConfigured: Boolean(config.rpcUrl), expectedChainId: config.chainId?.toString() ?? null },
     eas: { configured: eas, address: config.easAddress ?? null, schemaRegistry: config.registryAddress ?? null },
     signer: { configured: Boolean(config.privateKey), mode: config.privateKey ? 'local-development-environment' : null },

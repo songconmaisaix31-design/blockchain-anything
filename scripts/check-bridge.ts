@@ -36,13 +36,13 @@ await mkdir(resolve(root, '.work'), { recursive: true });
 await writeFile(configPath, JSON.stringify({
   mcpServers: {
     'bca-self': {
-      transport: 'stdio',
+      transport: 'stdio', readOnlyTools: ['content_cid'],
       command: process.execPath,
       args: [resolve(root, 'dist/mcp/main.js')],
       cwd: root,
       env: { BCA_WORKING_ROOT: root },
     },
-    'bca-http': { url: `http://127.0.0.1:${port}/mcp` },
+    'bca-http': { readOnlyTools: ['content_cid'], url: `http://127.0.0.1:${port}/mcp` },
   },
 }, null, 2));
 
@@ -95,6 +95,7 @@ try {
     httpPort: port,
   }, null, 2)}\n`);
 } finally {
+  await toolkit.close();
   await handler.close();
   await new Promise<void>((closed) => httpServer.close(() => closed()));
 }

@@ -1,6 +1,6 @@
 {
   "name": "blockchain-anything",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "成熟区块链工具的 TypeScript、CLI 与 MCP 入口",
@@ -46,7 +46,10 @@
     "build": "tsc",
     "smoke": "node --import tsx scripts/smoke.ts",
     "check:bridge": "node --import tsx scripts/check-bridge.ts",
-    "check:s2": "node --import tsx scripts/check-s2.ts"
+    "check:s2": "node --import tsx scripts/check-s2.ts",
+    "check:next": "node --import tsx scripts/check-next.ts",
+    "check:sessions": "node --import tsx scripts/check-sessions.ts",
+    "check:setup": "node --import tsx scripts/check-setup.ts"
   },
   "dependencies": {
     "@aptos-labs/ts-sdk": "7.5.0",
@@ -73,6 +76,7 @@
     "kubo-rpc-client": "7.1.0",
     "multiformats": "14.0.5",
     "sas-lib": "1.0.10",
+    "smol-toml": "1.4.2",
     "solc": "0.8.35",
     "viem": "2.57.10",
     "zod": "4.6.7"

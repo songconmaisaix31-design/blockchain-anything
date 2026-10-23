@@ -1,4 +1,5 @@
-import { createPublicClient, http, type Abi, type Address, type Hash, type PublicClient } from 'viem';
+import { createPublicClient, http, formatLog, numberToHex, TransactionNotFoundError, TransactionReceiptNotFoundError, type Abi, type Address, type Hash, type PublicClient } from 'viem';
+import { assertConfiguration } from '../config.js';
 import { z } from 'zod';
 import type { Config } from '../config.js';
 import { defineTool } from '../types.js';
@@ -12,7 +13,8 @@ function blockTag(value: string | undefined): bigint | 'latest' | 'earliest' | '
   throw new Error('block 必须为十进制区块号或 latest/earliest/pending/safe/finalized');
 }
 
-async function withClient<T>(config: Config, operation: (client: PublicClient) => Promise<T>): Promise<T> {
+export async function withClient<T>(config: Config, operation: (client: PublicClient) => Promise<T>): Promise<T> {
+  assertConfiguration(config, 'evm');
   if (!config.rpcUrl || !config.chainId) throw new Error('需要 BCA_RPC_URL 和 BCA_CHAIN_ID');
   const fetchFn = rpcFetchForEnvironment();
   const client = createPublicClient({
@@ -85,9 +87,16 @@ export function viemTools(config: Config) {
     defineTool('viem_transaction', '使用 viem 读取真实交易与回执；未找到时 found=false，不推断成功。',
       z.strictObject({ hash: uidSchema }), true,
       async ({ hash }) => withClient(config, async (client) => {
-        const transaction = await client.getTransaction({ hash: hash as Hash }).catch(() => null);
-        const receipt = await client.getTransactionReceipt({ hash: hash as Hash }).catch(() => null);
+        const transaction = await client.getTransaction({ hash: hash as Hash }).catch((error: unknown) => {
+          if (error instanceof TransactionNotFoundError) return null;
+          throw new Error(`无法查询交易 (getTransaction)，状态未知：${error instanceof Error ? error.message : 'RPC 错误'}`);
+        });
+        const receipt = await client.getTransactionReceipt({ hash: hash as Hash }).catch((error: unknown) => {
+          if (error instanceof TransactionReceiptNotFoundError) return null;
+          throw new Error(`无法查询回执 (getTransactionReceipt)，状态未知：${error instanceof Error ? error.message : 'RPC 错误'}`);
+        });
         return {
+          status: receipt ? (receipt.status === 'reverted' ? 'failed' : 'confirmed') : transaction ? (transaction.blockNumber === null ? 'pending' : 'receipt_unavailable') : 'not_found',
           chainId: config.chainId,
           hash,
           found: transaction !== null,
@@ -102,15 +111,21 @@ export function viemTools(config: Config) {
         address: addressSchema.optional(),
         fromBlock: z.string().default('latest'),
         toBlock: z.string().default('latest'),
-        topics: z.array(z.union([z.string(), z.array(z.string())])).optional(),
+        topics: z.array(z.union([uidSchema, z.array(uidSchema).min(1), z.null()])).max(4).optional(),
       }), true,
       async ({ address, fromBlock, toBlock, topics }) => withClient(config, async (client) => {
-        const logs = await client.getLogs({
+        const rpcBlock = (value: string) => {
+          const tag = blockTag(value);
+          return typeof tag === 'bigint' ? numberToHex(tag) : tag;
+        };
+        // getLogs accepts ABI events, not raw topics. Keep positional wildcards
+        // and OR arrays intact through the official typed raw RPC interface.
+        const rawLogs = await client.request({ method: 'eth_getLogs', params: [{
           address: address as Address | undefined,
-          fromBlock: blockTag(fromBlock),
-          toBlock: blockTag(toBlock),
-          topics: topics as any,
-        } as any);
+          fromBlock: rpcBlock(fromBlock), toBlock: rpcBlock(toBlock),
+          topics: topics as (Hash | Hash[] | null)[] | undefined,
+        }] });
+        const logs = rawLogs.map((log) => formatLog(log));
         return {
           chainId: config.chainId,
           count: logs.length,

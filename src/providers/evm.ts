@@ -1,11 +1,12 @@
 import { FetchRequest, JsonRpcProvider, getAddress, verifyMessage } from 'ethers';
 import { z } from 'zod';
 import type { Config } from '../config.js';
-import { configurationStatus } from '../config.js';
+import { configurationStatus, assertConfiguration } from '../config.js';
 import { defineTool } from '../types.js';
 import { addressSchema, uidSchema } from './common.js';
 
 export async function withProvider<T>(config: Config, operation: (provider: JsonRpcProvider) => Promise<T>): Promise<T> {
+  assertConfiguration(config, 'evm');
   if (!config.rpcUrl || !config.chainId) throw new Error('需要 BCA_RPC_URL 和 BCA_CHAIN_ID');
   const request = new FetchRequest(config.rpcUrl);
   request.timeout = config.timeoutMs;

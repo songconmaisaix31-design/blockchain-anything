@@ -4,12 +4,14 @@ import { serveStdio, type StdioServerHandle } from '@modelcontextprotocol/server
 import { createToolkit } from '../toolkit.js';
 import { Console } from 'node:console';
 import { VERSION } from '../version.js';
+import { resultExitCode } from '../outcome.js';
 
 export function createMcpServer(): McpServer {
   const toolkit = createToolkit();
   const server = new McpServer({ name: 'bca', version: VERSION }, {
     instructions: '使用 tools/list 查看实际工具与严格输入 Schema。写入或签署必须有进程配置授权和 submit=true；链上字段公开，IPFS add 会向配置的节点传输文件。',
   });
+  server.server.onclose = () => { void toolkit.close().catch(() => process.stderr.write('部分上游 MCP 会话关闭未确认\n')); };
   for (const tool of toolkit.tools) {
     server.registerTool(tool.name, {
       description: tool.description,
@@ -18,7 +20,7 @@ export function createMcpServer(): McpServer {
     }, async (input) => {
       try {
         const result = await toolkit.invoke(tool.name, input);
-        return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: { result } };
+        return { isError: resultExitCode(result) !== 0, content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: { result } };
       } catch (error) {
         return {
           isError: true,
