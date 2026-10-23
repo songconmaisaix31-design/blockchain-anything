@@ -11,6 +11,8 @@
 
 固定 Worker、Worktree、Branch 和 `write_paths` 见 [开发计划](../tasks/S1-toolkit.md)。跨范围修改通过 Handoff；领域错误交回原 Worker。
 
+A、B、I 已完成并提交推送，代码已合并到 `codex/bca-toolkit`。实际验收通过结果见 [STATUS](../STATUS.md)，复测入口见 [运行检查指南](guides/verification.md)。
+
 ## 测试要求
 
 1. 使用真实文件、官方 SDK、真实 Anvil EVM 和 Kubo，不使用 mock 或伪造协议。
