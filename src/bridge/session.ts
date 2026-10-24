@@ -34,7 +34,9 @@ export class BridgeSessions {
     const client = new Client({ name: 'bca', version: VERSION }, {
       inputRequired: { autoFulfill: false },
       listMaxPages: 20,
-      listChanged: { tools: { autoRefresh: false, onChanged: () => { if (entry) { entry.previousDigest = entry.snapshot?.digest ?? entry.previousDigest; entry.snapshot = undefined; } } } },
+      // Invalidate immediately: the SDK's default debounce can leave the old
+      // schema active for a call made just after tools/list_changed.
+      listChanged: { tools: { autoRefresh: false, debounceMs: 0, onChanged: () => { if (entry) { entry.previousDigest = entry.snapshot?.digest ?? entry.previousDigest; entry.snapshot = undefined; } } } },
     });
     entry = { id: randomUUID(), server, identity: digest(server), client, transport, busy: false, closed: false };
     client.onclose = () => { entry.closed = true; entry.snapshot = undefined; };

@@ -49,7 +49,8 @@
     "check:s2": "node --import tsx scripts/check-s2.ts",
     "check:next": "node --import tsx scripts/check-next.ts",
     "check:sessions": "node --import tsx scripts/check-sessions.ts",
-    "check:setup": "node --import tsx scripts/check-setup.ts"
+    "check:setup": "node --import tsx scripts/check-setup.ts",
+    "check:handoff": "node --import tsx scripts/check-handoff.ts"
   },
   "dependencies": {
     "@aptos-labs/ts-sdk": "7.5.0",
