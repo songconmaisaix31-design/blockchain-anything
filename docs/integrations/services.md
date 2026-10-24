@@ -30,7 +30,7 @@ BCA 使用官方 MCP TypeScript Client，支持 stdio 与 Streamable HTTP。配�
 | [Token Terminal](https://tokenterminal.com/docs/mcp/introduction) | https://mcp.tokenterminal.com/mcp；tokenterminal.json | OAuth | 待账户授权 |
 | [Messari](https://docs.messari.io/mcp-server/hosted) | https://mcp.messari.io/mcp；messari.json | OAuth 流程 + Messari API key | 待账户权限 |
 | [GoPlus](https://github.com/GoPlusSecurity/goplus-mcp) | npx goplus-mcp@1.0.1；goplus.json | key / secret | 待凭据与原生调用 |
-| [Slither MCP](https://github.com/trailofbits/slither-mcp) | uvx 官方仓库；slither.json | 本地环境 | MCP 服务未运行；Slither CLI 分析已通过 |
+| [Slither MCP](https://github.com/trailofbits/slither-mcp) | uvx 官方仓库；slither.json | 本地环境 | 2026-10-23 已真实发现及分析；2026-10-24 补测 CLI 状态分类。完整审计仍未代验 |
 | [Coinbase Wallet](https://docs.cdp.coinbase.com/ai-agents/coinbase-for-agents/wallet-mcp) | https://wallet-mcp.coinbase.com；coinbase-wallet.json | OAuth | 待钱包授权 |
 | [Kaito Pro](https://www.pro.kaito.ai/portal) | 无可核实的通用官方 API/MCP | 商业账户 | 未适配；仅保留准确的发现信息 |
 
