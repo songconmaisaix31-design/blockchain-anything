@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "chainstack": { "preset": "chainstack", "headers": { "Authorization": "Bearer ${BCA_CHAINSTACK_API_KEY}" } }
+  }
+}

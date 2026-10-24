@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "messari": {
+      "preset": "messari",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote@0.15.2",
+        "https://mcp.messari.io/mcp"
+      ]
+    }
+  }
+}

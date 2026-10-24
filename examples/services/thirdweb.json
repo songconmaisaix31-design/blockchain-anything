@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "thirdweb": { "preset": "thirdweb", "url": "https://api.thirdweb.com/mcp?secretKey=${BCA_THIRDWEB_SECRET_KEY}" }
+  }
+}
