@@ -8,6 +8,8 @@ import { VERSION } from '../version.js';
 import { resultExitCode } from '../outcome.js';
 import { setupSchema } from '../setup.js';
 import { workstationContextSchema } from '../workstations/catalog.js';
+import { projectInitSchema, projectRunSchema } from '../development/project.js';
+import { connectSchema } from '../bridge/manage.js';
 
 function describeTool(tool: ToolDefinition) {
   return {
@@ -80,8 +82,28 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
   cli.command('find', {
     description: '用一句话找到任务步骤，例如 bca find "只编译合约" --dir contracts',
     args: z.strictObject({ query: z.string() }),
-    options: workstationContextSchema,
-    run: ({ args, options }) => invoke('workstation_search', { query: args.query, context: options }),
+    options: workstationContextSchema.extend({ server: z.string().optional(), limit: z.number().int().min(1).max(100).default(8), details: z.boolean().default(false) }),
+    async run({ args, options }) {
+      const { server, limit, details, ...context } = options;
+      const tools = await invoke('capability_search', { query: args.query, dir: context.dir, chainFamily: context.chainFamily, server, limit, details });
+      const stations = server ? { candidates: [] } : await invoke('workstation_search', { query: args.query, context });
+      return { ...(stations as object), tools };
+    },
+  });
+  cli.command('init', {
+    description: '创建新 Foundry 项目，默认 Counter；--template erc20 复用 OpenZeppelin',
+    args: z.strictObject({ dir: z.string() }), options: projectInitSchema.omit({ dir: true, submit: true }),
+    run: ({ args, options }) => invoke('project_init', { ...args, ...options, submit: true }),
+  });
+  for (const [command, action] of [['build', 'compile'], ['test', 'test']] as const) cli.command(command, {
+    description: '识别项目框架并执行原项目工具，失败保留诊断和退出码',
+    args: z.strictObject({ dir: z.string().default('.') }), options: projectRunSchema.omit({ dir: true, action: true }),
+    run: ({ args, options }) => invoke('project_run', { ...args, ...options, action }),
+  });
+  cli.command('connect', {
+    description: '保存官方 MCP 服务配置；--key-env 指定密钥环境变量名，--oauth 使用官方登录桥接',
+    args: z.strictObject({ preset: z.string() }), options: connectSchema.omit({ preset: true, submit: true }),
+    run: ({ args, options }) => invoke('bridge_configure', { ...args, ...options, submit: true }),
   });
   cli.command('call', {
     description: '按照完整工具名调用共享工具',
@@ -121,7 +143,10 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
       description: '成熟区块链工具聚合',
       version: VERSION,
       commands: [
-        { name: 'find <query> [--dir <path>]', description: '按问题找到任务步骤与缺项' },
+        { name: 'find <query> [--dir <path>] [--server <name>]', description: '搜索工作站、内置工具或上游 MCP' },
+        { name: 'init <dir> [--template counter|erc20]', description: '创建可编译、测试的新项目' },
+        { name: 'build [dir] / test [dir]', description: '运行项目原生编译或测试' },
+        { name: 'connect <preset>', description: '接入官方 MCP 服务' },
         { name: 'setup [--client codex|claude|both] [--install]', description: '接入已有 Agent 客户端' },
         { name: 'doctor', description: '检查安装和配置，按缺项修复' },
         { name: 'tools [name]', description: '查看实际工具、完整输入 Schema 和读写标记' },

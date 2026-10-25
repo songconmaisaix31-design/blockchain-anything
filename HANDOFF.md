@@ -1,11 +1,9 @@
 # BCA 交接
 
-最新接手入口：[本地 Agent 测试交接与验收标准](docs/acceptance/BCA-LOCAL-AGENT-HANDOFF-20261024.md)。本轮已集中补跑可执行路径，补齐真实代理、Hardhat、Slither、动态 MCP Schema，并修复通知后短暂使用旧快照的问题；逐项证据见 [补测结果](docs/acceptance/2026-10-24-handoff-results.json)。本地 Agent 按该文档的 L/A/B/U 编号回传结果。
+当前进度见 [STATUS](STATUS.md)，v1 实际结果见 [本轮记录](docs/acceptance/2026-10-25-v1.md)。用户 D14 已授权合并，更新此前等待完整生态验收的合并时点。
 
-更新：2026-10-25。本轮精简与验证见 [2026-10-25](docs/acceptance/2026-10-25.md)。版本 0.3.0，开发分支 `codex/bca-s2-complete`，本轮从 `f3a71ff` 开始。当前实现、实际命令、首次失败与剩余条件集中记录在 [本轮验收](docs/acceptance/2026-10-24.md)。历史生态验收继续保留在 [S2 清单](tasks/S2-progress.md)，本轮没有重新认证全部供应商。
+共享入口是 `src/toolkit.ts`。新增产品入口复用现有实现：`development/project.ts` 创建并运行项目，`workstations/search.ts` 检索真实目录，`bridge/manage.ts` 保存官方 MCP 预设。setup 生成客户端配置和自动读取的工作流入口。
 
-共享实现入口仍为 `src/toolkit.ts`。新增 `workstations/`、`setup.ts`、`development/workspace.ts` 和 `bridge/session.ts`。安装说明见 [setup](docs/guides/setup.md)，源码/trace 与会话边界见 [workstations](docs/guides/workstations.md)。
+使用 Node 24.16+；`npm ci` 会通过 prepare 构建。按变更选择相关检查：`check:v1` 跑新建项目和真实 OpenZeppelin MCP；`check:setup` 跑实际打包安装；`check:next -- onchain` 跑本地链开发与诊断；`check:sessions` 跑连接边界。只有改动或失败涉及相应路径时才复测，不重复全生态验收。
 
-接手使用 Node 24.16+、`npm ci`、`npm run build`。按变更选择 `check:next -- discovery`、`check:next -- regressions`、`check:next -- onchain`、`check:sessions`、`check:setup`；不要无变化地重复全生态验收。`check:setup` 用实际 tarball 和临时项目，包含网络安装，完成后清理。测试程序不会读取生产密钥或提交公共链交易。
-
-剩余任务是原生 Windows/WSL2 客户端验收、账户型服务、公共链源码上传验证，以及按需扩展代理/嵌套 trace 的源码定位。未验证结果保持明确。只有满足原有全生态验收条件才合并 main；当前不满足。保持 `private:true`。
+后续优先完成用户实际任务带出的缺口。账户/资金/平台缺项仍见 [原生客户端与服务交接](docs/acceptance/BCA-LOCAL-AGENT-HANDOFF-20261024.md)，该历史文档中的合并时点以 D14 为准。保持 private；未执行公共 npm 发布或生产交易。

@@ -21,7 +21,7 @@ export class BridgeSessions {
   constructor(private config: Config) {}
 
   async open(serverName: string) {
-    const configuration = await loadMcpConfiguration();
+    const configuration = await loadMcpConfiguration(this.config.workingRoot);
     if (configuration.errors[serverName]) throw new Error(configuration.errors[serverName]);
     const server = configuration.servers[serverName];
     if (!server) throw new Error(`未知 MCP 服务：${serverName}`);
@@ -89,7 +89,7 @@ export class BridgeSessions {
     const entry = this.entries.get(id);
     if (!entry) throw new Error('会话不存在或已过期；请显式重新 bridge_open');
     if (entry.busy) throw new Error('同一会话正在执行；请等待上次调用完成');
-    const current = (await loadMcpServers())[serverName];
+    const current = (await loadMcpServers(this.config.workingRoot))[serverName];
     if (entry.closed || entry.server.name !== serverName || !current || digest(current) !== entry.identity) {
       await this.close(id);
       throw new Error('会话已断开或配置/凭据已变更；请显式重新连接，未知写入先查询状态');

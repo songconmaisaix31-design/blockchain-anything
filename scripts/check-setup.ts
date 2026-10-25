@@ -8,7 +8,7 @@ import { parse } from 'smol-toml';
 import { run } from '../src/development/exec.js';
 
 const root = process.cwd(); await mkdir('.work/package', { recursive: true });
-const packed = await run('npm', ['pack', '--json', '--pack-destination', resolve('.work/package')], { cwd: root, timeoutMs: 20000 });
+const packed = await run('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', resolve('.work/package')], { cwd: root, timeoutMs: 20000 });
 assert.equal(packed.exitCode, 0, packed.stderr);
 const artifact = JSON.parse(packed.stdout)[0]; const tarball = resolve('.work/package', artifact.filename);
 const project = await mkdtemp(join(tmpdir(), 'bca-setup-'));
@@ -17,6 +17,7 @@ for (const key of Object.keys(process.env)) if (key.startsWith('BCA_')) cleanEnv
 const mcp = new Client({ name: 'packed-setup-check', version: '1' });
 try {
   await mkdir(join(project, '.codex'));
+  for (const file of ['AGENTS.md', 'CLAUDE.md']) await writeFile(join(project, file), '# Existing project rules\nPreserve this instruction.\n');
   await writeFile(join(project, '.mcp.json'), JSON.stringify({ mcpServers: { other: { command: 'existing' }, bca: { env: { BCA_RPC_URL: 'http://127.0.0.1:1', BCA_CHAIN_ID: '31337' } } } }));
   await writeFile(join(project, '.codex/config.toml'), '# user comment kept in backup\nmodel="user-choice"\n[mcp_servers.other]\ncommand="existing"\n');
   console.log('Installing from actual tarball through npm exec…');
@@ -35,6 +36,11 @@ try {
   const second = await run(process.execPath, [cli, 'setup', '--client', 'both', '--install'], { cwd: project, env: { ...cleanEnv, ...config.env }, timeoutMs: 120000, maxBytes: 4 * 1024 * 1024 });
   assert.equal(second.exitCode, 0, second.stdout + second.stderr);
   assert.ok(JSON.parse(second.stdout).changes.every((change: any) => change.changed === false), second.stdout);
+  for (const file of ['AGENTS.md', 'CLAUDE.md']) {
+    const text = await readFile(join(project, file), 'utf8');
+    assert.match(text, /Preserve this instruction/); assert.match(text, /BCA-WORKFLOW.md/);
+    assert.equal(text.split('<!-- bca:start -->').length, 2);
+  }
   await mcp.connect(new StdioClientTransport({ command: config.command, args: config.args, cwd: project, env: config.env }));
   const list = await mcp.listTools(); assert.ok(list.tools.some((tool) => tool.name === 'workstation_search'));
   const cid = await mcp.callTool({ name: 'content_cid', arguments: { path: 'BCA-WORKFLOW.md' } }); assert.ok(!cid.isError); assert.match(JSON.stringify(cid), /bafkrei/);
@@ -42,8 +48,15 @@ try {
   assert.equal(doctor.exitCode, 0, doctor.stderr); const diagnosed = JSON.parse(doctor.stdout);
   for (const name of ['forge', 'cast', 'anvil', 'codex MCP config', 'claude MCP config']) assert.equal(diagnosed.checks.find((item: any) => item.name === name).status, 'passed', doctor.stdout);
   assert.ok(diagnosed.checks.some((item: any) => item.name === 'capabilities'), 'failed client check must not stop doctor');
+  // A normal terminal invocation has no MCP-injected BCA_COMPONENTS_DIR.
+  for (const args of [['init', 'counter'], ['build', 'counter'], ['test', 'counter']]) {
+    const executed = await run(process.execPath, [cli, ...args], { cwd: project, env: cleanEnv, timeoutMs: 120000 });
+    assert.equal(executed.exitCode, 0, executed.stdout + executed.stderr);
+    assert.equal(JSON.parse(executed.stdout).taskStatus, 'succeeded');
+  }
   const report = { artifact: artifact.filename, shasum: artifact.shasum, integrity: artifact.integrity, entry: 'npm exec --yes --package <actual.tgz> -- bca setup --client both --install',
     persistentRuntime: true, components: 'official Foundry 1.7.1', preservedOtherClientConfig: true, preservedBcaEnv: true, backups: true, idempotent: true,
+    preservedClientInstructions: true, installedCliInitBuildTest: 'passed',
     installedMcpCid: 'passed', installedWorkstationDiscovery: 'passed', doctor: diagnosed.checks.filter((item: any) => item.name !== 'capabilities'),
     clientUiAuthorization: 'not tested: configuration and real MCP launch only', platform: process.platform, at: new Date().toISOString() };
   await writeFile(resolve('.work/package/result.json'), JSON.stringify(report, null, 2)); console.log(JSON.stringify({ passed: true, artifact: report.artifact, checks: report.doctor }, null, 2));

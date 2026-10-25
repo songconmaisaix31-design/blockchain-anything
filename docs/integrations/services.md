@@ -1,5 +1,8 @@
 # 官方服务与 MCP
 
+项目快捷接入：`bca connect openzeppelin` 保存到 `.bca/mcp.json`，随后 `bca find "ERC20" --server openzeppelin --details` 读取真实上游工具。已有不同配置保留，使用新名称或手动编辑。设置 `BCA_MCP_CONFIG` / `BCA_MCP_SERVERS` 时优先使用环境指定的配置。
+
+
 BCA 使用官方 MCP TypeScript Client，支持 stdio 与 Streamable HTTP。配置仅由操作者提供：`BCA_MCP_CONFIG` 指向 JSON 文件，或 `BCA_MCP_SERVERS` 为 JSON 字符串，两者互斥。`url`、`headers`、`args`、`env` 支持 `${ENV_NAME}` 展开；缺变量只使对应服务不可用，其他有效服务仍可连接。
 
 | 工具 | 行为 |

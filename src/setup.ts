@@ -1,16 +1,16 @@
 import { existsSync } from 'node:fs';
-import { readFile, writeFile, copyFile, mkdir, rename, stat, lstat } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, stat, lstat } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { parse, stringify } from 'smol-toml';
 import { z } from 'zod';
 import type { Config } from './config.js';
 import { defineTool } from './types.js';
 import { safeError, submitSchema } from './providers/common.js';
-import { resolveWorkingDir, run, runVersion } from './development/exec.js';
+import { resolveWorkingDir, runNpm, runVersion } from './development/exec.js';
 import { loadMcpConfiguration } from './bridge/config.js';
+import { textOrEmpty, replaceWithBackup } from './project-files.js';
 
 const packageRoot = fileURLToPath(new URL('../', import.meta.url));
 const workstationSchema = z.enum(['all', 'evm-diagnose', 'evm-develop']);
@@ -18,28 +18,6 @@ export const setupSchema = z.strictObject({ client: z.enum(['codex', 'claude', '
   workstation: workstationSchema.default('all'), install: z.boolean().default(false), submit: submitSchema });
 
 function nodeSupported() { const [major, minor] = process.versions.node.split('.').map(Number); return major === 24 && minor! >= 16; }
-async function textOrEmpty(path: string) {
-  try { return await readFile(path, 'utf8'); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return ''; throw error; }
-}
-async function replaceWithBackup(path: string, text: string) {
-  const previous = await textOrEmpty(path);
-  if (previous === text) return { path, changed: false, backup: null };
-  await mkdir(dirname(path), { recursive: true });
-  const backup = previous ? `${path}.bca-backup-${Date.now()}-${randomUUID().slice(0, 8)}` : null;
-  if (backup) await copyFile(path, backup);
-  const temp = `${path}.${randomUUID()}.tmp`;
-  await writeFile(temp, text, { mode: 0o600 });
-  await rename(temp, path);
-  return { path, changed: true, backup };
-}
-
-async function npm(args: string[], cwd: string) {
-  const candidates = [process.env.npm_execpath, join(dirname(process.execPath), '../lib/node_modules/npm/bin/npm-cli.js'), join(dirname(process.execPath), 'node_modules/npm/bin/npm-cli.js')];
-  const cli = candidates.find((item) => item && existsSync(item));
-  const result = await run(cli ? process.execPath : 'npm', cli ? [cli, ...args] : args, { cwd, timeoutMs: 240_000, maxBytes: 4 * 1024 * 1024 });
-  if (result.exitCode !== 0) throw new Error(`npm 操作失败 (${result.exitCode})：${result.stderr.slice(-2000)}`);
-  return result;
-}
 
 export async function setup(config: Config, input: z.output<typeof setupSchema>) {
   if (!nodeSupported()) throw new Error('需要 Node >=24.16.0 <25');
@@ -49,7 +27,8 @@ export async function setup(config: Config, input: z.output<typeof setupSchema>)
     await mkdir(target, { recursive: true });
     await resolveWorkingDir({ ...config, workingRoot: root }, target);
   }
-  for (const file of ['.mcp.json', '.codex/config.toml', 'BCA-WORKFLOW.md']) {
+  const instructionFiles = [...(input.client !== 'claude' ? ['AGENTS.md'] : []), ...(input.client !== 'codex' ? ['CLAUDE.md'] : [])];
+  for (const file of ['.mcp.json', '.codex/config.toml', 'BCA-WORKFLOW.md', ...instructionFiles]) {
     const info = await lstat(join(root, file)).catch((error) => { if (error.code === 'ENOENT') return null; throw error; });
     if (info?.isSymbolicLink()) throw new Error(`配置文件不能是符号链接：${file}`);
   }
@@ -60,12 +39,12 @@ export async function setup(config: Config, input: z.output<typeof setupSchema>)
   if (input.install) {
     await mkdir(runtime, { recursive: true });
     if (resolve(packageRoot) !== resolve(runtime, 'node_modules/blockchain-anything')) {
-      const packed = JSON.parse((await npm(['pack', packageRoot, '--ignore-scripts', '--json', '--pack-destination', runtime], root)).stdout)[0];
+      const packed = JSON.parse((await runNpm(['pack', packageRoot, '--ignore-scripts', '--json', '--pack-destination', runtime], root)).stdout)[0];
       const marker = join(runtime, 'bca-install.json');
       let previous: { shasum?: string } = {};
       try { previous = JSON.parse(await textOrEmpty(marker) || '{}'); } catch { /* reinstall broken marker */ }
       if (previous.shasum !== packed.shasum || !existsSync(join(runtime, 'node_modules/blockchain-anything/dist/mcp/main.js'))) {
-        await npm(['install', '--prefix', runtime, '--omit=dev', '--no-audit', '--no-fund', '--save-exact', join(runtime, packed.filename)], root);
+        await runNpm(['install', '--prefix', runtime, '--omit=dev', '--no-audit', '--no-fund', '--save-exact', join(runtime, packed.filename)], root);
         await writeFile(marker, JSON.stringify({ shasum: packed.shasum, version: packed.version }));
         preparation.push('已从当前实际 npm pack 产物安装持久运行目录');
       } else preparation.push('已复用相同打包产物');
@@ -88,7 +67,7 @@ export async function setup(config: Config, input: z.output<typeof setupSchema>)
         }));
         if (versions.some((version) => !version)) {
           await mkdir(components, { recursive: true });
-          await npm(['install', '--prefix', components, '--no-audit', '--no-fund', '--save-exact', '@foundry-rs/forge@1.7.1', '@foundry-rs/cast@1.7.1', '@foundry-rs/anvil@1.7.1'], root);
+          await runNpm(['install', '--prefix', components, '--no-audit', '--no-fund', '--save-exact', '@foundry-rs/forge@1.7.1', '@foundry-rs/cast@1.7.1', '@foundry-rs/anvil@1.7.1'], root);
           preparation.push('已通过官方 npm 包安装固定 Foundry 1.7.1 到 .bca/components');
         } else preparation.push('已复用当前可用 Foundry；版本见 doctor');
       } finally { if (previous === undefined) delete process.env.BCA_COMPONENTS_DIR; else process.env.BCA_COMPONENTS_DIR = previous; }
@@ -117,8 +96,15 @@ export async function setup(config: Config, input: z.output<typeof setupSchema>)
     codex.mcp_servers.bca = mergedEntry(codex.mcp_servers.bca);
     changes.push(await replaceWithBackup(codexPath, stringify(codex)));
   }
-  const workflow = `# BCA 工作流\n\n选定工作站：${input.workstation}\n\n1. 用 workstation_search 输入用户问题及 dir、chainId 等事实，直接使用返回的步骤和缺项。已知工作站时可调用 workstation_guide；无需两者都调用。\n2. 只编译/测试时设置 context.task 为 compile/test；已有源码直接使用项目工具，需要生成合约时再读取官方技能。\n3. 宿主负责代码编辑和任务循环。失败后局部修复、局部复测。\n4. 连续 MCP 调用使用 bridge_open → bridge_call → bridge_close；需要查看最新 Schema 时调用 bridge_refresh。\n5. 本地 Anvil 部署需明确 from 和 submit；公共链沿用宿主钱包授权，不自动重放未知写入。\n\n安装后调用 content_cid，参数 {"path":"BCA-WORKFLOW.md"}。Codex/Claude Code 需信任项目并批准 MCP 配置。\n`;
+  const workflow = `# BCA 工作流\n\n选定工作站：${input.workstation}\n\n1. 用 capability_search 搜索用户问题；带 server 可发现已配置官方 MCP 的真实工具。EVM 完整工作流用 workstation_search，直接使用返回的步骤和缺项。\n2. 新项目调用 project_init（counter/erc20）；已有项目调用 project_run，action=compile/test。CLI 对应 bca init/build/test。需要官方生成器时先 bca connect openzeppelin，再搜索上游真实 Schema。\n3. 宿主负责代码编辑和任务循环。失败后局部修复、局部复测。\n4. 连续 MCP 调用使用 bridge_open → bridge_call → bridge_close；需要查看最新 Schema 时调用 bridge_refresh。\n5. 本地 Anvil 部署需明确 from 和 submit；公共链沿用宿主钱包授权，不自动重放未知写入。\n\n安装后调用 content_cid，参数 {"path":"BCA-WORKFLOW.md"}。Codex/Claude Code 需信任项目并批准 MCP 配置。\n`;
   changes.push(await replaceWithBackup(join(root, 'BCA-WORKFLOW.md'), workflow));
+  const instruction = '<!-- bca:start -->\nFor blockchain tasks, read BCA-WORKFLOW.md. Use capability_search to discover tools, project_init for a new project, and project_run to compile/test. Preserve the project configuration and ask the host for any transaction authorization.\n<!-- bca:end -->';
+  for (const file of instructionFiles) {
+    const path = join(root, file); const previous = await textOrEmpty(path);
+    const block = /<!-- bca:start -->[\s\S]*?<!-- bca:end -->/;
+    if ((previous.includes('<!-- bca:start -->') || previous.includes('<!-- bca:end -->')) && !block.test(previous)) throw new Error(`${file} 中的 BCA 指引标记不完整，请修复后重新 setup`);
+    changes.push(await replaceWithBackup(path, block.test(previous) ? previous.replace(block, instruction) : `${previous}${previous && !previous.endsWith('\n') ? '\n' : ''}${instruction}\n`));
+  }
   return { taskStatus: 'succeeded', changes, preparation, clientConnectionVerified: false, node: process.versions.node,
     nextTask: { tool: 'content_cid', input: { path: 'BCA-WORKFLOW.md' } },
     nextCommand: `${JSON.stringify(process.execPath)} ${JSON.stringify(join(dirname(entry), '../cli/main.js'))} doctor`,
@@ -156,7 +142,7 @@ export async function doctor(config: Config, dir: string, invoke: (name: string,
     const issues = Object.values(config.issues ?? {}).flat(); if (issues.length) throw new Error(issues.join('；'));
     return { evmConfigured: !!config.rpcUrl && !!config.chainId, writesEnabled: config.allowWrites, connectionVerified: false };
   }, '修复对应环境变量；无关能力仍可运行');
-  await check('configured MCP', async () => { const state = await loadMcpConfiguration(); if (Object.keys(state.errors).length) throw new Error(Object.values(state.errors).join('；')); return { names: Object.keys(state.servers), connectionVerified: false }; }, '修复 BCA_MCP_CONFIG 或未设置的凭据引用');
+  await check('configured MCP', async () => { const state = await loadMcpConfiguration(root); if (Object.keys(state.errors).length) throw new Error(Object.values(state.errors).join('；')); return { names: Object.keys(state.servers), connectionVerified: false }; }, '修复 BCA_MCP_CONFIG 或未设置的凭据引用');
   await check('capabilities', async () => {
     const capabilities = await invoke('capability_list', { dir }) as { name: string; availability: { status: string } }[];
     const byStatus: Record<string, string[]> = {};
