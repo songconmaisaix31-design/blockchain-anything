@@ -5,6 +5,7 @@
 - 产品入口：`find / init / build / test / connect / setup / doctor`，共用 SDK/CLI/MCP 实现。
 - 实际任务：Counter / OpenZeppelin ERC20 创建、Foundry/Hardhat 编译测试、官方 MCP 发现和调用、EVM 失败诊断、本地 Anvil 部署并读回状态。
 - 精简原则：按任务调用现有工具，按需读取 Schema，沿用官方组件；不增加评分、覆盖率门槛或重复运行时验收记录。
+- Windows 原生测试：Node 24.16.0 下，跳过依赖安装脚本后类型/构建、CLI/MCP、Counter/ERC20、本地链诊断、Kubo、中文/空格路径通过；默认安装、检查脚本启动、客户端诊断、生成命令和进程清理仍有问题，详见 [Windows 记录](docs/acceptance/2026-10-25-windows.md)。
 - 已知缺项：Windows/macOS 原生客户端、账户型服务业务路径、公共测试网源码上传验证。保留实际未测状态，不阻塞已验证主线。
 
 本轮实际检查与限制集中在 [v1 记录](docs/acceptance/2026-10-25-v1.md)。历史参考：[精简审阅](docs/acceptance/2026-10-25.md)、[工作站](docs/acceptance/2026-10-24.md)、[S2 生态](tasks/S2-progress.md)。

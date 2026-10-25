@@ -86,7 +86,7 @@ try {
 
 `bca mcp` 启动 stdio 服务。现有 EAS、IPFS/Kubo、Sui、Aptos、Solana/SAS、Sign、Walrus、Seal、Arweave、Safe、x402、CCXT、身份和来源验证适配继续保留；各生态实际验证范围见 [S2 记录](tasks/S2-progress.md)。
 
-v1 的验证范围和已知限制集中在 [本轮记录](docs/acceptance/2026-10-25-v1.md)。Linux x64 已运行；Windows/macOS 原生客户端、账户型服务和公共测试网源码上传仍有未验证项。源码定位只覆盖已实现的标准代理和 trace 路径。
+v1 的验证范围和已知限制集中在 [本轮记录](docs/acceptance/2026-10-25-v1.md)。Linux x64 已运行；Windows 原生核心功能的实际结果、默认安装阻塞和进程清理问题见 [Windows 记录](docs/acceptance/2026-10-25-windows.md)。Windows/macOS 原生客户端、账户型服务和公共测试网源码上传仍有未验证项。源码定位只覆盖已实现的标准代理和 trace 路径。
 
 [开发规则](docs/TASKS.md) · [用户决定](docs/QUESTIONS.md) · [当前进度](STATUS.md) · [REA 参考](docs/REA-REFERENCE.md)
 

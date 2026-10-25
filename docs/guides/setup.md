@@ -4,7 +4,7 @@
 
 ## Windows 11 + WSL2
 
-在同一个 WSL2 环境运行 Node 24.16+、npm 和 Codex/Claude Code，使用 Linux 项目路径。Windows 浏览器/编辑器可以打开该项目；Windows 原生客户端不能直接执行 WSL 路径。当前验证环境为 Linux x64，未执行 WSL2 宿主或 Windows 原生验收。
+在同一个 WSL2 环境运行 Node 24.16+、npm 和 Codex/Claude Code，使用 Linux 项目路径。Windows 浏览器/编辑器可以打开该项目；Windows 原生客户端不能直接执行 WSL 路径。Linux x64 已验证，WSL2 宿主未验证；Windows 原生结果及安装限制见 [Windows 记录](../acceptance/2026-10-25-windows.md)。
 
 ```bash
 # 在 BCA checkout 中
@@ -44,22 +44,27 @@ BCA_MCP_CONFIG=/absolute/path/services.json \
 
 配置凭据由操作者在受控环境/客户端设置，不写入仓库。将 `.mcp.json`、`.codex/config.toml` 及备份中可能存在的个人凭据排除出提交；本轮产物只使用临时测试配置。
 
-## Windows 原生复验（未实测）
+## Windows 原生验证
+
+2026-10-25 已在 Windows x64、PowerShell 7.6.6、Node 24.16.0 实测。默认 `npm ci` 会被固定版本 Foundry 包的 postinstall 阻塞；已有官方 Foundry 可执行程序的环境可使用下列依赖准备方式继续验证。当前原生适配仍有已复现问题，具体范围见 [Windows 记录](../acceptance/2026-10-25-windows.md)。
 
 在 PowerShell 7 和 Node 24.16+ 中：
 
 ```powershell
-npm ci
-npm run check:next -- regressions
+npm ci --ignore-scripts --no-audit --no-fund
+npm run typecheck
+npm run build
+npm run check:v1
+npm run check:next -- onchain
 npm run check:sessions
 # 给实际 tgz 路径加引号；在目标项目执行
 npm exec --yes --package "C:\path\blockchain-anything-1.0.0.tgz" -- bca setup --client both --install
 node .bca/runtime/node_modules/blockchain-anything/dist/cli/main.js doctor
 ```
 
-`check:next -- regressions` 会启动自己拥有的子孙进程，验证超时/取消后文件停止增长、输出超限结束、普通命令成功，以及 CLI/MCP 编译失败状态。Windows 分支使用系统 `taskkill.exe /PID <本次PID> /T /F`；若清理不能在 2 秒内确认，必须看到明确错误，不应留下继续写文件的后代。
+Windows 分支使用系统 `taskkill.exe /PID <本次PID> /T /F`。本次独立真实进程检查发现超时/取消返回后后代仍可继续写入，清理未通过；普通命令与输出超限错误传播通过。`check:next -- regressions` 含固定响应的自建 RPC，本轮没有执行该部分。
 
-收集 `node -v`、`npm -v`、`$PSVersionTable.PSVersion`、脚本 stdout/stderr、`.work/next/result-regressions.json`。若失败，保存 `.work/next/descendant.log` 的文件大小变化和任务 PID；不要附环境变量全量、私钥或 Token。本地链工作流另运行 `npm run check:next -- onchain`，需要该平台 Foundry 与 solc 0.8.35。
+收集 `node -v`、`npm -v`、`$PSVersionTable.PSVersion`、脚本 stdout/stderr 和实际结果文件；进程清理问题须保留文件大小变化和本次 PID。不要附环境变量全量、私钥或 Token。本地链工作流需要该平台 Foundry 与 solc 0.8.35。doctor 当前会误报通过 npm 安装的 Codex/Claude 不可用；生成的客户端配置和实际 MCP 连接单独验证。
 
 官方配置参考：
 - https://developers.openai.com/codex/mcp
