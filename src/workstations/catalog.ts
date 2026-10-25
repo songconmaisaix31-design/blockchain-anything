@@ -58,7 +58,7 @@ export function metadataFor(tool: ToolDefinition) {
   return { source, workstations: workstations.filter((station) => [...station.required, ...station.optional].includes(name)).map((station) => station.id),
     targets: /^(evm_|viem_|eas_|dev_(forge|cast|solidity|hardhat)|workstation_diagnose)/.test(name) ? ['evm'] : ['provider-specific'],
     impact: name === 'dev_forge_deploy_local' ? ['local-files', 'onchain-submit'] : name === 'dev_forge_verify' ? ['source-upload'] :
-      /^(dev_(forge|hardhat)|system_setup)/.test(name) ? ['local-files'] : tool.readOnly ? ['read'] : ['provider-defined-write-or-sign'],
+      /^(dev_(forge|hardhat)|project_|system_setup|bridge_configure)/.test(name) ? ['local-files'] : tool.readOnly ? ['read'] : ['provider-defined-write-or-sign'],
     requirements: { executable: binary ?? null, projectDirectory: /^dev_/.test(name), authorization: tool.readOnly ? 'read' : 'host/operator authorization according to tool schema' } };
 }
 
@@ -71,7 +71,7 @@ export async function capabilityStatus(tool: ToolDefinition, config: Config, dir
   if (group && config.issues?.[group]?.length) { status = 'configuration_error'; reason = config.issues[group]!.join('；'); }
   else if (group === 'evm' && (!config.rpcUrl || !config.chainId)) { status = 'configuration_error'; reason = '需要 BCA_RPC_URL / BCA_CHAIN_ID'; requirements.push('BCA_RPC_URL', 'BCA_CHAIN_ID'); }
   else if (group === 'ipfs' && !config.ipfsUrl) { status = 'configuration_error'; reason = '需要 BCA_IPFS_URL'; requirements.push('BCA_IPFS_URL'); }
-  else if (/^content_|^capability_|^workstation_(list|search|guide)$|^system_doctor$|^dev_(project|solidity_compile)$|^evm_(status|verify_message)$/.test(name)) { status = 'available'; reason = '本地内置能力；不要求外部账户'; }
+  else if (/^content_|^capability_|^workstation_(list|search|guide)$|^system_doctor$|^project_init$|^dev_(project|solidity_compile)$|^evm_(status|verify_message)$/.test(name)) { status = 'available'; reason = '本地内置能力；不要求外部账户'; }
   if (easLocal) { status = 'available'; reason = '本地 EAS 编码/PrivateData 功能'; }
   if (family === 'eas' && !tool.readOnly) {
     if (config.issues?.signer?.length) { status = 'configuration_error'; reason = config.issues.signer.join('；'); }
@@ -132,7 +132,7 @@ export function catalogTools(config: Config, getTools: () => ToolDefinition[]) {
     if (develop && !provider) facts.push('provider');
     if (provider && !(develop ? ['foundry', 'hardhat'] : ['rpc', 'viem', 'tenderly']).includes(provider)) mismatches.push(`工作站未支持供应商 ${provider}`);
     let servers: string[] = [];
-    try { servers = Object.keys(await loadMcpServers()); } catch { /* doctor reports config errors */ }
+    try { servers = Object.keys(await loadMcpServers(config.workingRoot)); } catch { /* doctor reports config errors */ }
     if (provider === 'tenderly' && !servers.includes('tenderly')) mismatches.push('尚未配置指定的 Tenderly 服务');
 
     const task = develop ? context.task ?? 'develop' : 'diagnose';

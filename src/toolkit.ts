@@ -5,6 +5,9 @@ import { catalogTools, metadataFor } from './workstations/catalog.js';
 import { evmWorkstationTools } from './workstations/evm.js';
 import { workspaceTools } from './development/workspace.js';
 import { setupTools } from './setup.js';
+import { projectTools } from './development/project.js';
+import { bridgeManagementTools } from './bridge/manage.js';
+import { searchTools } from './workstations/search.js';
 import { chainTools } from './chains/index.js';
 import { developmentTools } from './development/index.js';
 import { agentTools } from './agents/index.js';
@@ -26,8 +29,8 @@ export function createToolkit(): Toolkit {
   let toolkit: Toolkit;
   const invoke = (name: string, input: unknown) => toolkit.invoke(name, input);
   const implementations = [...evmTools(config), ...easTools(config), ...contentTools(config), ...ipfsTools(config), ...bridgeTools(config, sessions), ...developmentTools(config), ...chainTools(config), ...storageTools(config), ...walletTools(config), ...tradingTools(config), ...provenanceTools(config), ...identityTools(config), ...agentTools(config)];
-  implementations.push(...workspaceTools(config), ...evmWorkstationTools(config, invoke), ...setupTools(config, invoke));
-  implementations.push(...catalogTools(config, () => toolkit.tools));
+  implementations.push(...projectTools(config, invoke), ...bridgeManagementTools(config), ...workspaceTools(config), ...evmWorkstationTools(config, invoke), ...setupTools(config, invoke));
+  implementations.push(...catalogTools(config, () => toolkit.tools), ...searchTools(config, () => toolkit.tools, sessions));
   const tools = implementations.map((tool) => ({ name: tool.name, description: tool.description, inputSchema: tool.inputSchema, readOnly: tool.readOnly, metadata: metadataFor(tool) }));
   const byName = new Map(implementations.map((tool) => [tool.name, tool]));
   toolkit = {

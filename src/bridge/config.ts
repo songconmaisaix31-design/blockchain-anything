@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { isAbsolute, resolve } from 'node:path';
 
 export type McpAuth = 'none' | 'oauth' | 'api-key' | 'account' | 'local';
@@ -287,14 +288,15 @@ function parseDocument(text: string, source: string): { servers: Record<string, 
   return { servers, errors };
 }
 
-export function configSource(): { inline: boolean; file: string | null } {
+export function configSource(workingRoot = process.env.BCA_WORKING_ROOT || process.cwd()): { inline: boolean; file: string | null } {
   const inline = Boolean(process.env.BCA_MCP_SERVERS);
-  return { inline, file: process.env.BCA_MCP_CONFIG ?? null };
+  const projectFile = resolve(workingRoot, '.bca/mcp.json');
+  return { inline, file: process.env.BCA_MCP_CONFIG ?? (!inline && existsSync(projectFile) ? projectFile : null) };
 }
 
-export async function loadMcpConfiguration(): Promise<{ servers: Record<string, ResolvedServer>; errors: Record<string, string> }> {
+export async function loadMcpConfiguration(workingRoot = process.env.BCA_WORKING_ROOT || process.cwd()): Promise<{ servers: Record<string, ResolvedServer>; errors: Record<string, string> }> {
   const inline = process.env.BCA_MCP_SERVERS;
-  const file = process.env.BCA_MCP_CONFIG;
+  const file = configSource(workingRoot).file;
   if (inline && file) throw new Error('BCA_MCP_SERVERS 与 BCA_MCP_CONFIG 只能设置一个');
   if (!inline && !file) return { servers: {}, errors: {} };
   if (inline) {
@@ -306,8 +308,8 @@ export async function loadMcpConfiguration(): Promise<{ servers: Record<string, 
   return parseDocument(text, 'BCA_MCP_CONFIG');
 }
 
-export async function loadMcpServers(): Promise<Record<string, ResolvedServer>> {
-  return (await loadMcpConfiguration()).servers;
+export async function loadMcpServers(workingRoot = process.env.BCA_WORKING_ROOT || process.cwd()): Promise<Record<string, ResolvedServer>> {
+  return (await loadMcpConfiguration(workingRoot)).servers;
 }
 
 export function describeServers(servers: Record<string, ResolvedServer>) {

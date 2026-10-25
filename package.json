@@ -1,6 +1,6 @@
 {
   "name": "blockchain-anything",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "成熟区块链工具的 TypeScript、CLI 与 MCP 入口",
@@ -50,7 +50,9 @@
     "check:next": "node --import tsx scripts/check-next.ts",
     "check:sessions": "node --import tsx scripts/check-sessions.ts",
     "check:setup": "node --import tsx scripts/check-setup.ts",
-    "check:handoff": "node --import tsx scripts/check-handoff.ts"
+    "check:handoff": "node --import tsx scripts/check-handoff.ts",
+    "check:v1": "node --import tsx scripts/check-v1.ts",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "@aptos-labs/ts-sdk": "7.5.0",

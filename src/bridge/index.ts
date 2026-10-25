@@ -3,7 +3,7 @@ import { BridgeSessions } from './session.js';
 import type { Config } from '../config.js';
 import { requireWrites } from '../config.js';
 import { defineTool } from '../types.js';
-import { configSource, describeServers, loadMcpConfiguration, presetList } from './config.js';
+import { configSource, describeServers, loadMcpConfiguration, presetList, type ResolvedServer } from './config.js';
 
 function textOfContent(content: unknown): string {
   if (!Array.isArray(content)) return '';
@@ -20,6 +20,11 @@ function textOfContent(content: unknown): string {
 
 const serverNameSchema = z.string().min(1).describe('BCA_MCP_SERVERS / BCA_MCP_CONFIG 中的服务名');
 
+export function isReadOnlyUpstream(server: ResolvedServer, tool: string) {
+  return (server.preset === 'openzeppelin' && /^solidity-(erc20|erc721|erc1155)$/.test(tool))
+    || (server.preset === 'coingecko' && tool === 'search_docs') || server.readOnlyTools.includes(tool);
+}
+
 export function bridgeTools(config: Config, sessions: BridgeSessions) {
   return [
     defineTool('bridge_open', '显式打开工作流会话；空闲 5 分钟过期，SDK 调用结束应 close。', z.strictObject({ server: serverNameSchema }), true, async ({ server }) => sessions.open(server)),
@@ -28,8 +33,8 @@ export function bridgeTools(config: Config, sessions: BridgeSessions) {
       async ({ server, session }) => sessions.use(server, session, async (_client, _server, entry) => sessions.list(entry, true))),
     defineTool('bridge_servers', '列出操作者配置的 MCP 服务（不返回值、Token 或命令行参数）及已核实的官方预设。', z.strictObject({}), true,
       async () => {
-        const { servers, errors } = await loadMcpConfiguration();
-        const source = configSource();
+        const { servers, errors } = await loadMcpConfiguration(config.workingRoot);
+        const source = configSource(config.workingRoot);
         return {
           configured: Object.keys(servers).length,
           configurationErrors: errors,
@@ -82,7 +87,7 @@ export function bridgeTools(config: Config, sessions: BridgeSessions) {
         const snapshot = await sessions.list(entry);
         const found = snapshot.tools.find((item) => item.name === tool);
         if (!found) throw new Error(`上游 MCP 未知工具：${tool}`);
-        if (!(server.preset === 'openzeppelin' && /^solidity-(erc20|erc721|erc1155)$/.test(tool)) && !(server.preset === 'coingecko' && tool === 'search_docs') && !server.readOnlyTools.includes(tool)) {
+        if (!isReadOnlyUpstream(server, tool)) {
           requireWrites(config, false);
           if (submit !== true) throw new Error('工具未列入操作者只读许可，需要 submit=true');
         }

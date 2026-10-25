@@ -33,7 +33,7 @@ export function workspaceTools(config: Config) {
     defineTool('dev_project', '读取现有 Foundry/Hardhat 配置、依赖与编译器要求，不执行项目配置。', z.strictObject({ dir: z.string().default('.') }), true,
       ({ dir }) => inspectProject(config, dir)),
     defineTool('dev_hardhat_test', '复用项目已安装 Hardhat 执行 test；可只运行一个测试文件。',
-      z.strictObject({ dir: z.string().default('.'), path: z.string().optional() }), false, async ({ dir, path }) => {
+      z.strictObject({ dir: z.string().default('.'), path: z.string().optional(), timeoutMs: z.number().int().positive().max(600_000).optional() }), false, async ({ dir, path, timeoutMs }) => {
         const cwd = await resolveWorkingDir(config, dir);
         const pkg = JSON.parse(await readFile(join(cwd, 'node_modules/hardhat/package.json'), 'utf8'));
         const bin = typeof pkg.bin === 'string' ? pkg.bin : pkg.bin?.hardhat;
@@ -41,7 +41,7 @@ export function workspaceTools(config: Config) {
         const cli = await resolveWorkingPath(config, join(cwd, 'node_modules/hardhat', bin));
         const args = [cli, 'test'];
         if (path) args.push(await resolveWorkingPath(config, join(cwd, path)));
-        const result = await run(process.execPath, args, { cwd, timeoutMs: config.timeoutMs });
+        const result = await run(process.execPath, args, { cwd, timeoutMs: timeoutMs ?? config.timeoutMs });
         return { ...result, taskStatus: result.exitCode === 0 ? 'succeeded' : 'business_failed' };
       }),
     defineTool('dev_forge_deploy_local', '通过官方 forge create 将已有合约部署到本机 Anvil；仅支持 loopback + 31337/1337、显式 unlocked from，确认回执及代码。',

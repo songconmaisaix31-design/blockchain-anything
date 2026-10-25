@@ -1,7 +1,8 @@
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { realpath, stat } from 'node:fs/promises';
-import { isAbsolute, relative, resolve, sep } from 'node:path';
+import { existsSync } from 'node:fs';
+import { dirname, join, isAbsolute, relative, resolve, sep } from 'node:path';
 import type { Config } from '../config.js';
 
 function assertInside(root: string, target: string): void {
@@ -59,7 +60,7 @@ export function childEnv(extra?: Record<string, string | undefined>): NodeJS.Pro
   return env;
 }
 
-export function resolveExecutable(command: string): string {
+export function resolveExecutable(command: string, cwd = process.env.BCA_WORKING_ROOT || process.cwd()): string {
   let executable = command;
   if (['forge', 'cast', 'anvil'].includes(command)) {
     // Foundry's npm launcher 1.7.1 does not forward child exit status.
@@ -67,19 +68,19 @@ export function resolveExecutable(command: string): string {
     const arch = process.arch === 'x64' ? 'amd64' : process.arch;
     const platform = process.platform === 'win32' ? 'win32' : process.platform;
     const moduleName = `@foundry-rs/${command}-${platform}-${arch}/bin/${command}${process.platform === 'win32' ? '.exe' : ''}`;
-    try {
-      executable = process.env.BCA_COMPONENTS_DIR
-        ? createRequire(resolve(process.env.BCA_COMPONENTS_DIR, 'package.json')).resolve(moduleName)
-        : createRequire(import.meta.url).resolve(moduleName);
+    const roots = [process.env.BCA_COMPONENTS_DIR, resolve(cwd, '.bca/components'), resolve(process.env.BCA_WORKING_ROOT || process.cwd(), '.bca/components')];
+    for (const root of roots) {
+      if (!root) continue;
+      try { return createRequire(resolve(root, 'package.json')).resolve(moduleName); } catch { /* Try the installed package or PATH. */ }
     }
-    catch { /* Fall back to the user's native installation on PATH. */ }
+    try { executable = createRequire(import.meta.url).resolve(moduleName); } catch { /* Fall back to PATH. */ }
   }
   return executable;
 }
 
 export function run(command: string, args: string[], options: RunOptions): Promise<RunResult> {
   const maxBytes = options.maxBytes ?? 1024 * 1024;
-  const executable = resolveExecutable(command);
+  const executable = resolveExecutable(command, options.cwd);
   if (options.signal?.aborted) return Promise.reject(new Error(`${command} 已取消，未启动`));
   return new Promise((resolveRun, rejectRun) => {
     let child;
@@ -198,4 +199,13 @@ export function parseJsonOutput(result: RunResult, command: string): unknown {
     }
     throw new Error(`${command} 返回内容不是 JSON：${text.slice(0, 1000)}`);
   }
+}
+
+/** Use npm's JS entry so Windows does not need a shell to execute npm.cmd. */
+export async function runNpm(args: string[], cwd: string) {
+  const candidates = [process.env.npm_execpath, join(dirname(process.execPath), '../lib/node_modules/npm/bin/npm-cli.js'), join(dirname(process.execPath), 'node_modules/npm/bin/npm-cli.js')];
+  const cli = candidates.find((item) => item && existsSync(item));
+  const result = await run(cli ? process.execPath : 'npm', cli ? [cli, ...args] : args, { cwd, timeoutMs: 240_000, maxBytes: 4 * 1024 * 1024 });
+  if (result.exitCode !== 0) throw new Error(`npm 操作失败 (${result.exitCode})：${result.stderr.slice(-2000)}`);
+  return result;
 }

@@ -1,6 +1,6 @@
 # 安装与诊断
 
-版本 0.3.0。BCA 尚未公开发布 npm；用真实本地产物接入。开发分支仍为 `codex/bca-s2-complete`，不合并 main。
+版本 1.0.0。BCA 尚未公开发布 npm；可以从 GitHub main 构建安装，命令见 README，也可使用本地产物。
 
 ## Windows 11 + WSL2
 
@@ -9,16 +9,15 @@
 ```bash
 # 在 BCA checkout 中
 npm ci
-npm run build
-npm pack
+npm pack --ignore-scripts
 # 切换到自己的目标项目，路径按本机修改
 cd /home/you/projects/your-project
-npm exec --yes --package /home/you/blockchain-anything/blockchain-anything-0.3.0.tgz -- bca setup --client both --install
+npm exec --yes --package /home/you/blockchain-anything/blockchain-anything-1.0.0.tgz -- bca setup --client both --install
 ```
 
-`--install` 将当前包重打包后放进 `.bca/runtime`，使配置不依赖 npm 临时执行目录。Foundry 固定到官方 `@foundry-rs/{forge,cast,anvil}@1.7.1`，优先复用安装或 PATH 程序。编译器和应用依赖沿用原项目；例如已有 Foundry 工程应保留原 `solc_version` 和 remappings。没有合约工程时，由宿主创建小型项目并安装指定版本 OpenZeppelin，BCA 不覆盖现有工程。
+`--install` 将当前包重打包后放进 `.bca/runtime`，使配置不依赖 npm 临时执行目录。Foundry 固定到官方 `@foundry-rs/{forge,cast,anvil}@1.7.1`，优先复用安装或 PATH 程序。编译器和应用依赖沿用原项目；例如已有 Foundry 工程应保留原 `solc_version` 和 remappings。没有合约工程时执行 `bca init contracts`；ERC20 用 `--template erc20`，默认安装固定版本 OpenZeppelin。BCA 不覆盖现有工程。
 
-新增直接运行依赖仅为固定版本 `smol-toml@1.4.2`，用于正确读写 Codex TOML。保留其他字段和服务器；TOML 排版与注释可能被规范化，原文件保存在 `.bca-backup-*`。已有 BCA 的 RPC、环境变量和写开关保持原值。
+TOML 配置使用固定版本 `smol-toml@1.4.2`，用于正确读写 Codex TOML。保留其他字段和服务器；TOML 排版与注释可能被规范化，原文件保存在 `.bca-backup-*`。已有 BCA 的 RPC、环境变量和写开关保持原值。工作流入口追加到所选客户端的 `AGENTS.md` / `CLAUDE.md`，保留已有内容；重复 setup 只更新 BCA 标记内的内容。
 
 项目内运行已安装 CLI：
 
@@ -51,11 +50,10 @@ BCA_MCP_CONFIG=/absolute/path/services.json \
 
 ```powershell
 npm ci
-npm run build
 npm run check:next -- regressions
 npm run check:sessions
 # 给实际 tgz 路径加引号；在目标项目执行
-npm exec --yes --package "C:\path\blockchain-anything-0.3.0.tgz" -- bca setup --client both --install
+npm exec --yes --package "C:\path\blockchain-anything-1.0.0.tgz" -- bca setup --client both --install
 node .bca/runtime/node_modules/blockchain-anything/dist/cli/main.js doctor
 ```
 

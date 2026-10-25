@@ -1,6 +1,6 @@
 # BCA 工具聚合规格
 
-更新日期：2026-10-24。授权与范围见 [QUESTIONS.md](QUESTIONS.md)。
+更新日期：2026-10-25。授权与范围见 [QUESTIONS.md](QUESTIONS.md)。
 
 ## 产品边界
 
@@ -64,3 +64,9 @@ S2 来源验证调用官方 CLI 或 verifier ABI；钱包使用 Safe/x402；Agen
 共享目录携带来源/版本、目标、工作站与影响元数据，`capability_list` 默认返回能力摘要和配置状态，指定 `name` 或 `details:true` 获取完整 Schema。业务结果由实际调用返回，历史验收放在验收文档。`workstation_list/search/guide` 提供可解释的中英文规则匹配，不调用额外模型或向量服务；不支持的任务返回空候选，链/供应商冲突保持歧义。
 
 `setup` 和 `doctor` 通过同一 toolkit 实现；安装产物持久到项目 `.bca`，客户端配置保留其他条目、备份并保持幂等。显式会话由 toolkit 持有，Schema/配置/凭据变化使快照或连接失效，不自动重放业务写入。具体运行与未测范围见 [2026-10-24 验收](acceptance/2026-10-24.md)。
+
+## v1 产品入口
+
+`capability_search` 按问题搜索完整目录，可指定 `server` 查询已配置 MCP 的最新工具。`project_init` 在新目录创建 Counter / OpenZeppelin ERC20；`project_run` 识别 Foundry/Hardhat 并调用已有编译/测试适配。CLI 提供 `find / init / build / test / connect`。
+
+`bridge_configure` 只保存官方预设和凭据环境变量引用，默认配置为项目 `.bca/mcp.json`；现有显式环境配置优先。setup 在所选客户端的 AGENTS.md / CLAUDE.md 添加工作流入口并保留其他文本。包的 prepare 脚本支持 Git 源码安装，继续保持 private。

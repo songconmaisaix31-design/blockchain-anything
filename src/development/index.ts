@@ -148,7 +148,10 @@ export function developmentTools(config: Config) {
         const result = await run('forge', args, { cwd, timeoutMs: timeoutMs ?? config.timeoutMs });
         let parsed: unknown = null;
         try { parsed = parseJsonOutput(result, 'forge build'); } catch { /* 原样返回 stderr */ }
-        return { taskStatus: result.exitCode === 0 ? 'succeeded' : 'business_failed', exitCode: result.exitCode, ok: result.exitCode === 0, result: parsed, stdout: result.stdout, stderr: result.stderr };
+        // Forge can exit 0 while its JSON contains compiler errors.
+        const diagnostics = (parsed as { errors?: { severity: string }[] } | null)?.errors;
+        const ok = result.exitCode === 0 && !diagnostics?.some((item) => item.severity === 'error');
+        return { taskStatus: ok ? 'succeeded' : 'business_failed', exitCode: result.exitCode, ok, result: parsed, stdout: result.stdout, stderr: result.stderr };
       }),
 
     defineTool('dev_forge_test', '在指定项目目录运行真实 forge test --json，返回测试套件结果；失败原样返回。',
