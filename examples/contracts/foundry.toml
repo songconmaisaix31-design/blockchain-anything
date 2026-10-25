@@ -1,0 +1,8 @@
+[profile.default]
+src = "src"
+test = "test"
+out = "out"
+libs = ["lib", "../../node_modules"]
+optimizer = false
+solc_version = "0.8.35"
+remappings = ["@openzeppelin/=../../node_modules/@openzeppelin/"]

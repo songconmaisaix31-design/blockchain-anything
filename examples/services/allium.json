@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "allium": { "preset": "allium", "headers": { "Authorization": "Bearer ${BCA_ALLIUM_API_KEY}" } }
+  }
+}

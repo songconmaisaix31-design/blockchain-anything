@@ -1,0 +1,6 @@
+{
+  "mcpServers": {
+    "coingecko": { "preset": "coingecko" },
+    "openzeppelin": { "preset": "openzeppelin" }
+  }
+}

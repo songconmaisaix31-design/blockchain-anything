@@ -1,0 +1,241 @@
+{
+  "implementationSha": "683d08d66069f3d1af1ebafce9d7daa68aefad32",
+  "status": "failed",
+  "transaction": {
+    "type": "eip1559",
+    "chainId": 31337,
+    "nonce": 0,
+    "gas": "100000",
+    "maxFeePerGas": "1453418588",
+    "maxPriorityFeePerGas": "1000000000",
+    "to": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+    "value": "0",
+    "accessList": [],
+    "input": "0xa9059cbb000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb922660000000000000000000000000000000000000000000000000000000000000014",
+    "r": "0xbe0c6d5822286e23ef8a85b99a413ecda4dfa5d60ee091fb4ea017f1716beef",
+    "s": "0x602496d3ef2d734c55bb6f510d92fd3d89b25dcc36bd25300a4bbbd075253c68",
+    "yParity": 1,
+    "v": "1",
+    "hash": "0x91a470405a739d5e2f6220da745a478a3a6163196de98f686d0ea0a0b20d8a9f",
+    "blockHash": "0xf8e3dceff4e2b01edaac223924e5001d52028cb25f8b37f842408d6271349e40",
+    "blockNumber": "7",
+    "transactionIndex": 0,
+    "from": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "gasPrice": "1453418588",
+    "blockTimestamp": "1792784189",
+    "typeHex": "0x2"
+  },
+  "receipt": {
+    "type": "eip1559",
+    "status": "reverted",
+    "cumulativeGasUsed": "25110",
+    "logs": [],
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "transactionHash": "0x91a470405a739d5e2f6220da745a478a3a6163196de98f686d0ea0a0b20d8a9f",
+    "transactionIndex": 0,
+    "blockHash": "0xf8e3dceff4e2b01edaac223924e5001d52028cb25f8b37f842408d6271349e40",
+    "blockNumber": "7",
+    "gasUsed": "25110",
+    "effectiveGasPrice": "1453418588",
+    "blobGasPrice": "1",
+    "from": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "to": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+    "contractAddress": null,
+    "blockTimestamp": 1792784189
+  },
+  "proxy": {
+    "chainId": "31337",
+    "address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+    "blockNumber": "7",
+    "source": "eth_getCode / eth_getStorageAt",
+    "fetchedAt": "2026-10-23T19:36:29.401Z",
+    "pattern": "unrecognized",
+    "implementation": null,
+    "beacon": null,
+    "codePresent": true,
+    "limitation": "只检查单层标准模式；未命中不能证明非代理。交易中升级或同区块升级需 trace 确认实际实现地址。"
+  },
+  "evidence": [
+    {
+      "chainId": "31337",
+      "hash": "0x91a470405a739d5e2f6220da745a478a3a6163196de98f686d0ea0a0b20d8a9f",
+      "blockNumber": "7",
+      "blockHash": "0xf8e3dceff4e2b01edaac223924e5001d52028cb25f8b37f842408d6271349e40",
+      "source": "viem transaction + receipt",
+      "fetchedAt": "2026-10-23T19:36:29.394Z"
+    },
+    {
+      "chainId": "31337",
+      "address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+      "blockNumber": "7",
+      "source": "eth_getCode / eth_getStorageAt",
+      "fetchedAt": "2026-10-23T19:36:29.401Z",
+      "pattern": "unrecognized",
+      "implementation": null,
+      "beacon": null,
+      "codePresent": true,
+      "limitation": "只检查单层标准模式；未命中不能证明非代理。交易中升级或同区块升级需 trace 确认实际实现地址。"
+    },
+    {
+      "chainId": "31337",
+      "hash": "0x91a470405a739d5e2f6220da745a478a3a6163196de98f686d0ea0a0b20d8a9f",
+      "blockNumber": "7",
+      "source": "local artifact",
+      "fetchedAt": "2026-10-23T19:36:29.407Z",
+      "artifactSha256": "bf61029ce28c106c502d59ed42bced99e88d19112ba9b9c8a9afcc364e98d6e4"
+    },
+    {
+      "chainId": "31337",
+      "hash": "0x91a470405a739d5e2f6220da745a478a3a6163196de98f686d0ea0a0b20d8a9f",
+      "blockNumber": "7",
+      "blockHash": "0xf8e3dceff4e2b01edaac223924e5001d52028cb25f8b37f842408d6271349e40",
+      "source": "RPC debug_traceTransaction/structLogs",
+      "fetchedAt": "2026-10-23T19:36:29.416Z"
+    }
+  ],
+  "source": {
+    "source": "local artifact",
+    "address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+    "chainId": "31337",
+    "artifactSha256": "bf61029ce28c106c502d59ed42bced99e88d19112ba9b9c8a9afcc364e98d6e4",
+    "bytecodeMatched": true,
+    "blockNumber": "7",
+    "fetchedAt": "2026-10-23T19:36:29.407Z"
+  },
+  "runtimeBytecodeSha256": "a5e67e41b60df03c11953f9229dee1cda8167bbb98454163b6824111dda60b06",
+  "trace": {
+    "chainId": "31337",
+    "hash": "0x91a470405a739d5e2f6220da745a478a3a6163196de98f686d0ea0a0b20d8a9f",
+    "blockNumber": "7",
+    "blockHash": "0xf8e3dceff4e2b01edaac223924e5001d52028cb25f8b37f842408d6271349e40",
+    "source": "RPC debug_traceTransaction/structLogs",
+    "fetchedAt": "2026-10-23T19:36:29.416Z",
+    "trace": {
+      "failed": true,
+      "gas": 25110,
+      "returnValue": "0xe450d38c00000000000000000000000070997970c51812dc3a010c7d01b50e0d17dc79c800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000014",
+      "structLogs": [
+        {
+          "pc": 2344,
+          "op": "JUMPDEST",
+          "gas": 74909,
+          "gasCost": 1,
+          "depth": 1,
+          "refund": 0
+        },
+        {
+          "pc": 2345,
+          "op": "PUSH1",
+          "gas": 74908,
+          "gasCost": 3,
+          "depth": 1,
+          "refund": 0
+        },
+        {
+          "pc": 2347,
+          "op": "MLOAD",
+          "gas": 74905,
+          "gasCost": 3,
+          "depth": 1,
+          "refund": 0
+        },
+        {
+          "pc": 2348,
+          "op": "DUP1",
+          "gas": 74902,
+          "gasCost": 3,
+          "depth": 1,
+          "refund": 0
+        },
+        {
+          "pc": 2349,
+          "op": "SWAP2",
+          "gas": 74899,
+          "gasCost": 3,
+          "depth": 1,
+          "refund": 0
+        },
+        {
+          "pc": 2350,
+          "op": "SUB",
+          "gas": 74896,
+          "gasCost": 3,
+          "depth": 1,
+          "refund": 0
+        },
+        {
+          "pc": 2351,
+          "op": "SWAP1",
+          "gas": 74893,
+          "gasCost": 3,
+          "depth": 1,
+          "refund": 0
+        },
+        {
+          "pc": 2352,
+          "op": "REVERT",
+          "gas": 74890,
+          "gasCost": 0,
+          "depth": 1,
+          "refund": 0
+        }
+      ],
+      "totalStructLogs": 420,
+      "excerptOnly": true
+    }
+  },
+  "diagnosis": {
+    "reverted": true,
+    "decodedError": {
+      "abiItem": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "sender",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "balance",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "needed",
+            "type": "uint256"
+          }
+        ],
+        "name": "ERC20InsufficientBalance",
+        "type": "error"
+      },
+      "args": [
+        "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+        "0",
+        "20"
+      ],
+      "errorName": "ERC20InsufficientBalance"
+    },
+    "returnData": "0xe450d38c00000000000000000000000070997970c51812dc3a010c7d01b50e0d17dc79c800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000014",
+    "sourceLocation": {
+      "file": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
+      "byteOffset": 6290,
+      "byteLength": 50,
+      "line": 183,
+      "excerpt": "ERC20InsufficientBalance(from, fromBalance, value)",
+      "pc": 2352,
+      "evidence": "matching runtime bytecode + solc sourceMap + trace PC"
+    },
+    "failingCall": {
+      "functionName": "transfer",
+      "args": [
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "20"
+      ]
+    },
+    "conclusion": "已从该交易 trace 的返回数据解码 revert",
+    "nextAction": "宿主根据解码参数与源码条件修复输入或合约；仅复测相关路径。"
+  },
+  "gaps": [],
+  "complete": true,
+  "validatedTreeSha": "1e7d875aed46b266812a16d5aa543c6eda302ed1"
+}

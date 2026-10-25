@@ -1,0 +1,926 @@
+{
+  "codeCommit": "1767c5f4aaa49f899fbae55d5d3fa73d50782d37",
+  "codeTree": "ca875000fd4d14a4d7b531da5f4f638cfb0a55a8",
+  "reportDate": "2026-10-24 Asia/Shanghai",
+  "recordedAt": "2026-10-24T00:54:11.545297+00:00",
+  "environment": {
+    "platform": "linux",
+    "arch": "x64",
+    "node": "24.19.0",
+    "npm": "11.9.0",
+    "foundry": "1.7.1",
+    "solc": "0.8.35",
+    "openzeppelin": "5.6.1",
+    "hardhat": "3.21.0",
+    "slither": "0.11.6",
+    "kubo": "0.43.1"
+  },
+  "baseline": [
+    {
+      "name": "build",
+      "command": "npm run build",
+      "exitCode": 0,
+      "seconds": 11.86,
+      "log": ".work/handoff/build.log"
+    },
+    {
+      "name": "s2",
+      "command": "npm run check:s2",
+      "exitCode": 0,
+      "seconds": 2.67,
+      "log": ".work/handoff/s2.log"
+    },
+    {
+      "name": "regressions",
+      "command": "npm run check:next -- regressions",
+      "exitCode": 0,
+      "seconds": 4.68,
+      "log": ".work/handoff/regressions.log"
+    },
+    {
+      "name": "onchain",
+      "command": "npm run check:next -- onchain",
+      "exitCode": 0,
+      "seconds": 2.92,
+      "log": ".work/handoff/onchain.log"
+    },
+    {
+      "name": "bridge",
+      "command": "npm run check:bridge",
+      "exitCode": 0,
+      "seconds": 4.03,
+      "log": ".work/handoff/bridge.log"
+    },
+    {
+      "name": "sessions",
+      "command": "npm run check:sessions",
+      "exitCode": 0,
+      "seconds": 2.98,
+      "log": ".work/handoff/sessions.log"
+    },
+    {
+      "name": "setup",
+      "command": "npm run check:setup",
+      "exitCode": 0,
+      "seconds": 49.01,
+      "log": ".work/handoff/setup.log"
+    },
+    {
+      "name": "smoke",
+      "command": "npm run smoke -- --scope core,onchain,interfaces,package",
+      "exitCode": 0,
+      "seconds": 29.05,
+      "log": ".work/handoff/smoke.log"
+    }
+  ],
+  "afterFix": [
+    {
+      "command": "npm run build",
+      "exitCode": 0,
+      "log": ".work/handoff/build-final.log"
+    },
+    {
+      "command": "npm run check:bridge",
+      "exitCode": 0,
+      "log": ".work/handoff/bridge-final.log"
+    },
+    {
+      "command": "npm run check:sessions",
+      "exitCode": 0,
+      "log": ".work/handoff/sessions-final.log"
+    },
+    {
+      "command": "npm run check:handoff -- schema",
+      "exitCode": 0,
+      "log": ".work/handoff/schema-final.log"
+    },
+    {
+      "command": "npm run check:setup",
+      "exitCode": 0,
+      "log": ".work/handoff/setup-final.log"
+    }
+  ],
+  "additional": {
+    "proxies": {
+      "mode": "proxies",
+      "at": "2026-10-24T00:49:33.171Z",
+      "node": "v24.19.0",
+      "platform": "linux",
+      "proxies": [
+        {
+          "chainId": "31337",
+          "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+          "blockNumber": "7",
+          "source": "eth_getCode / eth_getStorageAt",
+          "fetchedAt": "2026-10-24T00:49:34.298Z",
+          "pattern": "ERC-1967",
+          "implementation": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+          "beacon": null,
+          "codePresent": true,
+          "limitation": "只检查单层标准模式；未命中不能证明非代理。交易中升级或同区块升级需 trace 确认实际实现地址。"
+        },
+        {
+          "chainId": "31337",
+          "address": "0x75537828f2ce51be7289709686A69CbFDbB714F1",
+          "blockNumber": "7",
+          "source": "eth_getCode / eth_getStorageAt",
+          "fetchedAt": "2026-10-24T00:49:34.304Z",
+          "pattern": "ERC-1167",
+          "implementation": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+          "beacon": null,
+          "codePresent": true,
+          "limitation": "只检查单层标准模式；未命中不能证明非代理。交易中升级或同区块升级需 trace 确认实际实现地址。"
+        },
+        {
+          "chainId": "31337",
+          "address": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+          "blockNumber": "7",
+          "source": "eth_getCode / eth_getStorageAt",
+          "fetchedAt": "2026-10-24T00:49:34.311Z",
+          "pattern": "ERC-1967-beacon-unsupported",
+          "implementation": null,
+          "beacon": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+          "codePresent": true,
+          "limitation": "只检查单层标准模式；未命中不能证明非代理。交易中升级或同区块升级需 trace 确认实际实现地址。"
+        },
+        {
+          "chainId": "31337",
+          "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+          "blockNumber": "7",
+          "source": "eth_getCode / eth_getStorageAt",
+          "fetchedAt": "2026-10-24T00:49:34.317Z",
+          "pattern": "unrecognized",
+          "implementation": null,
+          "beacon": null,
+          "codePresent": true,
+          "limitation": "只检查单层标准模式；未命中不能证明非代理。交易中升级或同区块升级需 trace 确认实际实现地址。"
+        }
+      ],
+      "diagnoses": [
+        {
+          "label": "direct",
+          "hash": "0x2198e71949e2e86e16441bcbef4130fcb3614b1e972976e7bdcace95306bbc40",
+          "block": "8",
+          "depths": [
+            1
+          ],
+          "complete": true,
+          "diagnosis": {
+            "reverted": true,
+            "decodedError": {
+              "abiItem": {
+                "inputs": [
+                  {
+                    "internalType": "uint256",
+                    "name": "amount",
+                    "type": "uint256"
+                  }
+                ],
+                "name": "NeedBalance",
+                "type": "error"
+              },
+              "args": [
+                "7"
+              ],
+              "errorName": "NeedBalance"
+            },
+            "returnData": "0x1c6ac4900000000000000000000000000000000000000000000000000000000000000007",
+            "sourceLocation": {
+              "file": ".work/handoff/ProxyCases.sol",
+              "byteOffset": 439,
+              "byteLength": 14,
+              "line": 10,
+              "excerpt": "NeedBalance(7)",
+              "pc": 127,
+              "evidence": "matching runtime bytecode + solc sourceMap + trace PC"
+            },
+            "failingCall": {
+              "functionName": "fail"
+            },
+            "conclusion": "已从该交易 trace 的返回数据解码 revert",
+            "nextAction": "宿主根据解码参数与源码条件修复输入或合约；仅复测相关路径。"
+          },
+          "gaps": []
+        },
+        {
+          "label": "erc1967",
+          "hash": "0x19b5b2638906be645f1cdce7682494d0355f6fa7cb969f303183d4375ed1f067",
+          "block": "9",
+          "depths": [
+            1,
+            2
+          ],
+          "complete": false,
+          "diagnosis": {
+            "reverted": true,
+            "decodedError": {
+              "abiItem": {
+                "inputs": [
+                  {
+                    "internalType": "uint256",
+                    "name": "amount",
+                    "type": "uint256"
+                  }
+                ],
+                "name": "NeedBalance",
+                "type": "error"
+              },
+              "args": [
+                "7"
+              ],
+              "errorName": "NeedBalance"
+            },
+            "returnData": "0x1c6ac4900000000000000000000000000000000000000000000000000000000000000007",
+            "sourceLocation": null,
+            "failingCall": {
+              "functionName": "fail"
+            },
+            "conclusion": "已从该交易 trace 的返回数据解码 revert",
+            "nextAction": "宿主根据解码参数与源码条件修复输入或合约；仅复测相关路径。"
+          },
+          "gaps": [
+            "尚无可核对源码位置；嵌套调用/代理需匹配实际执行实现与相应深度 trace"
+          ]
+        },
+        {
+          "label": "erc1167",
+          "hash": "0xaff848a89691f3b335b2580258ba1bc7c7d8379e65c101010608dc4728640f5e",
+          "block": "10",
+          "depths": [
+            1,
+            2
+          ],
+          "complete": false,
+          "diagnosis": {
+            "reverted": true,
+            "decodedError": {
+              "abiItem": {
+                "inputs": [
+                  {
+                    "internalType": "uint256",
+                    "name": "amount",
+                    "type": "uint256"
+                  }
+                ],
+                "name": "NeedBalance",
+                "type": "error"
+              },
+              "args": [
+                "7"
+              ],
+              "errorName": "NeedBalance"
+            },
+            "returnData": "0x1c6ac4900000000000000000000000000000000000000000000000000000000000000007",
+            "sourceLocation": null,
+            "failingCall": {
+              "functionName": "fail"
+            },
+            "conclusion": "已从该交易 trace 的返回数据解码 revert",
+            "nextAction": "宿主根据解码参数与源码条件修复输入或合约；仅复测相关路径。"
+          },
+          "gaps": [
+            "尚无可核对源码位置；嵌套调用/代理需匹配实际执行实现与相应深度 trace"
+          ]
+        },
+        {
+          "label": "nested",
+          "hash": "0x6c12fd7ae03e1d643dae7e83493bd2b75ad04b908b7f7001a2f434c19b473c0d",
+          "block": "11",
+          "depths": [
+            1,
+            2
+          ],
+          "complete": false,
+          "diagnosis": {
+            "reverted": true,
+            "decodedError": null,
+            "returnData": "0x1c6ac4900000000000000000000000000000000000000000000000000000000000000007",
+            "sourceLocation": null,
+            "failingCall": {
+              "functionName": "go",
+              "args": [
+                "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+              ]
+            },
+            "conclusion": "回执确认失败；trace 未提供可解码根因",
+            "nextAction": "补充匹配 ABI、完整调用树或历史状态，保留根因未知。"
+          },
+          "gaps": [
+            "尚无可核对源码位置；嵌套调用/代理需匹配实际执行实现与相应深度 trace"
+          ]
+        }
+      ],
+      "passed": true
+    },
+    "hardhat": {
+      "mode": "hardhat",
+      "at": "2026-10-24T00:49:41.835Z",
+      "node": "v24.19.0",
+      "platform": "linux",
+      "hardhat": {
+        "version": "3.21.0",
+        "project": "hardhat",
+        "compile": {
+          "taskStatus": "succeeded",
+          "exitCode": 0,
+          "ok": true,
+          "stdout": "\nCompiled 2 Solidity files with solc 0.8.35 (evm target: Check solc 0.8.35's doc for its default evm version)\n",
+          "stderr": "Warning: SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing \"SPDX-License-Identifier: <SPDX-License>\" to each source file. Use \"SPDX-License-Identifier: UNLICENSED\" for non-open-source code. Please see https://spdx.org for more information.\n--> ./contracts/Counter.sol\n\n"
+        },
+        "passed": {
+          "exitCode": 0,
+          "stdout": "No contracts to compile\n\nRunning Solidity tests\n\n  test/Counter.t.sol:CounterTest\n    ✔ testIncrement()\n\n1 passing (1 solidity)\n\n",
+          "stderr": "",
+          "timedOut": false,
+          "truncated": false,
+          "taskStatus": "succeeded"
+        },
+        "failed": {
+          "exitCode": 1,
+          "stdout": "\nCompiled 1 Solidity file with solc 0.8.35 (evm target: Check solc 0.8.35's doc for its default evm version)\n\nRunning Solidity tests\n\n  test/Counter.t.sol:CounterTest\n    1) testIncrement()\n\n1 failing (1 solidity)\n\n  1) CounterTest#testIncrement()\n    Error: increment\n      at CounterTest.testIncrement (test/Counter.t.sol:1)\n\n\n",
+          "stderr": "Warning: SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing \"SPDX-License-Identifier: <SPDX-License>\" to each source file. Use \"SPDX-License-Identifier: UNLICENSED\" for non-open-source code. Please see https://spdx.org for more information.\n--> ./contracts/Counter.sol\n\nTest run failed\n",
+          "timedOut": false,
+          "truncated": false,
+          "taskStatus": "business_failed"
+        }
+      },
+      "passed": true
+    },
+    "schema": {
+      "mode": "schema",
+      "at": "2026-10-24T00:50:57.167Z",
+      "node": "v24.19.0",
+      "platform": "linux",
+      "schema": {
+        "before": {
+          "tools": [
+            {
+              "name": "grow",
+              "inputSchema": {
+                "type": "object",
+                "properties": {},
+                "$schema": "https://json-schema.org/draft/2020-12/schema"
+              }
+            }
+          ],
+          "schemaDigest": "c24467d56074a3829169e29a34127f3e69465b03a42eff3bdc7e53ff9c135ac0",
+          "changed": null,
+          "fetchedAt": "2026-10-24T00:50:57.343Z",
+          "status": "discovered_unverified",
+          "businessVerified": false,
+          "authorizationChanged": false
+        },
+        "after": {
+          "tools": [
+            {
+              "name": "grow",
+              "inputSchema": {
+                "type": "object",
+                "properties": {},
+                "$schema": "https://json-schema.org/draft/2020-12/schema"
+              }
+            },
+            {
+              "name": "added_read",
+              "inputSchema": {
+                "type": "object",
+                "properties": {},
+                "$schema": "https://json-schema.org/draft/2020-12/schema"
+              },
+              "annotations": {
+                "readOnlyHint": true
+              }
+            },
+            {
+              "name": "added_write",
+              "inputSchema": {
+                "type": "object",
+                "properties": {},
+                "$schema": "https://json-schema.org/draft/2020-12/schema"
+              },
+              "annotations": {
+                "readOnlyHint": true
+              }
+            }
+          ],
+          "schemaDigest": "00561d892c94e72ba8c3eaf976d2b4e2a60b9401799c7e3cad879395d7ec8e6a",
+          "changed": false,
+          "fetchedAt": "2026-10-24T00:50:57.455Z",
+          "status": "discovered_unverified",
+          "businessVerified": false,
+          "authorizationChanged": false
+        },
+        "notificationInvalidation": "passed",
+        "unapprovedReadOnlyHintRejected": true,
+        "scope": "controlled real MCP SDK transport lifecycle, not external provider business verification"
+      },
+      "passed": true
+    },
+    "slither": {
+      "mode": "slither",
+      "at": "2026-10-24T00:50:22.428Z",
+      "node": "v24.19.0",
+      "platform": "linux",
+      "slither": {
+        "finding": {
+          "taskStatus": "succeeded",
+          "exitCode": 255,
+          "result": {
+            "success": true,
+            "error": null,
+            "results": {
+              "detectors": [
+                {
+                  "elements": [
+                    {
+                      "type": "pragma",
+                      "name": "^0.8.20",
+                      "source_mapping": {
+                        "start": 0,
+                        "length": 24,
+                        "filename_relative": ".work/handoff/Finding.sol",
+                        "filename_absolute": "/workspace/scratch/c269c8bdb148/blockchain-anything/.work/handoff/Finding.sol",
+                        "filename_short": ".work/handoff/Finding.sol",
+                        "is_dependency": false,
+                        "lines": [
+                          1
+                        ],
+                        "starting_column": 1,
+                        "ending_column": 25
+                      },
+                      "type_specific_fields": {
+                        "directive": [
+                          "solidity",
+                          "^",
+                          "0.8",
+                          ".20"
+                        ]
+                      }
+                    }
+                  ],
+                  "description": "Version constraint ^0.8.20 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- VerbatimInvalidDeduplication\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess.\nIt is used by:\n\t- ^0.8.20 (.work/handoff/Finding.sol#1)\n",
+                  "markdown": "Version constraint ^0.8.20 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)\n\t- VerbatimInvalidDeduplication\n\t- FullInlinerNonExpressionSplitArgumentEvaluationOrder\n\t- MissingSideEffectsOnSelectorAccess.\nIt is used by:\n\t- [^0.8.20](.work/handoff/Finding.sol#L1)\n",
+                  "first_markdown_element": ".work/handoff/Finding.sol#L1",
+                  "id": "6ab11601e8302dcfe25ce271150c2920ad5ba285a14ef950c2564edb0094b040",
+                  "check": "solc-version",
+                  "impact": "Informational",
+                  "confidence": "High",
+                  "reference": "https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity"
+                },
+                {
+                  "elements": [
+                    {
+                      "type": "variable",
+                      "name": "owner",
+                      "source_mapping": {
+                        "start": 44,
+                        "length": 20,
+                        "filename_relative": ".work/handoff/Finding.sol",
+                        "filename_absolute": "/workspace/scratch/c269c8bdb148/blockchain-anything/.work/handoff/Finding.sol",
+                        "filename_short": ".work/handoff/Finding.sol",
+                        "is_dependency": false,
+                        "lines": [
+                          1
+                        ],
+                        "starting_column": 45,
+                        "ending_column": 65
+                      },
+                      "type_specific_fields": {
+                        "parent": {
+                          "type": "contract",
+                          "name": "Finding",
+                          "source_mapping": {
+                            "start": 25,
+                            "length": 155,
+                            "filename_relative": ".work/handoff/Finding.sol",
+                            "filename_absolute": "/workspace/scratch/c269c8bdb148/blockchain-anything/.work/handoff/Finding.sol",
+                            "filename_short": ".work/handoff/Finding.sol",
+                            "is_dependency": false,
+                            "lines": [
+                              1,
+                              2
+                            ],
+                            "starting_column": 26,
+                            "ending_column": 0
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "description": "Finding.owner (.work/handoff/Finding.sol#1) should be immutable \n",
+                  "markdown": "[Finding.owner](.work/handoff/Finding.sol#L1) should be immutable \n",
+                  "first_markdown_element": ".work/handoff/Finding.sol#L1",
+                  "id": "1d72873c11b9f6091f823a8e35a4c2f06e45cbd175c7422a11cbea562d2a0a59",
+                  "check": "immutable-states",
+                  "impact": "Optimization",
+                  "confidence": "High",
+                  "reference": "https://github.com/crytic/slither/wiki/Detector-Documentation#state-variables-that-could-be-declared-immutable"
+                }
+              ]
+            }
+          },
+          "stderr": ""
+        },
+        "broken": {
+          "executionRejected": true,
+          "error": "slither 失败：未安装或目标无效"
+        }
+      },
+      "passed": true
+    }
+  },
+  "schemaInitialFailure": {
+    "error": "上游 MCP 未知工具：added_read",
+    "cause": "Official SDK defaults debounceMs to 300; call after 100ms used old BCA snapshot",
+    "fix": "Set debounceMs:0 for notification-driven immediate snapshot invalidation",
+    "retest": "passed"
+  },
+  "ipfs": [
+    {
+      "scopes": [
+        "ipfs"
+      ],
+      "tools": 121,
+      "work": "/workspace/scratch/c269c8bdb148/blockchain-anything/.work/smoke-HQ3geQ"
+    },
+    {
+      "service": "kubo",
+      "pid": 97,
+      "log": "/workspace/scratch/c269c8bdb148/blockchain-anything/.work/smoke-HQ3geQ/kubo.log"
+    },
+    {
+      "scope": "ipfs",
+      "version": "0.43.1",
+      "rawCid": "bafkreigpzd52zt235nnp3fnimodp5p4tl27yzw3yopwh3ngrfpvcjhzlcq",
+      "unixfsCid": "bafybeig35pzlxkxin6o4i6gvwauwl6engnxunm3g77d7rw654nzvsnuw2y",
+      "bytes": 6763,
+      "identicalBytes": true,
+      "offline": true,
+      "repo": "/workspace/scratch/c269c8bdb148/blockchain-anything/.work/smoke-HQ3geQ/kubo"
+    },
+    {
+      "cleanup": "stopped",
+      "pid": 97,
+      "exitCode": 0,
+      "signal": null
+    }
+  ],
+  "packageSetup": {
+    "artifact": "blockchain-anything-0.3.0.tgz",
+    "shasum": "a8e6a5584465812d92bdda5f6e796393a3f85db6",
+    "integrity": "sha512-HQDoT4FjbCfTHAJVQ0c/WuCk4uyjmTAF6IEMJQTWB5RoNqdb+rKBEyDNNmrdmiWq3PVSRLKJRUfF1T2smkwklw==",
+    "entry": "npm exec --yes --package <actual.tgz> -- bca setup --client both --install",
+    "persistentRuntime": true,
+    "components": "official Foundry 1.7.1",
+    "preservedOtherClientConfig": true,
+    "preservedBcaEnv": true,
+    "backups": true,
+    "idempotent": true,
+    "installedMcpCid": "passed",
+    "installedWorkstationDiscovery": "passed",
+    "doctor": [
+      {
+        "name": "Node",
+        "status": "passed",
+        "value": "24.19.0",
+        "check": "local/configuration",
+        "repair": null
+      },
+      {
+        "name": "forge",
+        "status": "passed",
+        "value": "forge Version: 1.7.1",
+        "check": "local/configuration",
+        "repair": null
+      },
+      {
+        "name": "cast",
+        "status": "passed",
+        "value": "cast Version: 1.7.1",
+        "check": "local/configuration",
+        "repair": null
+      },
+      {
+        "name": "anvil",
+        "status": "passed",
+        "value": "anvil Version: 1.7.1",
+        "check": "local/configuration",
+        "repair": null
+      },
+      {
+        "name": "codex",
+        "status": "failed",
+        "reason": "程序不存在或 --version 失败",
+        "check": "local/configuration",
+        "repair": "按对应官方文档安装客户端；可仅使用另一个客户端"
+      },
+      {
+        "name": "claude",
+        "status": "failed",
+        "reason": "程序不存在或 --version 失败",
+        "check": "local/configuration",
+        "repair": "按对应官方文档安装客户端；可仅使用另一个客户端"
+      },
+      {
+        "name": "claude MCP config",
+        "status": "passed",
+        "value": {
+          "configured": true,
+          "runtimeExists": true,
+          "clientConnectionVerified": false
+        },
+        "check": "local/configuration",
+        "repair": null
+      },
+      {
+        "name": "codex MCP config",
+        "status": "passed",
+        "value": {
+          "configured": true,
+          "runtimeExists": true,
+          "clientConnectionVerified": false
+        },
+        "check": "local/configuration",
+        "repair": null
+      },
+      {
+        "name": "provider configuration",
+        "status": "passed",
+        "value": {
+          "evmConfigured": true,
+          "writesEnabled": false,
+          "connectionVerified": false
+        },
+        "check": "local/configuration",
+        "repair": null
+      },
+      {
+        "name": "configured MCP",
+        "status": "passed",
+        "value": {
+          "names": [],
+          "connectionVerified": false
+        },
+        "check": "local/configuration",
+        "repair": null
+      }
+    ],
+    "clientUiAuthorization": "not tested: configuration and real MCP launch only",
+    "platform": "linux",
+    "at": "2026-10-24T00:51:26.598Z"
+  },
+  "sessions": {
+    "upstream": "@openzeppelin/contracts-mcp@0.8.0",
+    "tool": "solidity-erc20",
+    "ephemeral": {
+      "calls": 2,
+      "starts": 2,
+      "elapsedMs": 548
+    },
+    "session": {
+      "calls": 2,
+      "starts": 1,
+      "includesExplicitDiscovery": true,
+      "elapsedMs": 264
+    },
+    "schemaDigest": "e6050cf71b08c2f62f77b0c34832a91cfc889588c8122eaa6a12d75d751c4013",
+    "upstreamTools": 33,
+    "malformedSupplierIsolation": "passed",
+    "credentialChangeInvalidates": "passed, no replay",
+    "disconnect": "passed, no replay",
+    "explicitReconnect": "passed",
+    "at": "2026-10-24T00:50:55.891Z"
+  },
+  "publicReadonly": [
+    {
+      "tool": "sui_balance",
+      "input": {
+        "owner": "0x1"
+      },
+      "at": "2026-10-24T00:50:54.745Z",
+      "ok": true,
+      "result": {
+        "balance": {
+          "balance": "90579153635",
+          "coinType": "0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI",
+          "coinBalance": "90579153635",
+          "addressBalance": "0"
+        }
+      }
+    },
+    {
+      "tool": "aptos_ledger",
+      "input": {},
+      "at": "2026-10-24T00:50:58.074Z",
+      "ok": true,
+      "result": {
+        "chain_id": 2,
+        "epoch": "1345",
+        "ledger_version": "132765851",
+        "oldest_ledger_version": "34369",
+        "ledger_timestamp": "1792803057573842",
+        "node_role": "full_node",
+        "oldest_block_height": "17187",
+        "block_height": "13029453",
+        "git_hash": "4c17e93210c07acf1abcf0ca36fc94d114d9e723",
+        "encryption_key": "609466409d94d022bf7fa35ff985d098a9821914ef773ade159e3a3718c519b8b49c1e911bf3e3b24c4be0a164d0dc2d8811f5d97087166cb17b7aa3e7775a247889f23a8e1d5331c372e2830665ace03517d280a6dbdf22877a28f04c4c666fb960b6f13bc61cd05998a6fbdf3d2fe150c789eae8f7871ba5ff041c8c16cf0aef46de7f2b19a573708825037833bdc3dea911d9a9fb33f00ffa794485f097e3576c221ee51f7006cedd4b1bcf9b0260226cb4943a9cc845a6c93c1c9a861b78ab6b"
+      }
+    },
+    {
+      "tool": "solana_balance",
+      "input": {
+        "address": "11111111111111111111111111111111"
+      },
+      "at": "2026-10-24T00:51:01.200Z",
+      "ok": true,
+      "result": {
+        "context": {
+          "apiVersion": "4.4.0-beta.1",
+          "slot": "514432952"
+        },
+        "value": "1"
+      }
+    },
+    {
+      "tool": "arweave_info",
+      "input": {},
+      "at": "2026-10-24T00:51:04.746Z",
+      "ok": true,
+      "result": {
+        "version": 5,
+        "release": 120,
+        "queue_length": 0,
+        "peers": 237,
+        "node_state_latency": 0,
+        "network": "arweave.N.1",
+        "height": 2027604,
+        "git_hash": "c01687c0eb8db6384e85f6d34d78a0d73ac3a2f1",
+        "current": "pv4nxpN2iSpOfT8AwbKiOCs7dswmwGlOx7RevsEozLqsOJv_Er7S66bReGSOJkWa",
+        "cached_blocks": 2034710,
+        "blocks": 2027605
+      }
+    },
+    {
+      "tool": "x402_supported",
+      "input": {},
+      "at": "2026-10-24T00:51:08.093Z",
+      "ok": true,
+      "result": {
+        "kinds": [
+          {
+            "x402Version": 2,
+            "scheme": "exact",
+            "network": "eip155:84532"
+          },
+          {
+            "x402Version": 2,
+            "scheme": "upto",
+            "network": "eip155:84532",
+            "extra": {
+              "facilitatorAddress": "0xd407e409E34E0b9afb99EcCeb609bDbcD5e7f1bf"
+            }
+          },
+          {
+            "x402Version": 2,
+            "scheme": "batch-settlement",
+            "network": "eip155:84532"
+          },
+          {
+            "x402Version": 2,
+            "scheme": "exact",
+            "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+            "extra": {
+              "feePayer": "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5",
+              "features": {
+                "smartWalletSupported": true
+              }
+            }
+          },
+          {
+            "x402Version": 2,
+            "scheme": "exact",
+            "network": "algorand:SGO1GKSzyE7IEPItTxCByw9x8FmnrCDe",
+            "extra": {
+              "feePayer": "G7QWRIJODICBDG6JAVXNKHNTCKTBJZBXTSCGQLSMXSCIKEJ5SNFPEJSFQQ"
+            }
+          },
+          {
+            "x402Version": 2,
+            "scheme": "exact",
+            "network": "aptos:2",
+            "extra": {
+              "feePayer": "0x1be1a717b48c46c83a2a6a53205aff6123610961560b2b08968a344c4da24b1e"
+            }
+          },
+          {
+            "x402Version": 2,
+            "scheme": "exact",
+            "network": "stellar:testnet",
+            "extra": {
+              "areFeesSponsored": true
+            }
+          },
+          {
+            "x402Version": 2,
+            "scheme": "exact",
+            "network": "hedera:testnet",
+            "extra": {
+              "feePayer": "0.0.9185802"
+            }
+          },
+          {
+            "x402Version": 2,
+            "scheme": "exact",
+            "network": "xrpl:1",
+            "extra": {
+              "areFeesSponsored": false
+            }
+          },
+          {
+            "x402Version": 1,
+            "scheme": "exact",
+            "network": "base-sepolia"
+          },
+          {
+            "x402Version": 1,
+            "scheme": "exact",
+            "network": "solana-devnet",
+            "extra": {
+              "feePayer": "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5"
+            }
+          }
+        ],
+        "extensions": [
+          "builder-code",
+          "eip2612GasSponsoring",
+          "erc20ApprovalGasSponsoring"
+        ],
+        "signers": {
+          "eip155:*": [
+            "0xd407e409E34E0b9afb99EcCeb609bDbcD5e7f1bf"
+          ],
+          "solana:*": [
+            "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5"
+          ],
+          "algorand:*": [
+            "G7QWRIJODICBDG6JAVXNKHNTCKTBJZBXTSCGQLSMXSCIKEJ5SNFPEJSFQQ"
+          ],
+          "aptos:*": [
+            "0x1be1a717b48c46c83a2a6a53205aff6123610961560b2b08968a344c4da24b1e"
+          ],
+          "stellar:*": [
+            "GC6CSXBV4C6RL3HEDTW57KXYXSSXKAWKGYDEOSATXM3XNKXSR2VRYN3K",
+            "GC5OLUZ4WANPN6VT7YGTK2SRMZG762KOVKJXHWIO4K57UBASO2FMNRET"
+          ],
+          "hedera:*": [
+            "0.0.9185802"
+          ],
+          "xrpl:*": []
+        }
+      }
+    },
+    {
+      "tool": "evm_contract_source",
+      "input": {
+        "address": "0x2738d13E81e30bC615766A0410e7cF199FD59A83"
+      },
+      "at": "2026-10-24T00:51:25.740Z",
+      "ok": true,
+      "result": {
+        "chainId": "11155111",
+        "address": "0x2738d13E81e30bC615766A0410e7cF199FD59A83",
+        "source": "Sourcify v2",
+        "found": true,
+        "bytecodeMatched": true,
+        "fetchedAt": "2026-10-24T00:51:25.740Z",
+        "blockNumber": "11980371"
+      }
+    },
+    {
+      "tool": "bridge_call",
+      "input": {
+        "server": "coingecko",
+        "tool": "search_docs",
+        "arguments": {
+          "query": "Bitcoin price in USD"
+        }
+      },
+      "at": "2026-10-24T00:51:37.773Z",
+      "ok": true,
+      "result": {
+        "server": "coingecko",
+        "tool": "search_docs",
+        "connectionVerified": true,
+        "isError": false,
+        "textExcerpt": "[\n  {\n    \"method\": \"client.onchain.simple.tokenPrice.getMulti\",\n    \"summary\": \"Token Price by Token Addresses across Networks\",\n    \"description\": \"To get token prices based on the provided token contract addresses across multiple networks in a single request\",\n    \"endpoint\": \"GET /onchain/simple/token_price/multi\",\n    \"example\": \"import Coinge"
+      }
+    }
+  ],
+  "limits": [
+    "Linux execution does not certify Windows/WSL host/macOS",
+    "Controlled schema fixture is a lifecycle check, not external supplier business proof",
+    "Proxy/nested source location remains partial by design",
+    "No public-chain write, source upload, swap, payment settlement or npm publishing",
+    "Account credentials, backend deployments and unsupported implementations are itemized in BCA-LOCAL-AGENT-HANDOFF-20261024.md"
+  ]
+}

@@ -1,0 +1,12 @@
+.work/
+.bca/
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+examples/contracts/out/
+examples/contracts/cache/
+examples/contracts/artifacts/

@@ -1,0 +1,50 @@
+import assert from 'node:assert/strict';
+import { mkdir, mkdtemp, readFile, readdir, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { Client } from '@modelcontextprotocol/client';
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
+import { parse } from 'smol-toml';
+import { run } from '../src/development/exec.js';
+
+const root = process.cwd(); await mkdir('.work/package', { recursive: true });
+const packed = await run('npm', ['pack', '--json', '--pack-destination', resolve('.work/package')], { cwd: root, timeoutMs: 20000 });
+assert.equal(packed.exitCode, 0, packed.stderr);
+const artifact = JSON.parse(packed.stdout)[0]; const tarball = resolve('.work/package', artifact.filename);
+const project = await mkdtemp(join(tmpdir(), 'bca-setup-'));
+const cleanEnv: Record<string, string | undefined> = {};
+for (const key of Object.keys(process.env)) if (key.startsWith('BCA_')) cleanEnv[key] = undefined;
+const mcp = new Client({ name: 'packed-setup-check', version: '1' });
+try {
+  await mkdir(join(project, '.codex'));
+  await writeFile(join(project, '.mcp.json'), JSON.stringify({ mcpServers: { other: { command: 'existing' }, bca: { env: { BCA_RPC_URL: 'http://127.0.0.1:1', BCA_CHAIN_ID: '31337' } } } }));
+  await writeFile(join(project, '.codex/config.toml'), '# user comment kept in backup\nmodel="user-choice"\n[mcp_servers.other]\ncommand="existing"\n');
+  console.log('Installing from actual tarball through npm exec…');
+  const setup = await run('npm', ['exec', '--yes', '--package', tarball, '--', 'bca', 'setup', '--client', 'both', '--install'], { cwd: project, env: cleanEnv, timeoutMs: 240000, maxBytes: 4 * 1024 * 1024 });
+  assert.equal(setup.exitCode, 0, setup.stdout + setup.stderr);
+  const first = JSON.parse(setup.stdout); assert.equal(first.taskStatus, 'succeeded');
+  const claude = JSON.parse(await readFile(join(project, '.mcp.json'), 'utf8'));
+  const codex = parse(await readFile(join(project, '.codex/config.toml'), 'utf8')) as any;
+  assert.equal(claude.mcpServers.other.command, 'existing'); assert.equal(codex.model, 'user-choice'); assert.equal(codex.mcp_servers.other.command, 'existing');
+  assert.equal(claude.mcpServers.bca.env.BCA_RPC_URL, 'http://127.0.0.1:1');
+  assert.ok((await readdir(project)).some((name) => name.startsWith('.mcp.json.bca-backup-')));
+  const config = claude.mcpServers.bca;
+  assert.ok(config.args[0].startsWith(join(project, '.bca/runtime')), config.args[0]);
+  const cli = resolve(config.args[0], '../../cli/main.js');
+  console.log('Checking repeat setup and installed MCP…');
+  const second = await run(process.execPath, [cli, 'setup', '--client', 'both', '--install'], { cwd: project, env: { ...cleanEnv, ...config.env }, timeoutMs: 120000, maxBytes: 4 * 1024 * 1024 });
+  assert.equal(second.exitCode, 0, second.stdout + second.stderr);
+  assert.ok(JSON.parse(second.stdout).changes.every((change: any) => change.changed === false), second.stdout);
+  await mcp.connect(new StdioClientTransport({ command: config.command, args: config.args, cwd: project, env: config.env }));
+  const list = await mcp.listTools(); assert.ok(list.tools.some((tool) => tool.name === 'workstation_search'));
+  const cid = await mcp.callTool({ name: 'content_cid', arguments: { path: 'BCA-WORKFLOW.md' } }); assert.ok(!cid.isError); assert.match(JSON.stringify(cid), /bafkrei/);
+  const doctor = await run(process.execPath, [cli, 'doctor'], { cwd: project, env: { ...cleanEnv, ...config.env }, timeoutMs: 30000, maxBytes: 4 * 1024 * 1024 });
+  assert.equal(doctor.exitCode, 0, doctor.stderr); const diagnosed = JSON.parse(doctor.stdout);
+  for (const name of ['forge', 'cast', 'anvil', 'codex MCP config', 'claude MCP config']) assert.equal(diagnosed.checks.find((item: any) => item.name === name).status, 'passed', doctor.stdout);
+  assert.ok(diagnosed.checks.some((item: any) => item.name === 'capabilities'), 'failed client check must not stop doctor');
+  const report = { artifact: artifact.filename, shasum: artifact.shasum, integrity: artifact.integrity, entry: 'npm exec --yes --package <actual.tgz> -- bca setup --client both --install',
+    persistentRuntime: true, components: 'official Foundry 1.7.1', preservedOtherClientConfig: true, preservedBcaEnv: true, backups: true, idempotent: true,
+    installedMcpCid: 'passed', installedWorkstationDiscovery: 'passed', doctor: diagnosed.checks.filter((item: any) => item.name !== 'capabilities'),
+    clientUiAuthorization: 'not tested: configuration and real MCP launch only', platform: process.platform, at: new Date().toISOString() };
+  await writeFile(resolve('.work/package/result.json'), JSON.stringify(report, null, 2)); console.log(JSON.stringify({ passed: true, artifact: report.artifact, checks: report.doctor }, null, 2));
+} finally { await mcp.close(); await rm(project, { recursive: true, force: true }); }

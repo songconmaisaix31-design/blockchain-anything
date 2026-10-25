@@ -1,0 +1,905 @@
+{
+  "date": "2026-10-23",
+  "baselineCommit": "8ae2fd879c60dea1d36da108251e2767e8bf6453",
+  "toolCount": 104,
+  "fullAcceptance": false,
+  "core": [
+    {
+      "scopes": [
+        "onchain",
+        "core",
+        "interfaces",
+        "package"
+      ],
+      "tools": 104,
+      "work": ".work/smoke-OQeo9F"
+    },
+    {
+      "scope": "onchain",
+      "chainId": "31337",
+      "registry": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      "eas": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      "schema": "0x5dbf04492a68a7f3c2b9ff0e2afca18e72a93675c987bd6f22e375ec84ad0374",
+      "uid": "0x7b3f73b8ab30ca017d06d5d4367a2a6891a7494fa2cbc32f7bba78e8e4949d83",
+      "transactions": [
+        "0xfce0fdfb670807d7d3285e67dfa7262cc6ff5b33752f0c4f969bfe335e6d6c38",
+        "0x294385613b87560db62a1c6925fa9a12b32629d6ec4e84b720cc880aa6c1cb37",
+        "0xefc3b71242c5ee4c4d3896ddb3b7810dacad8ceb72d8cbe399e1af077dab5ce5"
+      ],
+      "revocationTime": "1792770370",
+      "cid": "bafkreibhptqtsdvmrrididylod7w5xer33yvsbgpytq2diyuo33rgnj4he",
+      "bytes": 6605
+    },
+    {
+      "scope": "core",
+      "eip191": true,
+      "offchainVersion": 2,
+      "tamperingRejected": true,
+      "chainMismatchRejected": true
+    },
+    {
+      "scope": "interfaces",
+      "tools": 104
+    },
+    {
+      "scope": "package",
+      "tarball": ".work/smoke-OQeo9F/blockchain-anything-0.2.0.tgz",
+      "installed": ".work/smoke-OQeo9F/installed",
+      "tools": 104,
+      "cli": "dist/cli/main.js",
+      "mcp": "./dist/mcp/main.js"
+    }
+  ],
+  "ipfs": [
+    {
+      "scope": "ipfs",
+      "version": "0.43.1",
+      "rawCid": "bafkreibhptqtsdvmrrididylod7w5xer33yvsbgpytq2diyuo33rgnj4he",
+      "unixfsCid": "bafybeieynqfbgpdevpiufsefhh2wjrm6kzr5uqklfngtfywbpyq4zr6kau",
+      "bytes": 6605,
+      "identicalBytes": true,
+      "offline": true,
+      "repo": ".work/smoke-g6j9jb/kubo"
+    }
+  ],
+  "local": [
+    {
+      "name": "safe_info",
+      "ok": false,
+      "error": "Invalid multiSend contract address"
+    },
+    {
+      "name": "safe_prepare",
+      "ok": false,
+      "error": "Invalid multiSend contract address"
+    },
+    {
+      "name": "dev_cast_chain_id",
+      "ok": true,
+      "result": {
+        "chainId": "31337"
+      }
+    },
+    {
+      "name": "dev_cast_block_number",
+      "ok": true,
+      "result": {
+        "chainId": "31337",
+        "blockNumber": "3"
+      }
+    },
+    {
+      "name": "dev_cast_balance",
+      "ok": true,
+      "result": {
+        "chainId": "31337",
+        "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "balanceWei": "9999989236436656116472"
+      }
+    },
+    {
+      "name": "dev_cast_call",
+      "ok": true,
+      "result": {
+        "chainId": "31337",
+        "to": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+        "signature": "getThreshold()(uint256)",
+        "parsed": [
+          1
+        ],
+        "raw": "[\n  1\n]"
+      }
+    },
+    {
+      "name": "dev_hardhat_compile",
+      "ok": true,
+      "result": {
+        "exitCode": 0,
+        "ok": true,
+        "stdout": "Compiled 1 Solidity file successfully (evm target: paris).",
+        "stderr": "WARNING: You are currently using Node.js v24.19.0, which is not supported by Hardhat. This can lead to unexpected behavior. See https://hardhat.org/nodejs-versions\nSolidity 0.8.35 is not fully supported yet. You can still use Hardhat, but some features, like stack traces, might not work correctly.\n\nLearn more at https://hardhat.org/hardhat-runner/docs/reference/solidity-support"
+      }
+    }
+  ],
+  "safeAfterFix": [
+    {
+      "name": "safe_info",
+      "ok": true,
+      "result": {
+        "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+        "owners": [
+          "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+        ],
+        "threshold": 1,
+        "nonce": 0,
+        "chainId": "31337"
+      }
+    },
+    {
+      "name": "safe_prepare",
+      "ok": true,
+      "result": {
+        "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+        "chainId": "31337",
+        "data": {
+          "to": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+          "value": "0",
+          "data": "0x8d80ff0a000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000aa00f39fd6e51aad88f6f4ce6ab8827279cfffb922660000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb922660000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "operation": 1,
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": 0,
+          "safeTxGas": "0"
+        },
+        "safeTxHash": "0xbb5c0624f206faaa8871de0b442424744047c0260929c1751d4e10f47392f6dd",
+        "signed": false,
+        "submitted": false
+      }
+    }
+  ],
+  "network": [
+    {
+      "name": "solana_balance",
+      "ok": true,
+      "result": {
+        "context": {
+          "apiVersion": "4.4.0-beta.1",
+          "slot": "514298547"
+        },
+        "value": "1"
+      }
+    },
+    {
+      "name": "aptos_ledger",
+      "ok": true,
+      "result": {
+        "chain_id": 2,
+        "epoch": "1336",
+        "ledger_version": "126924439",
+        "oldest_ledger_version": "34369",
+        "ledger_timestamp": "1792770967660969",
+        "node_role": "full_node",
+        "oldest_block_height": "17187",
+        "block_height": "12710154",
+        "git_hash": "4c17e93210c07acf1abcf0ca36fc94d114d9e723",
+        "encryption_key": "6099cec9dd451a75df3939113d27964a27fc1f9cecd2bc413c94f241f05778e2f604bfab364baa7ec403dc355b02d4135f0c9f2926eadf0d0f1157997a4069736ddf3d167e8a9a6e77497b6ad2681ae2b32c47979d2fde0ff3ffb7dfad5e3fec5a60b6f13bc61cd05998a6fbdf3d2fe150c789eae8f7871ba5ff041c8c16cf0aef46de7f2b19a573708825037833bdc3dea911d9a9fb33f00ffa794485f097e3576c221ee51f7006cedd4b1bcf9b0260226cb4943a9cc845a6c93c1c9a861b78ab6b"
+      }
+    },
+    {
+      "name": "x402_supported",
+      "ok": true,
+      "result": {
+        "kinds": [
+          {
+            "x402Version": 2,
+            "scheme": "exact",
+            "network": "eip155:84532"
+          },
+          {
+            "x402Version": 2,
+            "scheme": "upto",
+            "network": "eip155:84532",
+            "extra": {
+              "facilitatorAddress": "0xd407e409E34E0b9afb99EcCeb609bDbcD5e7f1bf"
+            }
+          },
+          {
+            "x402Version": 2,
+            "scheme": "batch-settlement",
+            "network": "eip155:84532"
+          },
+          {
+            "x402Version": 2,
+            "scheme": "exact",
+            "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+            "extra": {
+              "feePayer": "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5",
+              "features": {
+                "smartWalletSupported": true
+              }
+            }
+          },
+          {
+            "x402Version": 2,
+            "scheme": "exact",
+            "network": "algorand:SGO1GKSzyE7IEPItTxCByw9x8FmnrCDe",
+            "extra": {
+              "feePayer": "G7QWRIJODICBDG6JAVXNKHNTCKTBJZBXTSCGQLSMXSCIKEJ5SNFPEJSFQQ"
+            }
+          },
+          {
+            "x402Version": 2,
+            "scheme": "exact",
+            "network": "aptos:2",
+            "extra": {
+              "feePayer": "0x1be1a717b48c46c83a2a6a53205aff6123610961560b2b08968a344c4da24b1e"
+            }
+          },
+          {
+            "x402Version": 2,
+            "scheme": "exact",
+            "network": "stellar:testnet",
+            "extra": {
+              "areFeesSponsored": true
+            }
+          },
+          {
+            "x402Version": 2,
+            "scheme": "exact",
+            "network": "hedera:testnet",
+            "extra": {
+              "feePayer": "0.0.9185802"
+            }
+          },
+          {
+            "x402Version": 2,
+            "scheme": "exact",
+            "network": "xrpl:1",
+            "extra": {
+              "areFeesSponsored": false
+            }
+          },
+          {
+            "x402Version": 1,
+            "scheme": "exact",
+            "network": "base-sepolia"
+          },
+          {
+            "x402Version": 1,
+            "scheme": "exact",
+            "network": "solana-devnet",
+            "extra": {
+              "feePayer": "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5"
+            }
+          }
+        ],
+        "extensions": [
+          "builder-code",
+          "eip2612GasSponsoring",
+          "erc20ApprovalGasSponsoring"
+        ],
+        "signers": {
+          "eip155:*": [
+            "0xd407e409E34E0b9afb99EcCeb609bDbcD5e7f1bf"
+          ],
+          "solana:*": [
+            "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5"
+          ],
+          "algorand:*": [
+            "G7QWRIJODICBDG6JAVXNKHNTCKTBJZBXTSCGQLSMXSCIKEJ5SNFPEJSFQQ"
+          ],
+          "aptos:*": [
+            "0x1be1a717b48c46c83a2a6a53205aff6123610961560b2b08968a344c4da24b1e"
+          ],
+          "stellar:*": [
+            "GC6CSXBV4C6RL3HEDTW57KXYXSSXKAWKGYDEOSATXM3XNKXSR2VRYN3K",
+            "GC5OLUZ4WANPN6VT7YGTK2SRMZG762KOVKJXHWIO4K57UBASO2FMNRET"
+          ],
+          "hedera:*": [
+            "0.0.9185802"
+          ],
+          "xrpl:*": []
+        }
+      }
+    },
+    {
+      "name": "sui_balance",
+      "ok": true,
+      "result": {
+        "balance": {
+          "balance": "75842461738",
+          "coinType": "0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI",
+          "coinBalance": "75842451738",
+          "addressBalance": "10000"
+        }
+      }
+    },
+    {
+      "name": "arweave_info",
+      "ok": true,
+      "result": {
+        "version": 5,
+        "release": 120,
+        "queue_length": 0,
+        "peers": 231,
+        "node_state_latency": 1,
+        "network": "arweave.N.1",
+        "height": 2027353,
+        "git_hash": "c01687c0eb8db6384e85f6d34d78a0d73ac3a2f1",
+        "current": "s83tLpHf2qF_vcZ6i-3BvuBu5FDZv7kVB16WZeTF6xO89jelxJ5CMsJntfCvQxnR",
+        "cached_blocks": 2034453,
+        "blocks": 2027354
+      }
+    },
+    {
+      "name": "sign_schema",
+      "ok": true,
+      "result": {
+        "name": "Hello Base Sepolia",
+        "description": "This is first schema on Base Sepolia created by Milo",
+        "revocable": false,
+        "dataLocation": 0,
+        "timestamp": 1711958106,
+        "maxValidFor": 0,
+        "hook": "0x0000000000000000000000000000000000000000",
+        "data": [
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "registrant": "0xD2Cf46B15a1fBfFD39b5C275907Dea6227c486E8"
+      }
+    },
+    {
+      "name": "seal_encrypt",
+      "ok": true,
+      "result": {
+        "bytes": 391,
+        "packageId": "0xc5ce2742cac46421b62028557f1d7aea8a4c50f651379a79afdf12cd88628807"
+      }
+    },
+    {
+      "name": "walrus_roundtrip",
+      "ok": true,
+      "result": {
+        "stored": {
+          "newlyCreated": {
+            "blobObject": {
+              "id": "0xa244aa58dbed8d0c28c29a89e26d7724ac7c3f1b23224aaea4061dc961bd0f55",
+              "registeredEpoch": 559,
+              "blobId": "GXJpHvf3Dke4sV08bh0Nv383G4MAaqqqVtsgjXRGHA4",
+              "size": 71,
+              "encodingType": "RS2",
+              "certifiedEpoch": null,
+              "storage": {
+                "id": "0xf9aecc34ee50d0ca561b61e898f67077387c58434999c79f4e54254faa092eee",
+                "startEpoch": 559,
+                "endEpoch": 560,
+                "storageSize": 66034000
+              },
+              "deletable": true
+            },
+            "resourceOperation": {
+              "registerFromScratch": {
+                "encodedLength": 66034000,
+                "epochsAhead": 1
+              }
+            },
+            "cost": 512316
+          }
+        },
+        "bytes": 71,
+        "identicalBytes": true
+      }
+    }
+  ],
+  "sas": [
+    {
+      "name": "sas_schema",
+      "ok": true,
+      "result": {
+        "executable": false,
+        "lamports": "2373360",
+        "programAddress": "22zoJMtdu4tQc2PzL74ZUT7FrwgB1Udec8DdW4yw4BdG",
+        "space": "213",
+        "address": "1dnwoTRbsPqAYgGuw9wbLhPnABGKE6QvXVVi4ASTHQf",
+        "data": {
+          "discriminator": 1,
+          "credential": "U8QhUChqRpQxuaFPt3j3FngCzMzm9UQ9Pz7fRKNXibT",
+          "name": {
+            "0": 87,
+            "1": 65,
+            "2": 76,
+            "3": 76,
+            "4": 69,
+            "5": 84,
+            "6": 45,
+            "7": 83,
+            "8": 69,
+            "9": 67,
+            "10": 85,
+            "11": 82,
+            "12": 73,
+            "13": 84,
+            "14": 89,
+            "15": 45,
+            "16": 83,
+            "17": 84,
+            "18": 65,
+            "19": 84,
+            "20": 85,
+            "21": 83
+          },
+          "description": {
+            "0": 82,
+            "1": 101,
+            "2": 97,
+            "3": 108,
+            "4": 45,
+            "5": 116,
+            "6": 105,
+            "7": 109,
+            "8": 101,
+            "9": 32,
+            "10": 115,
+            "11": 101,
+            "12": 99,
+            "13": 117,
+            "14": 114,
+            "15": 105,
+            "16": 116,
+            "17": 121,
+            "18": 32,
+            "19": 97,
+            "20": 115,
+            "21": 115,
+            "22": 101,
+            "23": 115,
+            "24": 115,
+            "25": 109,
+            "26": 101,
+            "27": 110,
+            "28": 116,
+            "29": 32,
+            "30": 102,
+            "31": 111,
+            "32": 114,
+            "33": 32,
+            "34": 119,
+            "35": 97,
+            "36": 108,
+            "37": 108,
+            "38": 101,
+            "39": 116,
+            "40": 32,
+            "41": 115,
+            "42": 101,
+            "43": 99,
+            "44": 117,
+            "45": 114,
+            "46": 105,
+            "47": 116,
+            "48": 121,
+            "49": 32,
+            "50": 118,
+            "51": 101,
+            "52": 114,
+            "53": 105,
+            "54": 102,
+            "55": 105,
+            "56": 99,
+            "57": 97,
+            "58": 116,
+            "59": 105,
+            "60": 111,
+            "61": 110
+          },
+          "layout": {
+            "0": 12,
+            "1": 0,
+            "2": 0,
+            "3": 3,
+            "4": 12
+          },
+          "fieldNames": {
+            "0": 10,
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 114,
+            "5": 105,
+            "6": 115,
+            "7": 107,
+            "8": 95,
+            "9": 108,
+            "10": 101,
+            "11": 118,
+            "12": 101,
+            "13": 108,
+            "14": 12,
+            "15": 0,
+            "16": 0,
+            "17": 0,
+            "18": 105,
+            "19": 115,
+            "20": 95,
+            "21": 101,
+            "22": 120,
+            "23": 112,
+            "24": 108,
+            "25": 111,
+            "26": 105,
+            "27": 116,
+            "28": 101,
+            "29": 114,
+            "30": 13,
+            "31": 0,
+            "32": 0,
+            "33": 0,
+            "34": 101,
+            "35": 120,
+            "36": 112,
+            "37": 108,
+            "38": 111,
+            "39": 105,
+            "40": 116,
+            "41": 95,
+            "42": 99,
+            "43": 111,
+            "44": 117,
+            "45": 110,
+            "46": 116,
+            "47": 12,
+            "48": 0,
+            "49": 0,
+            "50": 0,
+            "51": 108,
+            "52": 97,
+            "53": 115,
+            "54": 116,
+            "55": 95,
+            "56": 99,
+            "57": 104,
+            "58": 101,
+            "59": 99,
+            "60": 107,
+            "61": 101,
+            "62": 100,
+            "63": 6,
+            "64": 0,
+            "65": 0,
+            "66": 0,
+            "67": 114,
+            "68": 101,
+            "69": 97,
+            "70": 115,
+            "71": 111,
+            "72": 110
+          },
+          "isPaused": false,
+          "version": 1
+        },
+        "exists": true
+      }
+    },
+    {
+      "name": "sas_attestation",
+      "ok": true,
+      "result": {
+        "executable": false,
+        "lamports": "3175000",
+        "programAddress": "22zoJMtdu4tQc2PzL74ZUT7FrwgB1Udec8DdW4yw4BdG",
+        "space": "497",
+        "address": "12L4rHSsWw1gV8SnpiJpy5WuVR65mD1ZWfMcxLiDLf3",
+        "data": {
+          "discriminator": 2,
+          "nonce": "8SAeqQcRRxghhn3vXSb2bQ4eURYJvyaM18nrUurQFgdg",
+          "credential": "E1RBvKqgqadUkWb774ddQrko7w3YjGWT4d1RmFv4Cgwo",
+          "schema": "DxsgtPxxLSYfCmRsREY6Seak1cBYiCr9f3cxLiaJmsee",
+          "data": "QAEAAFZCAckAVlcBBSDOWdtQgPwsbTvPfKkHEtPC5ebCjyfw37uZU72wiUwDq2wBxfhw+ef7AVWAKUCPzb/G49GCvlP1TOssDjqM7t8AAAAAALPrRhSBA6+rn/+EJ3EkgGOs+FzqP7Gh9XQxUGVYwtLUwk9yDOWZz5eTPjfY4oZhF3HWgcNkYO+wrEa/9VRdcyYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADpEyKu1G7MsXo+VE6a9b9UE2is/n0Xee3hgjztkJO4kgHNf10/aeDE5f99AOzZ+P/76IZDbyUPLtd9HbpUBwnuZw4AAAAAAAAA",
+          "signer": "8GcbnNN8CiA7voQyRsESPkzGoq5NU5S8N18VCxxRK4xo",
+          "expiry": "0",
+          "tokenAccount": "11111111111111111111111111111111"
+        },
+        "exists": true,
+        "verification": "仅解码及程序所有者检查；调用方须核对 credential、schema、signer 和链上 expiry"
+      }
+    }
+  ],
+  "provenance": [
+    {
+      "name": "cosign_verify_blob",
+      "ok": true,
+      "result": {
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "Verified OK\n",
+        "verified": true
+      }
+    },
+    {
+      "name": "slsa_verify",
+      "ok": true,
+      "result": {
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "Verified signature against tlog entry index 253498065 at URL: https://rekor.sigstore.dev/api/v1/log/entries/108e9186e8c5677afa02a3fd7263c0270f7f47fb8ac9be29d9b6d3a31c4e6fd64a6f2ff7470fa4d1\nVerified build using builder \"https://github.com/slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@refs/tags/v2.0.0\" at commit ea584f4502babc6f60d9bc799dbbb13c1caa9ee6\nVerifying artifact .work/acceptance/bin/slsa-verifier: PASSED\n\nPASSED: SLSA verification passed\n",
+        "verified": true
+      }
+    },
+    {
+      "name": "intoto_verify",
+      "ok": true,
+      "result": {
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "verified": true
+      }
+    },
+    {
+      "name": "c2pa_inspect",
+      "ok": false,
+      "error": "无法运行 c2patool：spawn c2patool EACCES"
+    }
+  ],
+  "c2paAfterExecutableFix": {
+    "active_manifest": "contentauth:urn:uuid:b2b1f7fa-b119-4de1-9c0d-c97fbea3f2c3",
+    "validation_results": {
+      "activeManifest": {
+        "success": [
+          {
+            "code": "timeStamp.validated",
+            "url": "self#jumbf=/c2pa/contentauth:urn:uuid:b2b1f7fa-b119-4de1-9c0d-c97fbea3f2c3/c2pa.signature",
+            "explanation": "timestamp message digest matched: DigiCert Timestamp 2023"
+          },
+          {
+            "code": "timeStamp.trusted",
+            "url": "self#jumbf=/c2pa/contentauth:urn:uuid:b2b1f7fa-b119-4de1-9c0d-c97fbea3f2c3/c2pa.signature",
+            "explanation": "timestamp cert trusted: DigiCert Timestamp 2023"
+          },
+          {
+            "code": "claimSignature.insideValidity",
+            "url": "self#jumbf=/c2pa/contentauth:urn:uuid:b2b1f7fa-b119-4de1-9c0d-c97fbea3f2c3/c2pa.signature",
+            "explanation": "claim signature valid"
+          },
+          {
+            "code": "claimSignature.validated",
+            "url": "self#jumbf=/c2pa/contentauth:urn:uuid:b2b1f7fa-b119-4de1-9c0d-c97fbea3f2c3/c2pa.signature",
+            "explanation": "claim signature valid"
+          },
+          {
+            "code": "assertion.hashedURI.match",
+            "url": "self#jumbf=/c2pa/contentauth:urn:uuid:b2b1f7fa-b119-4de1-9c0d-c97fbea3f2c3/c2pa.assertions/c2pa.thumbnail.claim.jpeg",
+            "explanation": "hashed uri matched: self#jumbf=c2pa.assertions/c2pa.thumbnail.claim.jpeg"
+          },
+          {
+            "code": "assertion.hashedURI.match",
+            "url": "self#jumbf=/c2pa/contentauth:urn:uuid:b2b1f7fa-b119-4de1-9c0d-c97fbea3f2c3/c2pa.assertions/stds.schema-org.CreativeWork",
+            "explanation": "hashed uri matched: self#jumbf=c2pa.assertions/stds.schema-org.CreativeWork"
+          },
+          {
+            "code": "assertion.hashedURI.match",
+            "url": "self#jumbf=/c2pa/contentauth:urn:uuid:b2b1f7fa-b119-4de1-9c0d-c97fbea3f2c3/c2pa.assertions/c2pa.actions",
+            "explanation": "hashed uri matched: self#jumbf=c2pa.assertions/c2pa.actions"
+          },
+          {
+            "code": "assertion.hashedURI.match",
+            "url": "self#jumbf=/c2pa/contentauth:urn:uuid:b2b1f7fa-b119-4de1-9c0d-c97fbea3f2c3/c2pa.assertions/c2pa.hash.data",
+            "explanation": "hashed uri matched: self#jumbf=c2pa.assertions/c2pa.hash.data"
+          },
+          {
+            "code": "assertion.dataHash.match",
+            "url": "self#jumbf=/c2pa/contentauth:urn:uuid:b2b1f7fa-b119-4de1-9c0d-c97fbea3f2c3/c2pa.assertions/c2pa.hash.data",
+            "explanation": "data hash valid"
+          }
+        ],
+        "informational": [],
+        "failure": [
+          {
+            "code": "signingCredential.untrusted",
+            "url": "self#jumbf=/c2pa/contentauth:urn:uuid:b2b1f7fa-b119-4de1-9c0d-c97fbea3f2c3/c2pa.signature",
+            "explanation": "signing certificate untrusted"
+          }
+        ]
+      }
+    },
+    "validation_status": null
+  },
+  "risc0": {
+    "verified": true,
+    "verifier": "0x2a098988600d87650Fb061FfAff08B97149Fa84D",
+    "chainId": "84532",
+    "imageId": "0x11d264ed8dfdee222b820f0278e4d7f55d4b69a5472253a471c102265a91ea1a",
+    "journalDigest": "0x3b8839d29d6fc9286b8f95f9c676ff10c1add3c8bfe3b8d6153be90020ed91be"
+  },
+  "risc0Invalid": {
+    "exitCode": 1,
+    "result": {
+      "code": "UNKNOWN",
+      "message": "The contract function \"verify\" reverted with the following signature:\n0x439cc0cd\n\nUnable to decode signature \"0x439cc0cd\" as it was not found on the provided ABI.\nMake sure you are using the correct ABI and that the error exists on it.\nYou can look up the decoded signature here: [ENDPOINT]\n \nContract Call:\n  address:   0x2a098988600d87650Fb061FfAff08B97149Fa84D\n  function:  verify(bytes seal, bytes32 imageId, bytes32 journalDigest)\n  args:            (0x73c457ba2ccb718fd9092cc11546eeded62a44d3ed274076dd3ec154fae8739f3432050b2005be2c5dbe6c08bfd04b30601a462540962bc26a2f38c5cfc0a4d76d8f1b8015e690a1b230081234867edeedb2f98bcdf33d0471c2aa5e8db63b72333f871527eb5d1fcf0a7af50fb8f42e8699e2c4eda3cd93f4e2a930096ae78e38bea4020c5c3d963dc453b4b302170e47c0cf53382255143c8fcef474d8b6eaaa8daaaf092c2f650809a3afbd122ef128cb882c2de7a6ccddd2e544b645fa3fedf6bcc92e09be04876a07778231fd5b93305d35fd8af23f040a11682a8c64130370804f28f07a76fa538755276e42c04b5f7eb97b04b68b65fa50e3181a0452069a3667, 0x11d264ed8dfdee222b820f0278e4d7f55d4b69a5472253a471c102265a91ea1a, 0x0000000000000000000000000000000000000000000000000000000000000000)\n\nDocs: [ENDPOINT]\nDetails: execution reverted\nVersion: viem@2.57.10"
+    }
+  },
+  "cheqd": {
+    "didDoc": {
+      "context": [],
+      "id": "did:cheqd:testnet:55dbc8bf-fba3-4117-855c-1e0dc1d3bb47",
+      "controller": [
+        "did:cheqd:testnet:55dbc8bf-fba3-4117-855c-1e0dc1d3bb47"
+      ],
+      "verificationMethod": [
+        {
+          "id": "did:cheqd:testnet:55dbc8bf-fba3-4117-855c-1e0dc1d3bb47#key-1",
+          "verificationMethodType": "Ed25519VerificationKey2020",
+          "controller": "did:cheqd:testnet:55dbc8bf-fba3-4117-855c-1e0dc1d3bb47",
+          "verificationMaterial": "z6MkkVbyHJLLjdjU5B62DaJ4mkdMdUkttf9UqySSkA9bVTeZ"
+        }
+      ],
+      "authentication": [
+        "did:cheqd:testnet:55dbc8bf-fba3-4117-855c-1e0dc1d3bb47#key-1"
+      ],
+      "assertionMethod": [],
+      "capabilityInvocation": [],
+      "capabilityDelegation": [],
+      "keyAgreement": [],
+      "service": [],
+      "alsoKnownAs": []
+    },
+    "metadata": {
+      "created": "2022-11-16T20:45:41.000Z",
+      "updated": "0001-01-01T00:00:00.000Z",
+      "deactivated": false,
+      "versionId": "3ccde6ba-6ba5-56f2-9f4f-8825561a9860",
+      "nextVersionId": "",
+      "previousVersionId": ""
+    }
+  },
+  "ots": {
+    "code": "UNKNOWN",
+    "message": "ots 验证失败 (1)：Could not connect to Bitcoin node: Cookie file unusable ([Errno 2] No such file or directory: '/root/.bitcoin/.cookie') and rpcpassword not specified in the configuration file: '/root/.bitcoin/bitcoin.conf'\n"
+  },
+  "publicMcp": [
+    {
+      "server": "openzeppelin",
+      "ok": true,
+      "tools": 33,
+      "tool": "solidity-erc20",
+      "error": null
+    },
+    {
+      "server": "coingecko",
+      "ok": true,
+      "tools": 2,
+      "tool": "search_docs",
+      "error": null
+    }
+  ],
+  "ccxt": {
+    "symbol": "BTC/USD",
+    "last": 81595.3,
+    "bid": 81595.2,
+    "ask": 81595.3,
+    "timestamp": null
+  },
+  "slitherMcp": {
+    "sourceCommit": "17755731bf7aba6e5ed4d72e116d9d394430b1e2",
+    "pinned": {
+      "fastmcp": "2.14.3",
+      "mcp": "1.25.0",
+      "pydantic": "2.12.5"
+    },
+    "discoveredTools": 23,
+    "initialFailure": "Floating dependencies: Pydantic serialization circular reference on tools/list",
+    "initialAnalysisFailure": "Relative OpenZeppelin import resolved outside the project cwd",
+    "result": {
+      "success": true,
+      "contracts": [
+        {
+          "key": {
+            "contract_name": "IERC20Errors",
+            "path": "../../node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol"
+          },
+          "is_abstract": false,
+          "is_interface": true,
+          "is_library": false,
+          "is_fully_implemented": true,
+          "function_count": 0
+        },
+        {
+          "key": {
+            "contract_name": "IERC721Errors",
+            "path": "../../node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol"
+          },
+          "is_abstract": false,
+          "is_interface": true,
+          "is_library": false,
+          "is_fully_implemented": true,
+          "function_count": 0
+        },
+        {
+          "key": {
+            "contract_name": "IERC1155Errors",
+            "path": "../../node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol"
+          },
+          "is_abstract": false,
+          "is_interface": true,
+          "is_library": false,
+          "is_fully_implemented": true,
+          "function_count": 0
+        },
+        {
+          "key": {
+            "contract_name": "IERC20",
+            "path": "../../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol"
+          },
+          "is_abstract": false,
+          "is_interface": true,
+          "is_library": false,
+          "is_fully_implemented": false,
+          "function_count": 6
+        },
+        {
+          "key": {
+            "contract_name": "IERC20Metadata",
+            "path": "../../node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol"
+          },
+          "is_abstract": false,
+          "is_interface": true,
+          "is_library": false,
+          "is_fully_implemented": false,
+          "function_count": 9
+        },
+        {
+          "key": {
+            "contract_name": "Context",
+            "path": "../../node_modules/@openzeppelin/contracts/utils/Context.sol"
+          },
+          "is_abstract": true,
+          "is_interface": false,
+          "is_library": false,
+          "is_fully_implemented": true,
+          "function_count": 3
+        },
+        {
+          "key": {
+            "contract_name": "ERC20",
+            "path": "../../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol"
+          },
+          "is_abstract": true,
+          "is_interface": false,
+          "is_library": false,
+          "is_fully_implemented": true,
+          "function_count": 29
+        },
+        {
+          "key": {
+            "contract_name": "Counter",
+            "path": "src/Counter.sol"
+          },
+          "is_abstract": false,
+          "is_interface": false,
+          "is_library": false,
+          "is_fully_implemented": true,
+          "function_count": 2
+        },
+        {
+          "key": {
+            "contract_name": "ExampleToken",
+            "path": "src/ExampleToken.sol"
+          },
+          "is_abstract": false,
+          "is_interface": false,
+          "is_library": false,
+          "is_fully_implemented": true,
+          "function_count": 21
+        }
+      ],
+      "total_count": 9,
+      "has_more": false,
+      "error_message": null
+    }
+  }
+}

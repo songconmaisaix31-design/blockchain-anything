@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "goplus": { "preset": "goplus", "command": "npx", "args": ["-y", "goplus-mcp@1.0.1", "--key", "${BCA_GOPLUS_API_KEY}", "--secret", "${BCA_GOPLUS_API_SECRET}"] }
+  }
+}

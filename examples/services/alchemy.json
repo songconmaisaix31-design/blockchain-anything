@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "alchemy": {
+      "preset": "alchemy",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote@0.15.2",
+        "https://mcp.alchemy.com/mcp"
+      ]
+    }
+  }
+}
