@@ -7,6 +7,7 @@ import { Console } from 'node:console';
 import { VERSION } from '../version.js';
 import { resultExitCode } from '../outcome.js';
 import { setupSchema } from '../setup.js';
+import { workstationContextSchema } from '../workstations/catalog.js';
 
 function describeTool(tool: ToolDefinition) {
   return {
@@ -76,6 +77,12 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     options: z.strictObject({ dir: z.string().default('.'), connect: z.boolean().default(false), server: z.string().optional() }),
     run: ({ options }) => invoke('system_doctor', options),
   });
+  cli.command('find', {
+    description: '用一句话找到任务步骤，例如 bca find "只编译合约" --dir contracts',
+    args: z.strictObject({ query: z.string() }),
+    options: workstationContextSchema,
+    run: ({ args, options }) => invoke('workstation_search', { query: args.query, context: options }),
+  });
   cli.command('call', {
     description: '按照完整工具名调用共享工具',
     args: z.strictObject({ name: z.string().describe('工具名称，例如 content_cid') }),
@@ -114,6 +121,9 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
       description: '成熟区块链工具聚合',
       version: VERSION,
       commands: [
+        { name: 'find <query> [--dir <path>]', description: '按问题找到任务步骤与缺项' },
+        { name: 'setup [--client codex|claude|both] [--install]', description: '接入已有 Agent 客户端' },
+        { name: 'doctor', description: '检查安装和配置，按缺项修复' },
         { name: 'tools [name]', description: '查看实际工具、完整输入 Schema 和读写标记' },
         { name: 'call <name> --input <JSON>', description: '调用共享工具' },
         { name: 'mcp', description: '启动官方 MCP stdio 服务；也可使用 --mcp' },

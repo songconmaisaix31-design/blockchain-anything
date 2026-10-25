@@ -9,7 +9,7 @@ import { resultExitCode } from '../outcome.js';
 export function createMcpServer(): McpServer {
   const toolkit = createToolkit();
   const server = new McpServer({ name: 'bca', version: VERSION }, {
-    instructions: '使用 tools/list 查看实际工具与严格输入 Schema。写入或签署必须有进程配置授权和 submit=true；链上字段公开，IPFS add 会向配置的节点传输文件。',
+    instructions: '用 workstation_search 按问题查找步骤；编译/测试可独立执行。用 capability_list 查看摘要，指定 name 获取 Schema。按工具 Schema 传参，链上签署/提交需宿主授权及工具要求的写入许可、submit=true；IPFS add 会向配置的节点传输文件。',
   });
   server.server.onclose = () => { void toolkit.close().catch(() => process.stderr.write('部分上游 MCP 会话关闭未确认\n')); };
   for (const tool of toolkit.tools) {

@@ -35,7 +35,7 @@ BCA_MCP_CONFIG=/absolute/path/services.json \
   node .bca/runtime/node_modules/blockchain-anything/dist/cli/main.js doctor --server openzeppelin
 ```
 
-`doctor` 区分程序/配置存在与实际连接，并继续列出其他失败项。诊断本身成功退出不表示 `allPassed=true`；脚本应读取每项状态。没有客户端可执行程序时，依然可以验证生成的 MCP 配置启动 BCA 并读取本地 CID。此验证不等于已经在客户端 UI 内授予信任。
+`doctor` 区分程序/配置存在与实际连接，能力目录只按状态汇总。只检查本次目录中已有配置的客户端；未配置的另一个客户端不构成失败。没有 Foundry 项目时，缺少 Foundry 程序记为 `optional_unavailable`；`allPassed` 表示本次适用检查没有失败，不表示全部生态可用。诊断本身成功退出不表示 `allPassed=true`；脚本应读取每项状态。没有客户端可执行程序时，依然可以验证生成的 MCP 配置启动 BCA 并读取本地 CID。此验证不等于已经在客户端 UI 内授予信任。
 
 ## 客户端核对
 

@@ -11,7 +11,7 @@ BCA 为 Codex、Claude Code 与其他 MCP 宿主提供统一的 TypeScript、CLI
 | EVM 交易诊断 | “这笔交易为什么回滚？” | 交易/回执 → 固定区块代理识别 → 本地产物或 Sourcify v2 → RPC trace → 错误参数、源码位置和缺口 |
 | EVM 合约开发与验证 | “帮我开发并验证一个 ERC20 合约” | 读取原项目 → OpenZeppelin 合约/官方生成器 → Foundry 编译、相关测试 → 本机 Anvil 部署 → 链上读取 |
 
-真实验收：OpenZeppelin ERC20 失败交易解码为 `ERC20InsufficientBalance`，结合实际 trace 和匹配编译产物定位到源码；Foundry 编译/测试/部署后读回 `totalSupply=1000`。公共测试网部署、源码上传验证、Tenderly 账户调用和原生客户端 UI 授权仍需条件。现有 Hardhat 工程可编译/测试，部署沿用宿主的原脚本。详见 [本轮验收](docs/acceptance/2026-10-24.md)。
+真实验收：OpenZeppelin ERC20 失败交易解码为 `ERC20InsufficientBalance`，结合实际 trace 和匹配编译产物定位到源码；Foundry 编译/测试/部署后读回 `totalSupply=1000`。公共测试网部署、源码上传验证、Tenderly 账户调用和原生客户端 UI 授权仍需条件。现有 Hardhat 工程可编译/测试，部署沿用宿主的原脚本。详见 [工作站验收](docs/acceptance/2026-10-24.md)。
 
 ## 一条接入命令
 
@@ -36,15 +36,15 @@ npm exec --yes --package /absolute/path/blockchain-anything-0.3.0.tgz -- bca set
 ## 从问题找到工具
 
 ```sh
-node dist/cli/main.js workstation search --input '{"query":"这笔交易为什么失败了","context":{"chainId":"31337","hash":"<真实交易哈希>"}}'
-node dist/cli/main.js workstation guide --input '{"id":"evm-develop","context":{"dir":"examples/contracts"}}'
-node dist/cli/main.js capability list --input '{}'
+node dist/cli/main.js find "只编译合约" --dir examples/contracts
+node dist/cli/main.js find "测试合约" --dir examples/contracts
+node dist/cli/main.js find "这笔交易为什么失败" --chainId 31337 --hash <真实交易哈希>
 node dist/cli/main.js doctor
 ```
 
-检索返回匹配原因、真实步骤、必需/可选/缺失能力、待明确事实和替代路径。未支持的问题返回空候选；指定的链或供应商不匹配时保留歧义，不自动改目标。匹配、计划、执行分别记录。
+编译和测试只要求当前项目及对应工具。部署才检查 RPC 和写入许可。检索返回可调用步骤和缺项，由已有 Agent 补全参数并执行；已有项目直接使用原 Foundry/Hardhat 配置。可用 `--task compile|test|deploy|develop` 明确目标。
 
-`capability_list` 保留完整目录，运行状态单独表达。默认只检查配置和本机文件；`doctor --connect` 才连接配置的 EVM，`doctor --server <name>` 才连接指定 MCP。配置、连接和业务验证分别记录。
+`capability_list({})` 返回摘要；`capability_list({name:"viem_logs"})` 或 `bca tools viem_logs` 查看具体 Schema，`details:true` 获取完整目录。`doctor` 默认按状态汇总工具，只检查本次目录中已配置的客户端；`--connect` 检查 EVM 连接，`--server <name>` 检查指定 MCP。
 
 ## 调用与结果
 
@@ -74,7 +74,7 @@ try {
 
 ## 接入官方 MCP
 
-按 [服务指南](docs/integrations/services.md) 配置 `BCA_MCP_CONFIG` 或 `BCA_MCP_SERVERS`。连续调用使用 `bridge_open → bridge_refresh → bridge_call → bridge_close`；SDK/MCP 同一会话可复用连接，独立 CLI 进程不能共用会话 ID。无 session 参数的旧调用继续按单次连接工作。
+按 [服务指南](docs/integrations/services.md) 配置 `BCA_MCP_CONFIG` 或 `BCA_MCP_SERVERS`。连续调用使用 `bridge_open → bridge_call → bridge_close`，需要主动发现或刷新 Schema 时调用 `bridge_refresh`；SDK/MCP 同一会话可复用连接，独立 CLI 进程不能共用会话 ID。无 session 参数的旧调用继续按单次连接工作。
 
 能力刷新保留原 Schema、描述与版本，记录摘要变化；新增工具保持“发现/未验证”。上游只读注解仅供参考。少量已核对的官方工具有明确映射；其他工具需操作者配置精确 `readOnlyTools` 许可，或通过写入开关及 `submit:true`。详见 [工作站与会话](docs/guides/workstations.md)。
 
@@ -89,6 +89,6 @@ try {
 - POSIX 子进程使用独立进程组清理，涵盖继承该进程组的后代；主动脱离进程组的守护进程不在本轮保证范围。Windows `taskkill /T` 分支尚未实测。
 - 路径限定在工作根目录；项目配置/本地官方工具属于操作者管理的代码。BCA 不自动安装互联网上任意命令。
 
-[开发决定](docs/QUESTIONS.md) · [规格](docs/SPEC.md) · [本轮验收与剩余条件](docs/acceptance/2026-10-24.md) · [安装](docs/guides/setup.md) · [工作站](docs/guides/workstations.md)
+[开发决定](docs/QUESTIONS.md) · [规格](docs/SPEC.md) · [本轮精简与验证](docs/acceptance/2026-10-25.md) · [安装](docs/guides/setup.md) · [工作站](docs/guides/workstations.md)
 
 MIT。各上游组件保留自身许可证；OpenZeppelin Contracts MCP 独立进程遵循其 AGPL-3.0-only 许可。

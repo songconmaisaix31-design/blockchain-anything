@@ -47,7 +47,7 @@ Node.js 24、TypeScript ESM、Incur、官方 MCP TypeScript SDK、EAS 官方 SDK
 
 `src/toolkit.ts` 导出 `createToolkit()`。共享工具目录和 `invoke(name, input)`，实现分布于 providers、bridge、development、chains、storage、wallets、agents、trading、provenance、identity。目录只列实际实现操作；配置、真实验证和受信范围另行记录。
 
-CLI 提供 `bca tools`、`bca call <name> --input '<JSON>'`、`bca <family> <operation> --input '<JSON>'` 和 `bca mcp`，结构化返回，错误退出码非零。MCP 使用官方 SDK 注册同一工具目录，stdio 的 stdout 只输出协议内容。SDK 导出相同 toolkit。
+CLI 提供 `bca find "问题" --dir <项目>`、`bca tools`、`bca call <name> --input '<JSON>'`、`bca <family> <operation> --input '<JSON>'` 和 `bca mcp`，结构化返回，错误退出码非零。MCP 使用官方 SDK 注册同一工具目录，stdio 的 stdout 只输出协议内容。SDK 导出相同 toolkit。
 
 MCP 服务入口为 stdio，createMcpServer 可交给官方 SDK HTTP handler 托管；外部 MCP 客户端支持 stdio/Streamable HTTP。OAuth 复用 mcp-remote。公开托管 HTTP 服务、多租户、权限发行、跨链桥、全球信誉和自研通用 ZK 不属于本轮工具包范围。
 
@@ -61,6 +61,6 @@ S2 来源验证调用官方 CLI 或 verifier ABI；钱包使用 Safe/x402；Agen
 
 ## 0.3 工作站增量
 
-共享目录携带来源/版本、目标、工作站与影响元数据，`capability_list` 单独呈现低成本配置检查与最近执行范围。`workstation_list/search/guide` 提供可解释的中英文规则匹配，不调用额外模型或向量服务；不支持的任务返回空候选，链/供应商冲突保持歧义。
+共享目录携带来源/版本、目标、工作站与影响元数据，`capability_list` 默认返回能力摘要和配置状态，指定 `name` 或 `details:true` 获取完整 Schema。业务结果由实际调用返回，历史验收放在验收文档。`workstation_list/search/guide` 提供可解释的中英文规则匹配，不调用额外模型或向量服务；不支持的任务返回空候选，链/供应商冲突保持歧义。
 
 `setup` 和 `doctor` 通过同一 toolkit 实现；安装产物持久到项目 `.bca`，客户端配置保留其他条目、备份并保持幂等。显式会话由 toolkit 持有，Schema/配置/凭据变化使快照或连接失效，不自动重放业务写入。具体运行与未测范围见 [2026-10-24 验收](acceptance/2026-10-24.md)。

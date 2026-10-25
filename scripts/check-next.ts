@@ -17,6 +17,39 @@ process.env.BCA_WORKING_ROOT = root; process.env.BCA_TIMEOUT_MS = '20000';
 const report: Record<string, unknown> = { environment: { node: process.version, platform: process.platform, arch: process.arch }, at: new Date().toISOString() };
 const mode = process.argv[2] ?? 'all';
 
+if (mode === 'all' || mode === 'discovery') {
+  const toolkit = createToolkit();
+  const call = (name: string, input: unknown) => toolkit.invoke(name, input) as Promise<any>;
+  try {
+    // This environment has no RPC, signer or write permission. Local work must remain usable.
+    for (const [query, task, tool] of [
+      ['只编译合约', 'compile', 'dev_forge_build'],
+      ['compile my Solidity contract', 'compile', 'dev_forge_build'],
+      ['只测试合约', 'test', 'dev_forge_test'],
+    ]) {
+      const { candidates: [match] } = await call('workstation_search', { query, context: { dir: 'examples/contracts' } });
+      assert.equal(match.task, task); assert.equal(match.executable, true);
+      assert.deepEqual(match.steps.map((step: any) => step.tool), [tool]);
+      assert.deepEqual(match.missingCapabilities, []);
+    }
+    const deployment = await call('workstation_search', { query: '部署合约', context: { dir: 'examples/contracts' } });
+    assert.equal(deployment.candidates[0].executable, false);
+    assert.ok(deployment.candidates[0].missingCapabilities.some((item: any) => item.name === 'dev_forge_deploy_local'));
+    const diagnosis = await call('workstation_search', { query: '交易失败', context: { chainId: '31337', hash: `0x${'ab'.repeat(32)}` } });
+    assert.equal(diagnosis.candidates[0].executable, false);
+    assert.ok(diagnosis.candidates[0].missingCapabilities.some((item: any) => item.name === 'workstation_diagnose'));
+    const ambiguous = await call('workstation_guide', { id: 'evm-develop', context: { dir: '.' } });
+    assert.ok(ambiguous.factsNeeded.includes('provider'));
+    const compact = await call('capability_list', {});
+    assert.ok(compact.every((item: any) => !item.inputSchema && !item.availability.verification));
+    assert.ok((await call('capability_list', { name: 'content_cid' }))[0].inputSchema);
+    const cli = spawnSync(process.execPath, ['dist/cli/main.js', 'find', '只编译合约', '--dir', 'examples/contracts'], { cwd: root, encoding: 'utf8' });
+    assert.equal(cli.status, 0, cli.stderr);
+    assert.equal(JSON.parse(cli.stdout).candidates[0].steps[0].tool, 'dev_forge_build');
+    report.taskDiscovery = { localCompileAndTestWithoutRpc: 'passed', deploymentStillRequiresPermission: 'passed', cliFind: 'passed' };
+  } finally { await toolkit.close(); }
+}
+
 if (mode === 'all' || mode === 'regressions') {
   process.env.BCA_PRIVATE_KEY = 'invalid'; process.env.BCA_IPFS_URL = 'invalid';
   const bad = createToolkit();
@@ -47,22 +80,31 @@ if (mode === 'all' || mode === 'regressions') {
   } finally { await fault.close(); await new Promise<void>((done) => rpc.close(() => done())); }
 
   const marker = resolve(work, 'descendant.log');
+  await writeFile(marker, '');
   const descendant = `const fs=require('fs');setInterval(()=>fs.appendFileSync(${JSON.stringify(marker)},'x'),20);`;
   const parent = `require('child_process').spawn(process.execPath,['-e',${JSON.stringify(descendant)}],{stdio:'inherit'});setTimeout(()=>{},10000);`;
   const started = Date.now();
-  await assert.rejects(() => run(process.execPath, ['-e', parent], { cwd: root, timeoutMs: 500 }), /未完成/);
+  const timeoutLimitMs = 3000;
+  await assert.rejects(() => run(process.execPath, ['-e', parent], { cwd: root, timeoutMs: timeoutLimitMs }), /未完成/);
   const timeoutElapsedMs = Date.now() - started;
-  assert.ok(timeoutElapsedMs < 3500, `超时清理未在运行限额 + 2 秒清理边界 + 1 秒调度余量内结束：${timeoutElapsedMs}`);
+  assert.ok(timeoutElapsedMs < timeoutLimitMs + 3000, `超时清理未在运行限额 + 2 秒清理边界 + 1 秒调度余量内结束：${timeoutElapsedMs}`);
   const bytes = (await stat(marker)).size;
+  assert.ok(bytes > 0, '测试后代须先实际写入，才可验证超时后的停止语义');
   await new Promise((done) => setTimeout(done, 120));
   assert.equal((await stat(marker)).size, bytes);
   assert.equal((await run(process.execPath, ['-e', 'process.stdout.write("ok")'], { cwd: root, timeoutMs: 2000 })).stdout, 'ok');
   await assert.rejects(() => run(process.execPath, ['-e', 'setInterval(()=>process.stdout.write("xxxxxxxx"),1)'], { cwd: root, timeoutMs: 2000, maxBytes: 32 }), /输出超过/);
-  const abort = new AbortController(); const cancelling = run(process.execPath, ['-e', parent], { cwd: root, timeoutMs: 5000, signal: abort.signal });
-  setTimeout(() => abort.abort(), 300);
-  await assert.rejects(() => cancelling, /已取消/);
+  await writeFile(marker, '');
+  const abort = new AbortController(); const cancelling = run(process.execPath, ['-e', parent], { cwd: root, timeoutMs: 10000, signal: abort.signal });
+  const cancelled = assert.rejects(() => cancelling, /已取消/);
+  const readyDeadline = Date.now() + 5000;
+  while ((await stat(marker)).size === 0 && Date.now() < readyDeadline) await new Promise((done) => setTimeout(done, 25));
+  const wroteBeforeCancel = (await stat(marker)).size > 0;
+  abort.abort();
+  await cancelled;
+  assert.ok(wroteBeforeCancel, '取消前须确认后代已开始写入');
   const finalBytes = (await stat(marker)).size; await new Promise((done) => setTimeout(done, 100)); assert.equal((await stat(marker)).size, finalBytes);
-  report.processTree = { timeoutElapsedMs, timeoutLimitMs: 500, cleanupDeadlineMs: 2000, timeoutAndCheckElapsedMs: Date.now() - started, noFurtherDescendantWrites: true, outputLimit: 'passed', cancellation: 'passed', normalRun: 'passed' };
+  report.processTree = { timeoutElapsedMs, timeoutLimitMs, cleanupDeadlineMs: 2000, timeoutAndCheckElapsedMs: Date.now() - started, noFurtherDescendantWrites: true, outputLimit: 'passed', cancellation: 'passed', normalRun: 'passed' };
 
   await writeFile(resolve(work, 'Invalid.sol'), 'pragma solidity ^0.8.20; contract Broken { bad syntax }');
   const cli = spawnSync(process.execPath, ['dist/cli/main.js', 'call', 'dev_solidity_compile', '--input', JSON.stringify({ path: '.work/next/Invalid.sol' })], { cwd: root, env: process.env, encoding: 'utf8' });

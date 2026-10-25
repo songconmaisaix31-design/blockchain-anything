@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
@@ -7,11 +6,11 @@ import type { Config } from '../config.js';
 import { defineTool, type ToolDefinition } from '../types.js';
 import { resolveExecutable } from '../development/exec.js';
 import { inspectProject } from '../development/workspace.js';
+import { resolveWorkingDir } from '../development/exec.js';
 import { loadMcpServers } from '../bridge/config.js';
 
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
 const pkg = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
-const require = createRequire(import.meta.url);
 const dependencies: Record<string, string> = { ...pkg.dependencies, ...pkg.devDependencies };
 const sources: Record<string, string> = {
   viem: 'viem', evm: 'ethers', eas: '@ethereum-attestation-service/eas-sdk', content: 'multiformats', ipfs: 'kubo-rpc-client',
@@ -25,7 +24,6 @@ const conditions: Record<string, string[]> = {
   openlineage: ['BCA_OPENLINEAGE_URL'],
 };
 
-export type Verification = { scope: string; at: string | null; succeeded: boolean | null };
 export const workstations = [
   { id: 'evm-diagnose', name: 'EVM 交易诊断', target: 'evm',
     description: '解释交易为何失败、revert、回执、gas 与合约调用错误',
@@ -35,7 +33,7 @@ export const workstations = [
   },
   { id: 'evm-develop', name: 'EVM 合约开发与验证', target: 'evm',
     description: '生成 ERC20/NFT 或编译、测试、部署、验证 Solidity 合约',
-    aliases: ['开发合约', '合约开发', '智能合约', '编译合约', '部署合约', '验证源码', '发行代币', '发一个币', 'erc20', 'erc721', 'nft', 'solidity', 'smart contract', 'deploy contract', 'compile contract', 'test contract', 'foundry', 'hardhat'],
+    aliases: ['开发合约', '合约开发', '智能合约', '编译合约', '测试合约', '合约测试', '部署合约', '验证源码', '发行代币', '发一个币', 'erc20', 'erc721', 'nft', 'solidity', 'smart contract', 'deploy contract', 'compile contract', 'test contract', 'foundry', 'hardhat'],
     required: ['dev_project'], optional: ['bridge_call', 'dev_skill_read', 'dev_solidity_compile', 'dev_forge_build', 'dev_forge_test', 'dev_forge_deploy_local', 'dev_hardhat_compile', 'dev_hardhat_test', 'viem_read', 'dev_forge_verify'],
     facts: ['dir'], officialSkills: ['https://github.com/OpenZeppelin/openzeppelin-skills', 'https://getfoundry.sh/forge/overview/'],
   },
@@ -64,12 +62,12 @@ export function metadataFor(tool: ToolDefinition) {
     requirements: { executable: binary ?? null, projectDirectory: /^dev_/.test(name), authorization: tool.readOnly ? 'read' : 'host/operator authorization according to tool schema' } };
 }
 
-export async function capabilityStatus(tool: ToolDefinition, config: Config, verified?: Verification) {
+export async function capabilityStatus(tool: ToolDefinition, config: Config, dir = '.') {
   const name = tool.name; const family = name.split('_')[0]!;
   let status = 'unverified'; let reason = '尚未在当前环境连接或执行该业务';
   const requirements: string[] = [];
   const easLocal = /^eas_(schema_encode|schema_decode|private_data_)/.test(name);
-  const group = !easLocal && /^viem_|^evm_(?!status|verify_message)|^eas_/.test(name) ? 'evm' : family === 'ipfs' ? 'ipfs' : undefined;
+  const group = !easLocal && /^viem_|^evm_(?!status|verify_message)|^eas_|^workstation_diagnose$/.test(name) ? 'evm' : family === 'ipfs' ? 'ipfs' : undefined;
   if (group && config.issues?.[group]?.length) { status = 'configuration_error'; reason = config.issues[group]!.join('；'); }
   else if (group === 'evm' && (!config.rpcUrl || !config.chainId)) { status = 'configuration_error'; reason = '需要 BCA_RPC_URL / BCA_CHAIN_ID'; requirements.push('BCA_RPC_URL', 'BCA_CHAIN_ID'); }
   else if (group === 'ipfs' && !config.ipfsUrl) { status = 'configuration_error'; reason = '需要 BCA_IPFS_URL'; requirements.push('BCA_IPFS_URL'); }
@@ -90,88 +88,107 @@ export async function capabilityStatus(tool: ToolDefinition, config: Config, ver
     if (!process.env[variable]) { status = /KEY|TOKEN/.test(variable) ? 'missing_authorization' : 'configuration_error'; reason = `需要 ${variable}；未连接`; requirements.push(variable); }
   }
   if (/^dev_hardhat/.test(name)) {
-    try { require.resolve('hardhat', { paths: [config.workingRoot] }); status = 'available'; reason = '在当前工作目录发现 Hardhat；子项目请传 dir 后检查'; }
-    catch { status = 'not_installed'; reason = '当前根目录未发现 Hardhat；子项目可用 dev_project 明确路径'; }
+    const cwd = await resolveWorkingDir(config, dir);
+    const found = existsSync(join(cwd, 'node_modules/hardhat/package.json'));
+    status = found ? 'available' : 'not_installed';
+    reason = found ? '项目已安装 Hardhat；业务仍需实际运行' : '目标项目未安装 Hardhat';
+    if (!found) requirements.push('hardhat');
   }
   if (name === 'dev_forge_deploy_local' && (!config.allowWrites || !config.rpcUrl || !config.chainId)) { status = config.allowWrites ? 'configuration_error' : 'missing_authorization'; reason = '需要本机 Anvil RPC/chainId、显式 from、宿主授权及 BCA_ALLOW_WRITES=true'; }
   if (name === 'dev_forge_verify' && !config.allowWrites) { status = 'missing_authorization'; reason = '源码上传需要 BCA_ALLOW_WRITES=true 与 submit=true'; }
-  return { name, status, reason, missing: requirements, checkedAt: new Date().toISOString(), check: 'configuration-and-local-files', connectionVerified: false,
-    verification: verified ?? { scope: '当前进程尚未执行；历史验收见 docs/acceptance', at: null, succeeded: null } };
+  return { name, status, reason, missing: requirements, check: 'configuration-and-local-files' };
 }
 
-const contextSchema = z.strictObject({ chainFamily: z.string().optional(), chainId: z.string().optional(), hash: z.string().optional(), address: z.string().optional(), dir: z.string().optional(), provider: z.string().optional() });
+export const workstationContextSchema = z.strictObject({
+  chainFamily: z.string().optional(), chainId: z.string().optional(), hash: z.string().optional(),
+  address: z.string().optional(), dir: z.string().optional(), provider: z.string().optional(),
+  task: z.enum(['compile', 'test', 'deploy', 'develop']).optional(),
+});
+type Context = z.output<typeof workstationContextSchema>;
 
-export function catalogTools(config: Config, getTools: () => ToolDefinition[], verified: Map<string, Verification>) {
-  const statuses = async (names: string[]) => Promise.all(names.map(async (name) => {
+function taskFor(query: string): Context['task'] {
+  if (/部署|deploy/.test(query)) return /编译|测试|compile|build|test/.test(query) ? 'develop' : 'deploy';
+  if (/开发|生成|创建|develop|create|generate/.test(query)) return 'develop';
+  if (/测试|test/.test(query)) return 'test';
+  if (/编译|compile|build/.test(query)) return 'compile';
+  return 'develop';
+}
+
+export function catalogTools(config: Config, getTools: () => ToolDefinition[]) {
+  const statuses = async (names: string[], dir?: string) => Promise.all(names.map(async (name) => {
     const tool = getTools().find((item) => item.name === name);
-    return tool ? capabilityStatus(tool, config, verified.get(name)) : { name, status: 'unsupported', reason: '没有此实现', missing: [name] };
+    return tool ? capabilityStatus(tool, config, dir) : { name, status: 'unsupported', reason: '没有此实现', missing: [name] };
   }));
-  async function guide(id: string, context: z.output<typeof contextSchema>) {
+  async function guide(id: string, context: Context) {
     const station = workstations.find((item) => item.id === id);
     if (!station) throw new Error('未知工作站');
-    const facts = station.facts.filter((key) => !context[key as keyof typeof contextSchema.shape] && !(key === 'chainId' && config.chainId));
+    const facts = station.facts.filter((key) => !context[key as keyof Context] && !(key === 'chainId' && config.chainId));
     const mismatches: string[] = [];
     if (context.chainFamily && context.chainFamily.toLowerCase() !== 'evm') mismatches.push(`不支持 ${context.chainFamily} 目标`);
     if (context.chainId && config.chainId && context.chainId !== String(config.chainId)) mismatches.push(`请求链 ${context.chainId} 与配置链 ${config.chainId} 不同；不自动换链`);
-    let provider = context.provider;
-    let project: Awaited<ReturnType<typeof inspectProject>> | undefined;
-    if (station.id === 'evm-develop' && context.dir) {
-      project = await inspectProject(config, context.dir);
-      provider ??= project.selected ?? undefined;
-      if (project.ambiguity && !provider) facts.push('provider');
-    }
-    if (station.id === 'evm-develop' && provider && !['foundry', 'hardhat'].includes(provider.toLowerCase())) mismatches.push(`开发工作站未支持供应商 ${provider}`);
-    if (station.id === 'evm-diagnose' && provider && !['rpc', 'viem', 'tenderly'].includes(provider.toLowerCase())) mismatches.push(`诊断工作站未映射供应商 ${provider}`);
-    const isHardhat = provider?.toLowerCase() === 'hardhat';
-    const required = station.id === 'evm-develop' ? [...station.required, ...(isHardhat ? ['dev_hardhat_compile', 'dev_hardhat_test'] : ['dev_forge_build', 'dev_forge_test', 'dev_forge_deploy_local']), 'viem_read'] : [...station.required];
-    if (isHardhat) facts.push('existing deployment script / host wallet authorization');
-    const requiredCapabilities = await statuses(required);
-    const optionalCapabilities = await statuses(station.optional.filter((name) => !required.includes(name)));
-    const missing = requiredCapabilities.filter((item) => !['available', 'unverified'].includes(item.status));
+    const develop = station.id === 'evm-develop';
+    const project = develop && context.dir ? await inspectProject(config, context.dir) : undefined;
+    const provider = context.provider?.toLowerCase() ?? project?.selected ?? (develop ? undefined : 'rpc');
+    if (develop && !provider) facts.push('provider');
+    if (provider && !(develop ? ['foundry', 'hardhat'] : ['rpc', 'viem', 'tenderly']).includes(provider)) mismatches.push(`工作站未支持供应商 ${provider}`);
     let servers: string[] = [];
     try { servers = Object.keys(await loadMcpServers()); } catch { /* doctor reports config errors */ }
-    if (provider?.toLowerCase() === 'tenderly' && !servers.includes('tenderly')) mismatches.push('用户指定 Tenderly，尚未配置该服务；不静默换供应商');
-    const steps = station.id === 'evm-diagnose' ? [
-      { tool: 'viem_transaction', input: { hash: context.hash ?? '<hash>' }, purpose: '确认交易与回执状态' },
-      ...(provider?.toLowerCase() === 'tenderly' ? [{ tool: 'bridge_refresh', input: { server: 'tenderly' }, purpose: '发现授权服务 Schema，由宿主选取实际 trace 工具' }] :
-        [{ tool: 'workstation_diagnose', input: { hash: context.hash ?? '<hash>' }, purpose: '汇总匹配源码、代理、trace 证据和缺口' }]),
-    ] : [
-      { tool: 'dev_project', input: { dir: context.dir ?? '<dir>' }, purpose: '识别已有配置和版本' },
-      { tool: 'dev_skill_read', input: { name: '<installed-official-skill>' }, purpose: '需要生成合约时读取已安装官方技能；也可经 bridge_call 调用 OpenZeppelin' },
-      { tool: isHardhat ? 'dev_hardhat_compile' : 'dev_forge_build', input: { dir: context.dir ?? '<dir>' }, purpose: '按项目原配置编译' },
-      { tool: isHardhat ? 'dev_hardhat_test' : 'dev_forge_test', input: { dir: context.dir ?? '<dir>' }, purpose: '运行相关测试；失败后局部修改复测' },
-      ...(!isHardhat ? [{ tool: 'dev_forge_deploy_local', input: { dir: context.dir ?? '<dir>', contract: '<path:Contract>', from: '<authorized local address>', submit: true }, purpose: '宿主确认本地部署意图后执行' }] : []),
-      { tool: 'viem_read', input: { address: '<deployed-address>', abi: ['<actual ABI>'], functionName: '<read-function>' }, purpose: '链上读取确认行为' },
-    ];
-    return { ...station, provider: provider ?? (station.id === 'evm-diagnose' ? 'configured RPC' : 'foundry path proposed; confirm against dev_project'), project, requiredCapabilities, optionalCapabilities, missingCapabilities: missing,
-      factsNeeded: facts, mismatches, executable: missing.length === 0 && mismatches.length === 0 && facts.length === 0 && !isHardhat,
-      steps, officialSkills: station.officialSkills, configuredMcpServers: servers,
-      alternatives: station.id === 'evm-diagnose' ? ['可用本地编译产物替代源码服务', 'RPC trace 不可用时可显式选择已授权 Tenderly；缺历史状态保持部分结果'] : ['保留现有 Hardhat 工程与部署脚本；BCA 可编译/测试，宿主调用原部署脚本', '无链授权时先完成本地编译/测试'],
-      lifecycle: { matched: true, planned: mismatches.length === 0, executed: false },
-      limitation: isHardhat ? 'Hardhat 部署需宿主执行已有脚本，BCA 未提供统一部署适配器。' : '步骤需要宿主填写真实参数并授权；计划不表示执行完成。' };
+    if (provider === 'tenderly' && !servers.includes('tenderly')) mismatches.push('尚未配置指定的 Tenderly 服务');
+
+    const task = develop ? context.task ?? 'develop' : 'diagnose';
+    const isHardhat = provider === 'hardhat';
+    const steps: { tool: string; input: Record<string, unknown>; purpose: string }[] = [];
+    if (!develop) {
+      steps.push(provider === 'tenderly'
+        ? { tool: 'bridge_refresh', input: { server: 'tenderly' }, purpose: '读取真实 Schema，再选取 trace 工具' }
+        : { tool: 'workstation_diagnose', input: { hash: context.hash ?? '<hash>' }, purpose: '读取交易、回执、源码和 trace，解释失败原因' });
+    } else if (!provider) {
+      steps.push({ tool: 'dev_project', input: { dir: context.dir ?? '<dir>' }, purpose: '识别项目并选择 Foundry 或 Hardhat' });
+    } else {
+      const input = { dir: context.dir ?? '<dir>' };
+      if (task === 'compile' || task === 'develop') steps.push({ tool: isHardhat ? 'dev_hardhat_compile' : 'dev_forge_build', input, purpose: '按项目配置编译' });
+      if (task === 'test' || task === 'develop') steps.push({ tool: isHardhat ? 'dev_hardhat_test' : 'dev_forge_test', input, purpose: '运行相关测试；失败后局部修复复测' });
+      if (task === 'deploy' || task === 'develop') {
+        if (isHardhat) facts.push('existing deployment script / host wallet authorization');
+        else steps.push({ tool: 'dev_forge_deploy_local', input: { ...input, contract: '<path:Contract>', from: '<authorized local address>', submit: true }, purpose: '补全参数并授权后部署到本机 Anvil' });
+        steps.push({ tool: 'viem_read', input: { address: '<deployed-address>', abi: ['<actual ABI>'], functionName: '<read-function>' }, purpose: '读取部署结果' });
+      }
+    }
+    const required = [...new Set(steps.map((step) => step.tool))];
+    const requiredCapabilities = await statuses(required, context.dir);
+    const missing = requiredCapabilities.filter((item) => !['available', 'unverified'].includes(item.status));
+    return { id: station.id, name: station.name, task, provider: provider ?? null,
+      requiredCapabilities, missingCapabilities: missing, factsNeeded: facts, mismatches,
+      executable: missing.length === 0 && mismatches.length === 0 && facts.length === 0,
+      steps, optionalTools: station.optional.filter((name) => !required.includes(name)), officialSkills: station.officialSkills,
+      limitation: '只检查本次任务的配置条件；步骤中的占位参数需由宿主补全，写入仍需授权。' };
   }
   return [
-    defineTool('capability_list', '完整工具目录及独立运行状态；默认不连接外部服务。', z.strictObject({ name: z.string().optional() }), true, async ({ name }) => {
-      const tools = getTools().filter((tool) => !name || tool.name === name);
-      return Promise.all(tools.map(async (tool) => ({ name: tool.name, description: tool.description, inputSchema: z.toJSONSchema(tool.inputSchema, { io: 'input' }), ...metadataFor(tool),
-        availability: await capabilityStatus(tool, config, verified.get(tool.name)) })));
-    }),
-    defineTool('workstation_list', '列出已实现的工作站说明及必要能力，不宣称已执行。', z.strictObject({}), true, async () => workstations),
-    defineTool('workstation_guide', '查看工作站真实工具步骤、能力缺口、事实和授权条件。', z.strictObject({ id: z.string(), context: contextSchema.default({}) }), true, ({ id, context }) => guide(id, context)),
-    defineTool('workstation_search', '中英文问题检索：返回匹配原因、条件、歧义及下一步；不绑定模型，不自动运行。',
-      z.strictObject({ query: z.string().min(1), context: contextSchema.default({}) }), true, async ({ query, context }) => {
+    defineTool('capability_list', '列出能力摘要和配置状态；指定 name 或 details=true 才返回完整 Schema 与来源。',
+      z.strictObject({ name: z.string().optional(), details: z.boolean().default(false), dir: z.string().default('.') }), true, async ({ name, details, dir }) => {
+        const tools = getTools().filter((tool) => !name || tool.name === name);
+        if (name && !tools.length) throw new Error(`未知工具：${name}`);
+        return Promise.all(tools.map(async (tool) => ({ name: tool.name, description: tool.description, readOnly: tool.readOnly,
+          ...(name || details ? { inputSchema: z.toJSONSchema(tool.inputSchema, { io: 'input' }), ...tool.metadata } : {}),
+          availability: await capabilityStatus(tool, config, dir) })));
+      }),
+    defineTool('workstation_list', '列出工作站与可选工具。', z.strictObject({}), true, async () => workstations),
+    defineTool('workstation_guide', '按任务返回步骤与缺项；context.task 可选 compile、test、deploy、develop。',
+      z.strictObject({ id: z.string(), context: workstationContextSchema.default({}) }), true, ({ id, context }) => guide(id, context)),
+    defineTool('workstation_search', '中英文问题检索；编译和测试不要求部署权限。返回步骤，由宿主执行。',
+      z.strictObject({ query: z.string().min(1), context: workstationContextSchema.default({}) }), true, async ({ query, context }) => {
         const normalized = query.toLowerCase();
-        if (/\b(solana|bitcoin|sui|aptos)\b|索拉纳|比特币/.test(normalized) && !context.chainFamily) return { candidates: [], reason: '当前两个工作站仅支持 EVM；保留其他链工具目录供宿主独立调用', executed: false };
+        if (/\b(solana|bitcoin|sui|aptos)\b|索拉纳|比特币/.test(normalized) && !context.chainFamily) return { candidates: [], reason: '当前工作站仅支持 EVM；其他链可通过工具目录调用' };
         const candidates = [];
         for (const station of workstations) {
           const matches = station.aliases.filter((alias) => normalized.includes(alias.toLowerCase()));
           if (!matches.length) continue;
-          const details = await guide(station.id, context);
+          const details = await guide(station.id, { ...context, task: context.task ?? taskFor(normalized) });
           candidates.push({ ...details, score: matches.length, reasons: matches, selectable: details.mismatches.length === 0 && details.missingCapabilities.length === 0 });
         }
         candidates.sort((a, b) => Number(b.selectable) - Number(a.selectable) || Number(b.executable) - Number(a.executable) || b.score - a.score);
-        return { candidates, ambiguity: candidates.length > 1 && candidates[0]!.score === candidates[1]!.score ? '多个工作站匹配，请明确诊断现有交易或开发合约' : null,
-          reason: candidates.length ? '根据明确任务描述与实际条件匹配；不更改链/钱包/指定供应商' : '未匹配已支持任务，请补充目标；不会强行生成工作站', executed: false };
+        return { candidates, ambiguity: candidates.length > 1 && candidates[0]!.score === candidates[1]!.score ? '请明确诊断交易或开发合约' : null,
+          reason: candidates.length ? '按任务及当前配置匹配' : '未匹配已支持任务，请补充目标' };
       }),
   ];
 }

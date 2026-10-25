@@ -25,6 +25,8 @@ node --env-file=.env dist/cli/main.js workstation diagnose --input '{"hash":"<�
 
 先 `dev_project({dir})`。原工程有 Foundry/Hardhat 时遵循已有配置；两者同时存在时需要用户/宿主选择。需要生成模板时通过官方 OpenZeppelin MCP 或已安装官方技能；工具发现后按真实 Schema 调用。已有源码可以直接进入编译步骤。
 
+`bca find "只编译合约" --dir contracts` 只返回编译步骤；测试请求只返回测试步骤，Foundry/Hardhat 会按自己的规则编译所需源码。这两类任务不需要 RPC 或部署授权。通过 SDK/MCP 使用 `workstation_search({query,context:{dir,task:"compile"}})`；直接调用 guide 时同样支持 `context.task`。完整开发流程使用 `task:"develop"`。没有项目配置或同时存在两个框架时，先明确 provider。
+
 Foundry 路径：
 1. `dev_forge_build({dir})`。
 2. `dev_forge_test({dir,matchPath})`；只修复、复跑失败的相关路径。
@@ -62,3 +64,9 @@ await toolkit.close();
 ```
 
 未映射且未获只读许可的工具需要既有写开关及 `submit:true`。这些是有限调用许可，逐笔授权仍由宿主/官方钱包完成。官方 MCP SDK 负责 transport 关闭；`run()` 的进程组清理保证单独适用于本地 CLI 适配器。
+
+## 目录输出
+
+`capability_list({})` 返回名称、说明、读写标记和配置状态。指定 `name` 自动附带完整 Schema/来源；`details:true` 返回全量详细目录，`dir` 指定检查的项目。删除了 `availability.verification`：一次调用的成败由工具原结果报告，历史业务验证见验收文档。
+
+工作站结果保留 `steps`、`requiredCapabilities`、`missingCapabilities`、`factsNeeded` 和 `mismatches`；移除重复的 `lifecycle`、`executed:false`、完整项目依赖与可选工具状态副本。可选能力列在 `optionalTools`，需要时再查状态。`executable` 仅表示任务配置条件通过，执行前仍需补全步骤参数并授权。
