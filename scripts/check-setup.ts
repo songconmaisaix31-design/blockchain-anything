@@ -32,7 +32,7 @@ try {
     await mkdir(bootstrap);
     await writeFile(join(bootstrap, 'package.json'), '{"private":true}');
     console.log('Installing actual Windows tarball…');
-    await runNpm(['install', '--prefix', bootstrap, '--omit=dev', '--no-audit', '--no-fund', tarball], project, { forwardOutput: true });
+    await runNpm(['install', '--loglevel=verbose', '--prefix', bootstrap, '--omit=dev', '--no-audit', '--no-fund', tarball], project, { forwardOutput: true });
     setup = await run(process.execPath, [join(bootstrap, 'node_modules/blockchain-anything/dist/cli/main.js'), 'setup', '--client', 'both', '--install'],
       { cwd: project, timeoutMs: 600_000, maxBytes: 4 * 1024 * 1024, forwardOutput: true });
   } else {
