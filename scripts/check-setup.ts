@@ -28,7 +28,7 @@ try {
   console.log('Installing from actual tarball through npm exec…');
   // Bootstrap + runtime + Foundry are separate installs; their combined Windows
   // cold-cache time can exceed the timeout for one npm operation.
-  const setup = await runNpm(['exec', '--yes', '--package', tarball, '--', 'bca', 'setup', '--client', 'both', '--install'], project, 600_000);
+  const setup = await runNpm(['exec', '--yes', '--package', tarball, '--', 'bca', 'setup', '--client', 'both', '--install'], project, { timeoutMs: 600_000, forwardOutput: true });
   assert.equal(setup.exitCode, 0, setup.stdout + setup.stderr);
   const first = JSON.parse(setup.stdout); assert.equal(first.taskStatus, 'succeeded');
   const claude = JSON.parse(await readFile(join(project, '.mcp.json'), 'utf8'));

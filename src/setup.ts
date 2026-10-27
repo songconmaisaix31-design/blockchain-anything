@@ -48,11 +48,13 @@ export async function setup(config: Config, input: z.output<typeof setupSchema>)
     const overridesChanged = JSON.stringify(runtimeManifest.overrides) !== JSON.stringify(overrides);
     if (overridesChanged) await writeFile(runtimeManifestPath, `${JSON.stringify({ ...runtimeManifest, overrides }, null, 2)}\n`);
     if (resolve(packageRoot) !== resolve(runtime, 'node_modules/blockchain-anything')) {
+      process.stderr.write('正在准备 BCA 安装包…\n');
       const packed = JSON.parse((await runNpm(['pack', packageRoot, '--ignore-scripts', '--json', '--pack-destination', runtime], root)).stdout)[0];
       const marker = join(runtime, 'bca-install.json');
       let previous: { shasum?: string } = {};
       try { previous = JSON.parse(await textOrEmpty(marker) || '{}'); } catch { /* reinstall broken marker */ }
       if (overridesChanged || previous.shasum !== packed.shasum || !existsSync(join(runtime, 'node_modules/blockchain-anything/dist/mcp/main.js'))) {
+        process.stderr.write('正在安装 BCA 运行依赖…\n');
         await runNpm(['install', '--prefix', runtime, '--omit=dev', '--no-audit', '--no-fund', '--save-exact', join(runtime, packed.filename)], root);
         await writeFile(marker, JSON.stringify({ shasum: packed.shasum, version: packed.version }));
         preparation.push('已从当前实际 npm pack 产物安装持久运行目录');
@@ -84,6 +86,7 @@ export async function setup(config: Config, input: z.output<typeof setupSchema>)
           }
           // Official native packages have no POSIX-only launcher postinstall.
           const packages = ['forge', 'cast', 'anvil'].map((name) => `@foundry-rs/${name}-${process.platform}-${arch}@1.7.1`);
+          process.stderr.write('正在安装 Foundry…\n');
           await runNpm(['install', '--prefix', components, '--no-audit', '--no-fund', '--save-exact', ...packages], root);
           preparation.push('已通过官方 npm 包安装固定 Foundry 1.7.1 到 .bca/components');
         } else preparation.push('已复用当前可用 Foundry；版本见 doctor');
