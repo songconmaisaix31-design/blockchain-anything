@@ -14,6 +14,19 @@ npm exec --yes --package=git+https://github.com/songconmaisaix31-design/blockcha
 
 只使用一个客户端时，把 `both` 换成 `codex` 或 `claude`。首次安装需要联网下载依赖。BCA 保持 `private:true`，没有发布到公共 npm；上面的命令从 GitHub 源码构建。
 
+中国大陆网络环境下，若 npm 默认镜像尚未同步全部固定版本（报错示例：`ETARGET No matching version found for @mysten/seal@1.5.1`），请使用官方 registry 安装：
+
+```sh
+npm exec --yes --package=git+https://github.com/songconmaisaix31-design/blockchain-anything.git#main --registry=https://registry.npmjs.org -- bca setup --client both --install
+```
+
+Windows 原生安装：`@foundry-rs/forge@1.7.1` 的 postinstall 使用 POSIX 语法，需要先把 npm 生命周期脚本指向 bash 再安装：
+
+```powershell
+npm config set script-shell "C:\Program Files\Git\bin\bash.exe"
+npm exec --yes --package=git+https://github.com/songconmaisaix31-design/blockchain-anything.git#main -- bca setup --client both --install
+```
+
 安装会准备项目内持久运行目录和官方 Foundry，配置 MCP，并把 `BCA-WORKFLOW.md` 的入口写入 `AGENTS.md` / `CLAUDE.md`。保留原有配置和指引，修改前备份，重复运行不会重复添加内容。在客户端信任项目并批准 MCP 后，可以直接提出任务。
 
 终端使用已安装版本（Linux/macOS/WSL2）：
