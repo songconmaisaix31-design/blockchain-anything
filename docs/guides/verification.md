@@ -1,6 +1,6 @@
 # 真实操作检查
 
-使用 Node.js `>=24.16.0 <25`、lockfile 固定依赖、已安装的官方 Anvil 和 Kubo。脚本通过实际 README 字节生成 raw CID，将 CID 与原字节编码进 EAS 声明。Anvil 部署 npm 依赖中官方编译的 SchemaRegistry/EAS 合约；Kubo 使用隔离仓库与 `daemon --offline`，所有监听地址限定为 loopback。
+使用 Node.js `>=22.12.0 <23 || >=24.0.0 <25`、lockfile 固定依赖、已安装的官方 Anvil 和 Kubo。脚本通过实际 README 字节生成 raw CID，将 CID 与原字节编码进 EAS 声明。Anvil 部署 npm 依赖中官方编译的 SchemaRegistry/EAS 合约；Kubo 使用隔离仓库与 `daemon --offline`，所有监听地址限定为 loopback。
 
 ```powershell
 npm ci --ignore-scripts --no-audit --no-fund

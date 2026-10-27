@@ -2,11 +2,13 @@
 
 **在 Codex、Claude Code 或终端中，找到区块链工具并完成真实任务。**
 
+[在线文档](https://songconmaisaix31-design.github.io/blockchain-anything/) · [安装说明](docs/guides/setup.md) · [依赖安全状态](docs/guides/dependency-security.md)
+
 BCA v1 把官方 SDK、CLI 和 MCP 接成一个入口。已有 Agent 负责对话、编辑代码和任务循环；BCA 提供工具发现、项目操作、连接管理与真实结果。CLI、MCP、TypeScript SDK 共用实现。
 
 ## 安装到项目
 
-需要 **Node >=24.16.0 <25**、npm 和 Git。在目标项目目录执行：
+需要 **Node 22.12+（22 LTS）或 Node 24 LTS**、npm 和 Git。在目标项目目录执行：
 
 ```sh
 npm exec --yes --package=git+https://github.com/songconmaisaix31-design/blockchain-anything.git#main -- bca setup --client both --install
@@ -20,12 +22,7 @@ npm exec --yes --package=git+https://github.com/songconmaisaix31-design/blockcha
 npm exec --yes --package=git+https://github.com/songconmaisaix31-design/blockchain-anything.git#main --registry=https://registry.npmjs.org -- bca setup --client both --install
 ```
 
-Windows 原生安装：`@foundry-rs/forge@1.7.1` 的 postinstall 使用 POSIX 语法，需要先把 npm 生命周期脚本指向 bash 再安装：
-
-```powershell
-npm config set script-shell "C:\Program Files\Git\bin\bash.exe"
-npm exec --yes --package=git+https://github.com/songconmaisaix31-design/blockchain-anything.git#main -- bca setup --client both --install
-```
+Windows x64 可直接使用 PowerShell：setup 按平台安装官方 Foundry 二进制包，无需修改全局 `script-shell`。Linux/macOS 支持 x64 和 arm64；其他平台可先使用 `--workstation evm-diagnose`，或手动安装 Foundry。
 
 安装会准备项目内持久运行目录和官方 Foundry，配置 MCP，并把 `BCA-WORKFLOW.md` 的入口写入 `AGENTS.md` / `CLAUDE.md`。保留原有配置和指引，修改前备份，重复运行不会重复添加内容。在客户端信任项目并批准 MCP 后，可以直接提出任务。
 
@@ -36,7 +33,7 @@ alias bca='node .bca/runtime/node_modules/blockchain-anything/dist/cli/main.js'
 bca doctor
 ```
 
-也可以从 checkout 执行 `npm ci`（会自动构建），再用 `node dist/cli/main.js` 代替 `bca`。[本地产物安装和平台说明](docs/guides/setup.md)。
+也可以从 checkout 执行 `npm ci`（会自动构建，使用随包分发的 `npm-shrinkwrap.json` 锁定依赖），再用 `node dist/cli/main.js` 代替 `bca`。[本地产物安装和平台说明](docs/guides/setup.md)。
 
 ## 创建并运行合约
 

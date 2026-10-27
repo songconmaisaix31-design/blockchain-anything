@@ -3,6 +3,8 @@ import { McpServer } from '@modelcontextprotocol/server';
 import { serveStdio, type StdioServerHandle } from '@modelcontextprotocol/server/stdio';
 import { createToolkit } from '../toolkit.js';
 import { Console } from 'node:console';
+import { realpathSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { VERSION } from '../version.js';
 import { resultExitCode } from '../outcome.js';
 
@@ -41,7 +43,7 @@ export function startMcpServer(): StdioServerHandle {
   });
 }
 
-if (import.meta.main) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   try {
     if (process.argv.length > 2) throw new Error('MCP stdio 入口不接受命令行参数');
     startMcpServer();

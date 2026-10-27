@@ -2,18 +2,19 @@ import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readFile, readdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { createRequire } from 'node:module';
 import { Client } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { parse } from 'smol-toml';
-import { run } from '../src/development/exec.js';
+import { run, runNpm } from '../src/development/exec.js';
 
 const root = process.cwd(); await mkdir('.work/package', { recursive: true });
-const packed = await run('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', resolve('.work/package')], { cwd: root, timeoutMs: 20000 });
+const packed = await runNpm(['pack', '--ignore-scripts', '--json', '--pack-destination', resolve('.work/package')], root);
 assert.equal(packed.exitCode, 0, packed.stderr);
 const artifact = JSON.parse(packed.stdout)[0]; const tarball = resolve('.work/package', artifact.filename);
 const project = await mkdtemp(join(tmpdir(), 'bca-setup-'));
 const cleanEnv: Record<string, string | undefined> = {};
-for (const key of Object.keys(process.env)) if (key.startsWith('BCA_')) cleanEnv[key] = undefined;
+for (const key of Object.keys(process.env)) if (key.startsWith('BCA_')) { cleanEnv[key] = undefined; delete process.env[key]; }
 const mcp = new Client({ name: 'packed-setup-check', version: '1' });
 try {
   await mkdir(join(project, '.codex'));
@@ -21,7 +22,7 @@ try {
   await writeFile(join(project, '.mcp.json'), JSON.stringify({ mcpServers: { other: { command: 'existing' }, bca: { env: { BCA_RPC_URL: 'http://127.0.0.1:1', BCA_CHAIN_ID: '31337' } } } }));
   await writeFile(join(project, '.codex/config.toml'), '# user comment kept in backup\nmodel="user-choice"\n[mcp_servers.other]\ncommand="existing"\n');
   console.log('Installing from actual tarball through npm exec…');
-  const setup = await run('npm', ['exec', '--yes', '--package', tarball, '--', 'bca', 'setup', '--client', 'both', '--install'], { cwd: project, env: cleanEnv, timeoutMs: 240000, maxBytes: 4 * 1024 * 1024 });
+  const setup = await runNpm(['exec', '--yes', '--package', tarball, '--', 'bca', 'setup', '--client', 'both', '--install'], project);
   assert.equal(setup.exitCode, 0, setup.stdout + setup.stderr);
   const first = JSON.parse(setup.stdout); assert.equal(first.taskStatus, 'succeeded');
   const claude = JSON.parse(await readFile(join(project, '.mcp.json'), 'utf8'));
@@ -31,6 +32,13 @@ try {
   assert.ok((await readdir(project)).some((name) => name.startsWith('.mcp.json.bca-backup-')));
   const config = claude.mcpServers.bca;
   assert.ok(config.args[0].startsWith(join(project, '.bca/runtime')), config.args[0]);
+  // Verify the installed artifact, where dependency overrides alone are ignored.
+  const installedRequire = createRequire(config.args[0]);
+  const cheqdRequire = createRequire(installedRequire.resolve('@cheqd/ts-proto-cjs/package.json'));
+  assert.equal(cheqdRequire('protobufjs/package.json').version, '7.6.3');
+  const { QueryDidDocRequest } = cheqdRequire('./cheqd/did/v2/query.js');
+  const request = QueryDidDocRequest.fromPartial({ id: 'did:cheqd:testnet:12345678-1234-1234-1234-123456789012' });
+  assert.equal(QueryDidDocRequest.decode(QueryDidDocRequest.encode(request).finish()).id, request.id);
   const cli = resolve(config.args[0], '../../cli/main.js');
   console.log('Checking repeat setup and installed MCP…');
   const second = await run(process.execPath, [cli, 'setup', '--client', 'both', '--install'], { cwd: project, env: { ...cleanEnv, ...config.env }, timeoutMs: 120000, maxBytes: 4 * 1024 * 1024 });
@@ -46,7 +54,7 @@ try {
   const cid = await mcp.callTool({ name: 'content_cid', arguments: { path: 'BCA-WORKFLOW.md' } }); assert.ok(!cid.isError); assert.match(JSON.stringify(cid), /bafkrei/);
   const doctor = await run(process.execPath, [cli, 'doctor'], { cwd: project, env: { ...cleanEnv, ...config.env }, timeoutMs: 30000, maxBytes: 4 * 1024 * 1024 });
   assert.equal(doctor.exitCode, 0, doctor.stderr); const diagnosed = JSON.parse(doctor.stdout);
-  for (const name of ['forge', 'cast', 'anvil', 'codex MCP config', 'claude MCP config']) assert.equal(diagnosed.checks.find((item: any) => item.name === name).status, 'passed', doctor.stdout);
+  for (const name of ['Node', 'forge', 'cast', 'anvil', 'codex MCP config', 'claude MCP config']) assert.equal(diagnosed.checks.find((item: any) => item.name === name).status, 'passed', doctor.stdout);
   assert.ok(diagnosed.checks.some((item: any) => item.name === 'capabilities'), 'failed client check must not stop doctor');
   // A normal terminal invocation has no MCP-injected BCA_COMPONENTS_DIR.
   for (const args of [['init', 'counter'], ['build', 'counter'], ['test', 'counter']]) {

@@ -4,6 +4,8 @@ import { startMcpServer } from '../mcp/main.js';
 import { createToolkit } from '../toolkit.js';
 import type { ToolDefinition } from '../types.js';
 import { Console } from 'node:console';
+import { realpathSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { VERSION } from '../version.js';
 import { resultExitCode } from '../outcome.js';
 import { setupSchema } from '../setup.js';
@@ -162,7 +164,7 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
   finally { await toolkit.close(); }
 }
 
-if (import.meta.main) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   globalThis.console = new Console({ stdout: process.stderr, stderr: process.stderr });
   try {
     await main();

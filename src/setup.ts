@@ -17,10 +17,11 @@ const workstationSchema = z.enum(['all', 'evm-diagnose', 'evm-develop']);
 export const setupSchema = z.strictObject({ client: z.enum(['codex', 'claude', 'both']).default('both'), dir: z.string().default('.'),
   workstation: workstationSchema.default('all'), install: z.boolean().default(false), submit: submitSchema });
 
-function nodeSupported() { const [major, minor] = process.versions.node.split('.').map(Number); return major === 24 && minor! >= 16; }
+// did-jwt-vc and its CLI dependencies require Node 22.12 or later.
+function nodeSupported() { const [major, minor] = process.versions.node.split('.').map(Number); return (major === 22 && minor! >= 12) || major === 24; }
 
 export async function setup(config: Config, input: z.output<typeof setupSchema>) {
-  if (!nodeSupported()) throw new Error('需要 Node >=24.16.0 <25');
+  if (!nodeSupported()) throw new Error('需要 Node 22.12+ (22 LTS) 或 Node 24 LTS');
   const root = await resolveWorkingDir(config, input.dir);
   for (const directory of ['.bca', '.bca/runtime', '.bca/components', '.codex']) {
     const target = join(root, directory);
@@ -67,7 +68,13 @@ export async function setup(config: Config, input: z.output<typeof setupSchema>)
         }));
         if (versions.some((version) => !version)) {
           await mkdir(components, { recursive: true });
-          await runNpm(['install', '--prefix', components, '--no-audit', '--no-fund', '--save-exact', '@foundry-rs/forge@1.7.1', '@foundry-rs/cast@1.7.1', '@foundry-rs/anvil@1.7.1'], root);
+          const arch = process.arch === 'x64' ? 'amd64' : process.arch;
+          if (!(['linux', 'darwin'].includes(process.platform) && ['amd64', 'arm64'].includes(arch)) && !(process.platform === 'win32' && arch === 'amd64')) {
+            throw new Error(`Foundry npm 不支持 ${process.platform}/${process.arch}；请手动安装 Foundry，或使用 --workstation evm-diagnose`);
+          }
+          // Official native packages have no POSIX-only launcher postinstall.
+          const packages = ['forge', 'cast', 'anvil'].map((name) => `@foundry-rs/${name}-${process.platform}-${arch}@1.7.1`);
+          await runNpm(['install', '--prefix', components, '--no-audit', '--no-fund', '--save-exact', ...packages], root);
           preparation.push('已通过官方 npm 包安装固定 Foundry 1.7.1 到 .bca/components');
         } else preparation.push('已复用当前可用 Foundry；版本见 doctor');
       } finally { if (previous === undefined) delete process.env.BCA_COMPONENTS_DIR; else process.env.BCA_COMPONENTS_DIR = previous; }
@@ -118,7 +125,7 @@ export async function doctor(config: Config, dir: string, invoke: (name: string,
     try { checks.push({ name, status: 'passed', value: await operation(), check: network ? 'connected' : 'local/configuration', repair: null }); }
     catch (error) { checks.push({ name, status: optional ? 'optional_unavailable' : 'failed', reason: safeError(error, config).message, check: network ? 'connection-attempted' : 'local/configuration', repair }); }
   };
-  await check('Node', async () => { if (!nodeSupported()) throw new Error('需要 Node >=24.16.0 <25'); return process.versions.node; }, '安装 Node 24.16+');
+  await check('Node', async () => { if (!nodeSupported()) throw new Error('需要 Node 22.12+ (22 LTS) 或 Node 24 LTS'); return process.versions.node; }, '安装 Node 22.12+ 或 Node 24 LTS');
   for (const name of ['forge', 'cast', 'anvil']) await check(name, async () => {
     const value = await runVersion(name, root, 5000); if (!value) throw new Error('程序不存在或 --version 失败'); return value;
   }, '需要 Foundry 时执行 bca setup --install', false, !existsSync(join(root, 'foundry.toml')));
