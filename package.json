@@ -10,7 +10,7 @@
     "url": "https://github.com/songconmaisaix31-design/blockchain-anything.git"
   },
   "engines": {
-    "node": ">=24.16.0 <25"
+    "node": ">=22.12.0 <23 || >=24.0.0 <25"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -29,6 +29,7 @@
   },
   "files": [
     "dist",
+    "scripts/prepare.mjs",
     "docs/guides",
     "docs/integrations",
     "examples/contracts/foundry.toml",
@@ -52,7 +53,7 @@
     "check:setup": "node --import tsx scripts/check-setup.ts",
     "check:handoff": "node --import tsx scripts/check-handoff.ts",
     "check:v1": "node --import tsx scripts/check-v1.ts",
-    "prepare": "npm run build"
+    "prepare": "node scripts/prepare.mjs"
   },
   "dependencies": {
     "@aptos-labs/ts-sdk": "7.5.0",
@@ -79,19 +80,22 @@
     "kubo-rpc-client": "7.1.0",
     "multiformats": "14.0.5",
     "sas-lib": "1.0.10",
-    "smol-toml": "1.4.2",
+    "smol-toml": "1.9.1",
     "solc": "0.8.35",
     "viem": "2.57.10",
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@foundry-rs/anvil": "1.7.1",
-    "@foundry-rs/cast": "1.7.1",
-    "@foundry-rs/forge": "1.7.1",
     "@openzeppelin/contracts-mcp": "0.8.0",
     "@types/node": "24.19.2",
     "did-jwt": "8.0.18",
     "tsx": "4.23.15",
     "typescript": "5.9.3"
+  },
+  "overrides": {
+    "protobufjs": "7.6.3",
+    "ccxt": {
+      "undici": "7.30.1"
+    }
   }
 }

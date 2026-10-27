@@ -1,4 +1,4 @@
-import { open, realpath, stat } from 'node:fs/promises';
+import { open, realpath } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import type { Config } from '../config.js';
 
@@ -18,8 +18,11 @@ export async function readWorkingFile(config: Config, path: string): Promise<Buf
     const actual = await realpath(requested);
     assertInside(root, actual);
     if (actual !== resolved) throw new Error('文件路径在打开期间发生变化');
-    const opened = await handle.stat();
-    const current = await stat(actual);
+    const opened = await handle.stat({ bigint: true });
+    // Use the same handle-based API: older Windows libuv versions report
+    // different device IDs for path stat and fstat. BigInt preserves file IDs.
+    const currentHandle = await open(actual, 'r');
+    const current = await currentHandle.stat({ bigint: true }).finally(() => currentHandle.close());
     if (!opened.isFile()) throw new Error('路径必须指向普通文件');
     if (opened.dev !== current.dev || opened.ino !== current.ino) throw new Error('文件在打开期间发生变化');
     if (opened.size > config.maxFileBytes) throw new Error('文件超过 BCA_MAX_FILE_BYTES');

@@ -4,7 +4,7 @@
 
 ## Windows 11 + WSL2
 
-在同一个 WSL2 环境运行 Node 24.16+、npm 和 Codex/Claude Code，使用 Linux 项目路径。Windows 浏览器/编辑器可以打开该项目；Windows 原生客户端不能直接执行 WSL 路径。当前验证环境为 Linux x64，未执行 WSL2 宿主或 Windows 原生验收。
+在同一个 WSL2 环境运行 Node 22.12+ 或 Node 24 LTS、npm 和 Codex/Claude Code，使用 Linux 项目路径。Windows 浏览器/编辑器可以打开该项目；Windows 原生客户端不能直接执行 WSL 路径。WSL2 宿主和客户端 UI 授权仍需在目标机器核对。
 
 ```bash
 # 在 BCA checkout 中
@@ -15,9 +15,9 @@ cd /home/you/projects/your-project
 npm exec --yes --package /home/you/blockchain-anything/blockchain-anything-1.0.0.tgz -- bca setup --client both --install
 ```
 
-`--install` 将当前包重打包后放进 `.bca/runtime`，使配置不依赖 npm 临时执行目录。Foundry 固定到官方 `@foundry-rs/{forge,cast,anvil}@1.7.1`，优先复用安装或 PATH 程序。编译器和应用依赖沿用原项目；例如已有 Foundry 工程应保留原 `solc_version` 和 remappings。没有合约工程时执行 `bca init contracts`；ERC20 用 `--template erc20`，默认安装固定版本 OpenZeppelin。BCA 不覆盖现有工程。
+`--install` 将当前包重打包后放进 `.bca/runtime`，使配置不依赖 npm 临时执行目录。Foundry 固定到官方 `@foundry-rs/{forge,cast,anvil}-{platform}-{arch}@1.7.1` 二进制包，优先复用安装或 PATH 程序。编译器和应用依赖沿用原项目；例如已有 Foundry 工程应保留原 `solc_version` 和 remappings。没有合约工程时执行 `bca init contracts`；ERC20 用 `--template erc20`，默认安装固定版本 OpenZeppelin。BCA 不覆盖现有工程。
 
-TOML 配置使用固定版本 `smol-toml@1.4.2`，用于正确读写 Codex TOML。保留其他字段和服务器；TOML 排版与注释可能被规范化，原文件保存在 `.bca-backup-*`。已有 BCA 的 RPC、环境变量和写开关保持原值。工作流入口追加到所选客户端的 `AGENTS.md` / `CLAUDE.md`，保留已有内容；重复 setup 只更新 BCA 标记内的内容。
+TOML 配置使用固定版本 `smol-toml@1.9.1`，用于正确读写 Codex TOML。保留其他字段和服务器；TOML 排版与注释可能被规范化，原文件保存在 `.bca-backup-*`。已有 BCA 的 RPC、环境变量和写开关保持原值。工作流入口追加到所选客户端的 `AGENTS.md` / `CLAUDE.md`，保留已有内容；重复 setup 只更新 BCA 标记内的内容。
 
 项目内运行已安装 CLI：
 
@@ -44,27 +44,31 @@ BCA_MCP_CONFIG=/absolute/path/services.json \
 
 配置凭据由操作者在受控环境/客户端设置，不写入仓库。将 `.mcp.json`、`.codex/config.toml` 及备份中可能存在的个人凭据排除出提交；本轮产物只使用临时测试配置。
 
-## Windows 原生（2026-10-25 实测通过）
+## Windows 原生
 
-实测环境：Windows 11（10.0.26200）、Node v22.23.2、npm 10.9.8、Git for Windows。
+当前 setup 直接安装官方 Windows x64 二进制包，不经过 `@foundry-rs/forge@1.7.1` 包中 `TARGET_TOOL=forge` 的 POSIX postinstall。源码安装也已移除这三个启动器开发依赖，无需设置 Git Bash 为 npm 的全局脚本解释器。Git 仍用于从 GitHub 获取源码。
 
-前置（两个必做项）：
+Node 支持范围为 `>=22.12.0 <23 || >=24.0.0 <25`；22.12 是现有 `did-jwt-vc` 及 CLI 依赖的最低要求。`setup`、`doctor` 与 package.json 使用同一范围。Node 20 未列入支持范围。
 
-1. `@foundry-rs/forge@1.7.1` 的 postinstall 使用 POSIX 语法（`TARGET_TOOL=forge node ./postinstall.mjs`），npm 在 Windows 默认用 `cmd.exe` 执行生命周期脚本会直接报 `'TARGET_TOOL' is not recognized`。需要先把 script-shell 指向 bash 再安装：
-
-```powershell
-npm config set script-shell "C:\Program Files\Git\bin\bash.exe"
-```
-
-2. 中国大陆网络环境下，若 npm 默认镜像未同步全部固定版本（如 `@mysten/seal@1.5.1` 镜像只到 1.5.0），安装时使用官方 registry：
+中国大陆网络环境下，镜像出现 ETARGET 缺版本时，可仅在当前 PowerShell 会话指定官方 registry：
 
 ```powershell
 $env:npm_config_registry="https://registry.npmjs.org"
 ```
 
-按 README 或本地产物流程安装后，实测结果（Node v22 上）：`npm ci`、`doctor`（forge/cast/anvil 1.7.1 就绪、125 项能力）、`init contracts --template erc20`、`build contracts`、`test contracts`、`find`、MCP stdio 入口均通过。注意：`doctor` 会因 Node 版本不满足 `>=24.16.0 <25` 报红（`allPassed: false`），但功能不受影响；安装时的 EBADENGINE 仅为警告。
+源码锁文件采用标准 `package-lock.json`，保留跨平台可选依赖并将下载地址统一为官方 registry；源码 `npm ci` 使用锁定版本。`setup --install` 还会将安全 overrides 写入 BCA 自有的持久运行目录根清单，避免 npm 忽略已安装子包的 overrides；临时 npm exec 引导依赖及 SDK 宿主依赖不保证与源码完全一致。依赖维护后运行 `npm install` 更新锁文件。
 
-在 PowerShell 7 和 Node 24.16+ 中复验：
+Windows 建议使用 Node 22 LTS 的最新修补版。旧 Node 22.12 / npm 10.9.0 在本轮 CI 的冷安装出现超时，尚未记为完整安装通过。自动化宿主中如果 npm 引导停滞，先在 checkout 执行 `npm ci`，再切换到目标项目，直接运行已构建入口：
+
+```powershell
+node "C:\path\blockchain-anything\dist\cli\main.js" setup --client both --install
+```
+
+CI 在 Windows 当前 Node 22 LTS 上从实际 tarball 安装后直接启动 Node，验证 setup / MCP / Foundry；Linux 同时覆盖最低 Node 22.12、Node 24 与 npm exec 引导。Windows 非交互 npm exec 不记为已通过。
+
+历史验证：PR #9 作者在 Windows 11 / Node 22.23.2 / npm 10.9.8 / Git Bash 下验证了旧版安装、CLI、合约编译测试和 MCP stdio。本次新的无 Bash 安装路径由 CI 的 Windows job 验证；运行结果以对应提交的 Actions 为准。
+
+在 PowerShell 中复验：
 
 ```powershell
 npm ci

@@ -36,6 +36,7 @@ export interface RunOptions {
   maxBytes?: number;
   env?: Record<string, string | undefined>;
   signal?: AbortSignal;
+  forwardOutput?: boolean;
 }
 
 export interface RunResult {
@@ -151,6 +152,7 @@ export function run(command: string, args: string[], options: RunOptions): Promi
         return;
       }
       target.push(chunk);
+      if (options.forwardOutput) process.stderr.write(chunk);
     };
     child.stdout?.on('data', (chunk: Buffer) => collect(stdout, chunk));
     child.stderr?.on('data', (chunk: Buffer) => collect(stderr, chunk));
@@ -202,10 +204,10 @@ export function parseJsonOutput(result: RunResult, command: string): unknown {
 }
 
 /** Use npm's JS entry so Windows does not need a shell to execute npm.cmd. */
-export async function runNpm(args: string[], cwd: string) {
+export async function runNpm(args: string[], cwd: string, options: { timeoutMs?: number; forwardOutput?: boolean } = {}) {
   const candidates = [process.env.npm_execpath, join(dirname(process.execPath), '../lib/node_modules/npm/bin/npm-cli.js'), join(dirname(process.execPath), 'node_modules/npm/bin/npm-cli.js')];
   const cli = candidates.find((item) => item && existsSync(item));
-  const result = await run(cli ? process.execPath : 'npm', cli ? [cli, ...args] : args, { cwd, timeoutMs: 240_000, maxBytes: 4 * 1024 * 1024 });
-  if (result.exitCode !== 0) throw new Error(`npm 操作失败 (${result.exitCode})：${result.stderr.slice(-2000)}`);
+  const result = await run(cli ? process.execPath : 'npm', cli ? [cli, ...args] : args, { cwd, timeoutMs: options.timeoutMs ?? 240_000, forwardOutput: options.forwardOutput, maxBytes: 4 * 1024 * 1024 });
+  if (result.exitCode !== 0) throw new Error(`npm 操作失败 (${result.exitCode})：${result.stdout.slice(-2000)}\n${result.stderr.slice(-2000)}`);
   return result;
 }
