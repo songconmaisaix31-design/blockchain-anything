@@ -30,6 +30,7 @@
   "files": [
     "dist",
     "npm-shrinkwrap.json",
+    "scripts/prepare.mjs",
     "docs/guides",
     "docs/integrations",
     "examples/contracts/foundry.toml",
@@ -53,7 +54,7 @@
     "check:setup": "node --import tsx scripts/check-setup.ts",
     "check:handoff": "node --import tsx scripts/check-handoff.ts",
     "check:v1": "node --import tsx scripts/check-v1.ts",
-    "prepare": "npm run build"
+    "prepare": "node scripts/prepare.mjs"
   },
   "dependencies": {
     "@aptos-labs/ts-sdk": "7.5.0",
