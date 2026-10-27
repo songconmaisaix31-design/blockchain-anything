@@ -29,7 +29,6 @@
   },
   "files": [
     "dist",
-    "npm-shrinkwrap.json",
     "scripts/prepare.mjs",
     "docs/guides",
     "docs/integrations",

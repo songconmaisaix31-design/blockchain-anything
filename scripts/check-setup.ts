@@ -15,7 +15,6 @@ const artifact = JSON.parse(packed.stdout)[0];
 // npm exec caches a local package by its path; a reused filename can run old bytes.
 const tarball = resolve('.work/package', `blockchain-anything-${artifact.shasum}.tgz`);
 await copyFile(resolve('.work/package', artifact.filename), tarball);
-assert.ok(artifact.files.some((file: { path: string }) => file.path === 'npm-shrinkwrap.json'), 'runtime dependency lock must ship in the tarball');
 const project = await mkdtemp(join(tmpdir(), 'bca-setup-'));
 const cleanEnv: Record<string, string | undefined> = {};
 for (const key of Object.keys(process.env)) if (key.startsWith('BCA_')) { cleanEnv[key] = undefined; delete process.env[key]; }
@@ -25,10 +24,21 @@ try {
   for (const file of ['AGENTS.md', 'CLAUDE.md']) await writeFile(join(project, file), '# Existing project rules\nPreserve this instruction.\n');
   await writeFile(join(project, '.mcp.json'), JSON.stringify({ mcpServers: { other: { command: 'existing' }, bca: { env: { BCA_RPC_URL: 'http://127.0.0.1:1', BCA_CHAIN_ID: '31337' } } } }));
   await writeFile(join(project, '.codex/config.toml'), '# user comment kept in backup\nmodel="user-choice"\n[mcp_servers.other]\ncommand="existing"\n');
-  console.log('Installing from actual tarball through npm exec…');
-  // Bootstrap + runtime + Foundry are separate installs; their combined Windows
-  // cold-cache time can exceed the timeout for one npm operation.
-  const setup = await runNpm(['exec', '--yes', '--package', tarball, '--', 'bca', 'setup', '--client', 'both', '--install'], project, { timeoutMs: 600_000, forwardOutput: true });
+  let setup;
+  if (process.platform === 'win32') {
+    // npm/cli#9959: noninteractive npm exec can hang before launching the CLI.
+    // Install the real artifact, then invoke its Node entry directly.
+    const bootstrap = join(project, '.bootstrap');
+    await mkdir(bootstrap);
+    await writeFile(join(bootstrap, 'package.json'), '{"private":true}');
+    console.log('Installing actual Windows tarball…');
+    await runNpm(['install', '--prefix', bootstrap, '--omit=dev', '--no-audit', '--no-fund', tarball], project, { forwardOutput: true });
+    setup = await run(process.execPath, [join(bootstrap, 'node_modules/blockchain-anything/dist/cli/main.js'), 'setup', '--client', 'both', '--install'],
+      { cwd: project, timeoutMs: 600_000, maxBytes: 4 * 1024 * 1024, forwardOutput: true });
+  } else {
+    console.log('Installing from actual tarball through npm exec…');
+    setup = await runNpm(['exec', '--yes', '--package', tarball, '--', 'bca', 'setup', '--client', 'both', '--install'], project, { timeoutMs: 600_000, forwardOutput: true });
+  }
   assert.equal(setup.exitCode, 0, setup.stdout + setup.stderr);
   const first = JSON.parse(setup.stdout); assert.equal(first.taskStatus, 'succeeded');
   const claude = JSON.parse(await readFile(join(project, '.mcp.json'), 'utf8'));
@@ -74,7 +84,7 @@ try {
     assert.equal(executed.exitCode, 0, executed.stdout + executed.stderr);
     assert.equal(JSON.parse(executed.stdout).taskStatus, 'succeeded');
   }
-  const report = { artifact: artifact.filename, shasum: artifact.shasum, integrity: artifact.integrity, entry: 'npm exec --yes --package <actual.tgz> -- bca setup --client both --install',
+  const report = { artifact: artifact.filename, shasum: artifact.shasum, integrity: artifact.integrity, entry: process.platform === 'win32' ? 'npm install <actual.tgz>; node <installed CLI> setup --client both --install' : 'npm exec --yes --package <actual.tgz> -- bca setup --client both --install',
     persistentRuntime: true, components: 'official Foundry 1.7.1', preservedOtherClientConfig: true, preservedBcaEnv: true, backups: true, idempotent: true,
     preservedClientInstructions: true, installedCliInitBuildTest: 'passed',
     installedMcpCid: 'passed', installedWorkstationDiscovery: 'passed', doctor: diagnosed.checks.filter((item: any) => item.name !== 'capabilities'),

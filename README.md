@@ -33,7 +33,7 @@ alias bca='node .bca/runtime/node_modules/blockchain-anything/dist/cli/main.js'
 bca doctor
 ```
 
-也可以从 checkout 执行 `npm ci`（会自动构建，使用随包分发的 `npm-shrinkwrap.json` 锁定依赖），再用 `node dist/cli/main.js` 代替 `bca`。[本地产物安装和平台说明](docs/guides/setup.md)。
+也可以从 checkout 执行 `npm ci`（会自动构建，使用 `package-lock.json` 锁定源码依赖），再用 `node dist/cli/main.js` 代替 `bca`。[本地产物安装和平台说明](docs/guides/setup.md)。
 
 ## 创建并运行合约
 
