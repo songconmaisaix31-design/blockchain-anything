@@ -44,9 +44,27 @@ BCA_MCP_CONFIG=/absolute/path/services.json \
 
 配置凭据由操作者在受控环境/客户端设置，不写入仓库。将 `.mcp.json`、`.codex/config.toml` 及备份中可能存在的个人凭据排除出提交；本轮产物只使用临时测试配置。
 
-## Windows 原生复验（未实测）
+## Windows 原生（2026-10-25 实测通过）
 
-在 PowerShell 7 和 Node 24.16+ 中：
+实测环境：Windows 11（10.0.26200）、Node v22.23.2、npm 10.9.8、Git for Windows。
+
+前置（两个必做项）：
+
+1. `@foundry-rs/forge@1.7.1` 的 postinstall 使用 POSIX 语法（`TARGET_TOOL=forge node ./postinstall.mjs`），npm 在 Windows 默认用 `cmd.exe` 执行生命周期脚本会直接报 `'TARGET_TOOL' is not recognized`。需要先把 script-shell 指向 bash 再安装：
+
+```powershell
+npm config set script-shell "C:\Program Files\Git\bin\bash.exe"
+```
+
+2. 中国大陆网络环境下，若 npm 默认镜像未同步全部固定版本（如 `@mysten/seal@1.5.1` 镜像只到 1.5.0），安装时使用官方 registry：
+
+```powershell
+$env:npm_config_registry="https://registry.npmjs.org"
+```
+
+按 README 或本地产物流程安装后，实测结果（Node v22 上）：`npm ci`、`doctor`（forge/cast/anvil 1.7.1 就绪、125 项能力）、`init contracts --template erc20`、`build contracts`、`test contracts`、`find`、MCP stdio 入口均通过。注意：`doctor` 会因 Node 版本不满足 `>=24.16.0 <25` 报红（`allPassed: false`），但功能不受影响；安装时的 EBADENGINE 仅为警告。
+
+在 PowerShell 7 和 Node 24.16+ 中复验：
 
 ```powershell
 npm ci
