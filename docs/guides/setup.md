@@ -58,13 +58,13 @@ $env:npm_config_registry="https://registry.npmjs.org"
 
 源码锁文件采用标准 `package-lock.json`，保留跨平台可选依赖并将下载地址统一为官方 registry；源码 `npm ci` 使用锁定版本。`setup --install` 还会将安全 overrides 写入 BCA 自有的持久运行目录根清单，避免 npm 忽略已安装子包的 overrides；临时 npm exec 引导依赖及 SDK 宿主依赖不保证与源码完全一致。依赖维护后运行 `npm install` 更新锁文件。
 
-Windows 自动化宿主中，npm 10 的 `npm exec` 可能在 BCA 启动前停滞（上游 [npm/cli#9959](https://github.com/npm/cli/issues/9959) 也记录了非交互 stdio 问题）。遇到此情况，先在 checkout 执行 `npm ci`，再切换到目标项目，直接运行已构建入口：
+Windows 建议使用 Node 22 LTS 的最新修补版。旧 Node 22.12 / npm 10.9.0 在本轮 CI 的冷安装出现超时，尚未记为完整安装通过。自动化宿主中如果 npm 引导停滞，先在 checkout 执行 `npm ci`，再切换到目标项目，直接运行已构建入口：
 
 ```powershell
 node "C:\path\blockchain-anything\dist\cli\main.js" setup --client both --install
 ```
 
-CI 在 Windows 上从实际 tarball 安装后直接启动 Node，验证 setup / MCP / Foundry；Linux 同时覆盖 npm exec 引导。Windows 非交互 npm exec 不记为已通过。
+CI 在 Windows 当前 Node 22 LTS 上从实际 tarball 安装后直接启动 Node，验证 setup / MCP / Foundry；Linux 同时覆盖最低 Node 22.12、Node 24 与 npm exec 引导。Windows 非交互 npm exec 不记为已通过。
 
 历史验证：PR #9 作者在 Windows 11 / Node 22.23.2 / npm 10.9.8 / Git Bash 下验证了旧版安装、CLI、合约编译测试和 MCP stdio。本次新的无 Bash 安装路径由 CI 的 Windows job 验证；运行结果以对应提交的 Actions 为准。
 

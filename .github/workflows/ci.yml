@@ -17,7 +17,7 @@ jobs:
           - os: ubuntu-latest
             node: '24'
           - os: windows-latest
-            node: '22.12.0'
+            node: '22'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

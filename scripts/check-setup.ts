@@ -15,7 +15,7 @@ const artifact = JSON.parse(packed.stdout)[0];
 // npm exec caches a local package by its path; a reused filename can run old bytes.
 const tarball = resolve('.work/package', `blockchain-anything-${artifact.shasum}.tgz`);
 await copyFile(resolve('.work/package', artifact.filename), tarball);
-const project = await mkdtemp(join(tmpdir(), 'bca-setup-'));
+const project = await mkdtemp(join(process.env.RUNNER_TEMP || tmpdir(), 'bca-setup-'));
 const cleanEnv: Record<string, string | undefined> = {};
 for (const key of Object.keys(process.env)) if (key.startsWith('BCA_')) { cleanEnv[key] = undefined; delete process.env[key]; }
 const mcp = new Client({ name: 'packed-setup-check', version: '1' });
