@@ -56,7 +56,7 @@ Node 支持范围为 `>=22.12.0 <23 || >=24.0.0 <25`；22.12 是现有 `did-jwt-
 $env:npm_config_registry="https://registry.npmjs.org"
 ```
 
-锁文件采用随实际 tarball 分发的 `npm-shrinkwrap.json`，保留跨平台可选依赖并将下载地址统一为官方 registry；源码 `npm ci` 和项目持久运行目录使用相同依赖版本。依赖维护后运行 `npm install` 更新 shrinkwrap，不另建 package-lock.json。
+锁文件采用随实际 tarball 分发的 `npm-shrinkwrap.json`，保留跨平台可选依赖并将下载地址统一为官方 registry；源码 `npm ci` 使用锁定版本。`setup --install` 还会将安全 overrides 写入 BCA 自有的持久运行目录根清单，避免 npm 忽略已安装子包的 overrides；临时 npm exec 引导依赖及 SDK 宿主依赖不保证与源码完全一致。依赖维护后运行 `npm install` 更新 shrinkwrap，不另建 package-lock.json。
 
 历史验证：PR #9 作者在 Windows 11 / Node 22.23.2 / npm 10.9.8 / Git Bash 下验证了旧版安装、CLI、合约编译测试和 MCP stdio。本次新的无 Bash 安装路径由 CI 的 Windows job 验证；运行结果以对应提交的 Actions 为准。
 

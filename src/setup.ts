@@ -39,16 +39,26 @@ export async function setup(config: Config, input: z.output<typeof setupSchema>)
   const preparation: string[] = [];
   if (input.install) {
     await mkdir(runtime, { recursive: true });
+    // npm ignores overrides declared by an installed dependency. The persistent
+    // runtime is BCA-owned, so apply our constraints at its actual package root.
+    const runtimeManifestPath = join(runtime, 'package.json');
+    const runtimeManifest = JSON.parse(await textOrEmpty(runtimeManifestPath) || '{"private":true}');
+    const packageManifest = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
+    const overrides = { ...runtimeManifest.overrides, ...packageManifest.overrides };
+    const overridesChanged = JSON.stringify(runtimeManifest.overrides) !== JSON.stringify(overrides);
+    if (overridesChanged) await writeFile(runtimeManifestPath, `${JSON.stringify({ ...runtimeManifest, overrides }, null, 2)}\n`);
     if (resolve(packageRoot) !== resolve(runtime, 'node_modules/blockchain-anything')) {
       const packed = JSON.parse((await runNpm(['pack', packageRoot, '--ignore-scripts', '--json', '--pack-destination', runtime], root)).stdout)[0];
       const marker = join(runtime, 'bca-install.json');
       let previous: { shasum?: string } = {};
       try { previous = JSON.parse(await textOrEmpty(marker) || '{}'); } catch { /* reinstall broken marker */ }
-      if (previous.shasum !== packed.shasum || !existsSync(join(runtime, 'node_modules/blockchain-anything/dist/mcp/main.js'))) {
+      if (overridesChanged || previous.shasum !== packed.shasum || !existsSync(join(runtime, 'node_modules/blockchain-anything/dist/mcp/main.js'))) {
         await runNpm(['install', '--prefix', runtime, '--omit=dev', '--no-audit', '--no-fund', '--save-exact', join(runtime, packed.filename)], root);
         await writeFile(marker, JSON.stringify({ shasum: packed.shasum, version: packed.version }));
         preparation.push('已从当前实际 npm pack 产物安装持久运行目录');
       } else preparation.push('已复用相同打包产物');
+    } else if (overridesChanged) {
+      await runNpm(['install', '--prefix', runtime, '--omit=dev', '--no-audit', '--no-fund'], root);
     }
     entry = join(runtime, 'node_modules/blockchain-anything/dist/mcp/main.js');
     if (input.workstation !== 'evm-diagnose') {

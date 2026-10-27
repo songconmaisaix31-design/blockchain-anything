@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, readdir, writeFile, rm } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, readdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
@@ -11,7 +11,10 @@ import { run, runNpm } from '../src/development/exec.js';
 const root = process.cwd(); await mkdir('.work/package', { recursive: true });
 const packed = await runNpm(['pack', '--ignore-scripts', '--json', '--pack-destination', resolve('.work/package')], root);
 assert.equal(packed.exitCode, 0, packed.stderr);
-const artifact = JSON.parse(packed.stdout)[0]; const tarball = resolve('.work/package', artifact.filename);
+const artifact = JSON.parse(packed.stdout)[0];
+// npm exec caches a local package by its path; a reused filename can run old bytes.
+const tarball = resolve('.work/package', `blockchain-anything-${artifact.shasum}.tgz`);
+await copyFile(resolve('.work/package', artifact.filename), tarball);
 assert.ok(artifact.files.some((file: { path: string }) => file.path === 'npm-shrinkwrap.json'), 'runtime dependency lock must ship in the tarball');
 const project = await mkdtemp(join(tmpdir(), 'bca-setup-'));
 const cleanEnv: Record<string, string | undefined> = {};

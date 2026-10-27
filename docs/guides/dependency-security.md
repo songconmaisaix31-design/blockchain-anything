@@ -4,7 +4,7 @@
 
 本轮升级 `smol-toml` 到 1.9.1，锁定 `protobufjs` 7.6.3 和 CCXT 使用的 `undici` 7.30.1。保留官方 SDK 与原有调用接口，未执行 `npm audit fix --force`。protobufjs 的旧 6.x 使用者通过 override 升级，验证 cheqd 生成的查询消息编解码与 SDK 导入；完整 cheqd 远程网络业务仍需另外验证。
 
-`npm-shrinkwrap.json` 随 tarball 分发，使依赖修复同时作用于 checkout 和 setup 安装的持久运行目录。普通 package-lock 不随包分发，子包的 overrides 也不能约束宿主的依赖解析。
+`npm-shrinkwrap.json` 锁定源码安装，并随 tarball 分发。不同 npm 版本对已安装子包的 shrinkwrap 支持不同，不能只依赖它。`setup --install` 将安全 overrides 写入 BCA 自有的 `.bca/runtime/package.json` 根清单，约束持久运行目录的实际安装；检查脚本核对该目录的 protobufjs 版本并执行消息编解码。首次 `npm exec` 的临时引导依赖由宿主 npm 解析，不保证与源码锁文件完全相同；直接作为 SDK 依赖使用时，宿主也需应用对应 overrides。
 
 本轮 `npm audit --json --registry=https://registry.npmjs.org`：原始树 51 项（1 critical / 17 high / 13 moderate / 20 low）；修改后 47 项（0 critical / 14 high / 13 moderate / 20 low）。不同 npm 版本和公告更新时间可能影响统计。
 
