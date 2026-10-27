@@ -12,6 +12,7 @@ const root = process.cwd(); await mkdir('.work/package', { recursive: true });
 const packed = await runNpm(['pack', '--ignore-scripts', '--json', '--pack-destination', resolve('.work/package')], root);
 assert.equal(packed.exitCode, 0, packed.stderr);
 const artifact = JSON.parse(packed.stdout)[0]; const tarball = resolve('.work/package', artifact.filename);
+assert.ok(artifact.files.some((file: { path: string }) => file.path === 'npm-shrinkwrap.json'), 'runtime dependency lock must ship in the tarball');
 const project = await mkdtemp(join(tmpdir(), 'bca-setup-'));
 const cleanEnv: Record<string, string | undefined> = {};
 for (const key of Object.keys(process.env)) if (key.startsWith('BCA_')) { cleanEnv[key] = undefined; delete process.env[key]; }
@@ -36,6 +37,12 @@ try {
   const installedRequire = createRequire(config.args[0]);
   const cheqdRequire = createRequire(installedRequire.resolve('@cheqd/ts-proto-cjs/package.json'));
   assert.equal(cheqdRequire('protobufjs/package.json').version, '7.6.3');
+  const icsRequire = createRequire(installedRequire.resolve('@confio/ics23'));
+  assert.equal(icsRequire('protobufjs/package.json').version, '7.6.3');
+  const { ics23 } = installedRequire('@confio/ics23');
+  const proof = ics23.ExistenceProof.create({ key: Buffer.from('key'), value: Buffer.from('value') });
+  const decodedProof = ics23.ExistenceProof.decode(ics23.ExistenceProof.encode(proof).finish());
+  assert.equal(Buffer.from(decodedProof.value).toString(), 'value');
   const { QueryDidDocRequest } = cheqdRequire('./cheqd/did/v2/query.js');
   const request = QueryDidDocRequest.fromPartial({ id: 'did:cheqd:testnet:12345678-1234-1234-1234-123456789012' });
   assert.equal(QueryDidDocRequest.decode(QueryDidDocRequest.encode(request).finish()).id, request.id);

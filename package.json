@@ -29,6 +29,7 @@
   },
   "files": [
     "dist",
+    "npm-shrinkwrap.json",
     "docs/guides",
     "docs/integrations",
     "examples/contracts/foundry.toml",
