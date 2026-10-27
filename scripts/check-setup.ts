@@ -26,7 +26,9 @@ try {
   await writeFile(join(project, '.mcp.json'), JSON.stringify({ mcpServers: { other: { command: 'existing' }, bca: { env: { BCA_RPC_URL: 'http://127.0.0.1:1', BCA_CHAIN_ID: '31337' } } } }));
   await writeFile(join(project, '.codex/config.toml'), '# user comment kept in backup\nmodel="user-choice"\n[mcp_servers.other]\ncommand="existing"\n');
   console.log('Installing from actual tarball through npm exec…');
-  const setup = await runNpm(['exec', '--yes', '--package', tarball, '--', 'bca', 'setup', '--client', 'both', '--install'], project);
+  // Bootstrap + runtime + Foundry are separate installs; their combined Windows
+  // cold-cache time can exceed the timeout for one npm operation.
+  const setup = await runNpm(['exec', '--yes', '--package', tarball, '--', 'bca', 'setup', '--client', 'both', '--install'], project, 600_000);
   assert.equal(setup.exitCode, 0, setup.stdout + setup.stderr);
   const first = JSON.parse(setup.stdout); assert.equal(first.taskStatus, 'succeeded');
   const claude = JSON.parse(await readFile(join(project, '.mcp.json'), 'utf8'));

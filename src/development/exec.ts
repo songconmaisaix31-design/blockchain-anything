@@ -202,10 +202,10 @@ export function parseJsonOutput(result: RunResult, command: string): unknown {
 }
 
 /** Use npm's JS entry so Windows does not need a shell to execute npm.cmd. */
-export async function runNpm(args: string[], cwd: string) {
+export async function runNpm(args: string[], cwd: string, timeoutMs = 240_000) {
   const candidates = [process.env.npm_execpath, join(dirname(process.execPath), '../lib/node_modules/npm/bin/npm-cli.js'), join(dirname(process.execPath), 'node_modules/npm/bin/npm-cli.js')];
   const cli = candidates.find((item) => item && existsSync(item));
-  const result = await run(cli ? process.execPath : 'npm', cli ? [cli, ...args] : args, { cwd, timeoutMs: 240_000, maxBytes: 4 * 1024 * 1024 });
+  const result = await run(cli ? process.execPath : 'npm', cli ? [cli, ...args] : args, { cwd, timeoutMs, maxBytes: 4 * 1024 * 1024 });
   if (result.exitCode !== 0) throw new Error(`npm 操作失败 (${result.exitCode})：${result.stdout.slice(-2000)}\n${result.stderr.slice(-2000)}`);
   return result;
 }
