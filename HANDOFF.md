@@ -1,19 +1,20 @@
 # BCA 交接
 
-更新日期：2026-10-23。
+更新日期：2026-10-29。
 
-用户已批准开发；项目只做成熟区块链工具聚合，复用官方 SDK/CLI/MCP/Skills，不自研协议；只做够用的测试，发现错误后局部修复、局部复测。原始目标与完整生态清单见 ChatGPT/Codex 桌面端线程 `01a166cb-b930-7970-b9b4-9b00d2239c5e`，关键结论已整理在 `.work/takeover-context.md`。
+项目聚合成熟区块链 SDK/CLI/MCP/Skills，当前分支 `codex/bca-ecosystem` 提供 54 个工具。用户已授权开发、真实验证、局部修复、提交和推送；本轮要求测试 Windows 可用性并修复问题。
 
-当前分支 `codex/bca-ecosystem`。S1 的 20 个工具已完成并验证；S2 已由主 Agent 直接接手，交付 54 个工具：
+先读 [STATUS.md](STATUS.md)、[Windows 验证任务](tasks/windows-availability.md) 和 [S2 进度](tasks/S2-progress.md)。
 
-- MCP 桥接 6 个：标准 `mcpServers` 配置、stdio/Streamable HTTP、发现、调用、资源、提示。
-- 开发工具 12 个：solc 离线编译、Forge/Hardhat/Slither、Cast、Skills。
-- viem 6 个、EAS 扩展 10 个（批量、时间戳、Delegated、PrivateData）。
+本轮已完成：
 
-先读 [STATUS.md](STATUS.md)、[S2 进度](tasks/S2-progress.md)、[MCP 服务](docs/integrations/services.md)、[开发工具](docs/integrations/development.md) 和 [链与存储](docs/integrations/chains-storage.md)。
+- Windows 11 / PowerShell 7 / Node.js 24 的类型、构建、CLI/MCP、真实 Anvil EAS 生命周期与签名、Kubo 离线存取、npm 包安装后入口验证。
+- Cast/viem 真实链调用，Forge 构建与测试，Hardhat 编译，Slither 分析及 Skills 读取。
+- Solidity import 与 Skills 的真实路径边界修复、Windows 混合大小写敏感环境变量过滤、MCP 配置更新即时生效。
+- 在现有 smoke 中补充 `windows` 和 `development` 范围；桥接脚本覆盖同长度配置修改与环境变量重新展开。使用方法见 [运行检查指南](docs/guides/verification.md)。
 
-仍未完成：外部 MCP 供应商的真实调用、Sign/SAS/Sui/Aptos/Walrus/Seal/Arweave、来源/身份、钱包/Agent 框架；`main` 尚未合并。当前阻塞是本机代理到外网上游超时（DeepSeek 可通）、GitHub 不可达，以及 Alchemy 账户手机验证需要用户完成。没有经过真实调用通过的项目不得标记为完成。
+本机 Slither 位于 `.work/windows-tools/Scripts`，调用时显式加入进程 PATH；Kubo 位于 `.work/kubo-dist/kubo/ipfs.exe`。Forge 已可使用 Solidity 0.7.6，Hardhat 2.22.4 实际编译通过。Slither 分析保留两项 `solc-version` 信息提示和原始非零退出码。
 
-必要检查已通过：`npm run typecheck`、`npm run build`、`npm run check:bridge`、真实 Anvil 上的 viem 与 EAS 扩展脚本、solc 离线编译、Skills 读取。具体命令和未执行项见 STATUS。
+仍未完成：外部 MCP 供应商真实调用、Sign/SAS/Sui/Aptos/Walrus/Seal/Arweave、来源/身份、钱包/Agent 框架及 `main` 合并。Alchemy 手机验证需要用户完成。公共测试网写入、生产交易、npm 发布和原生 Codex 控制器事件审计均未执行。
 
-远程为 `https://github.com/songconmaisaix31-design/blockchain-anything.git`；网络恢复后先推送当前分支，再按 S2 进度继续。
+远程：`https://github.com/songconmaisaix31-design/blockchain-anything.git`。GitHub 与 npm 本次连接成功。没有实际调用通过的项目不得标记为完成。

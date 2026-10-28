@@ -1,41 +1,41 @@
 # BCA 当前状态
 
-更新日期：2026-10-23。S1 基线已完成；S2 已由主 Agent 直接接手，当前交付 **54 个工具**，其中 MCP 桥接、开发工具、viem 与 EAS 扩展已完成实际验证。
+更新日期：2026-10-29。当前分支 `codex/bca-ecosystem`，提供 54 个工具。Windows 11 上的真实验证和局部修复已完成，详细记录见 [Windows 验证任务](tasks/windows-availability.md)。
 
-## 进行中的 S2
+## Windows 验证
 
-五个 OpenCode/DeepSeek Worker 在 17:44–21:10 期间没有产生代码或提交。用户确认后，主 Agent 已通过 Orca 结束这些 Dispatch/终端并保留 worktree，改为直接实现。逐项状态见 [S2 进度](tasks/S2-progress.md)。
+环境：Windows 11 64 位 `10.0.26200`、PowerShell 7.6.9、Node.js 24.16.0、npm 11.13.0、Forge/Cast/Anvil 1.7.1、Kubo 0.43.1。
+
+| 命令或操作 | 实际结果 |
+| --- | --- |
+| `npm run typecheck`、`npm run build` | 通过 |
+| `npm run check:bridge` | 54 个工具；真实 stdio 与 Streamable HTTP 调用、错误传播、同长度配置修改、环境变量重新展开通过 |
+| `npm run smoke -- --scope onchain,core,interfaces` | 真实 EAS 注册、声明、读取、撤销；个人消息与链下签名、篡改拒绝；CLI 和 MCP 通过 |
+| `npm run smoke -- --scope ipfs,package` | Kubo 离线 add/read 逐字节一致；真实 npm 包安装后 CLI/MCP 通过 |
+| `npm run smoke -- --scope development` | solc 编译、真实 Anvil Counter 部署和递增、Cast 四个工具、viem 六个工具通过 |
+| `npm run smoke -- --scope windows,package` | 中文/空格路径、junction 边界、混合大小写环境变量隔离；修复后的包入口通过 |
+| `dev_forge_build`、`dev_forge_test` | 真实 Solidity 0.7.6 编译和 `CounterTest.testIncrement` 通过 |
+| `dev_hardhat_compile` | 本地 Hardhat 2.22.4 使用 0.7.6 编译实际 Counter 源码成功 |
+| `dev_slither_analyze` | Slither 0.11.6 返回 `success:true`，保留两项 `solc-version` 信息提示及原始退出码 `4294967295` |
+| `dev_skill_list` / `dev_skill_read` | 本机技能发现、读取及目录边界检查通过 |
+
+本轮修复：开发工具对子进程的敏感环境变量过滤忽略名称大小写；Solidity import 和技能读取核对真实路径、拒绝跨盘符与 junction 越界；MCP 每次读取当前配置并展开当前环境变量。
+
+## S2 进度
 
 | 内容 | 状态 |
 | --- | --- |
-| S1：EAS/EVM、CID、Kubo，20 个工具 | 已完成，见下文 |
-| MCP 桥接（6 个工具） | 已实现；真实 stdio MCP 初始化、发现、调用、错误传播通过 |
-| 开发工具（12 个工具） | 已实现；solc 离线编译、Skills 读取通过；Forge 受本机 solc/网络限制，Cast 受本会话 TCP 限制 |
-| viem（6 个工具） | 已实现；真实 Anvil 部署、读写、回执、日志通过 |
-| EAS 扩展（+10 个工具） | 已实现；真实 Anvil 批量声明/撤销、时间戳、Delegated、PrivateData 通过 |
-| 外部 MCP 供应商真实调用 | 未完成：本机代理上游超时；Alchemy 待用户手机验证 |
-| Sign/SAS/Sui/Aptos/Walrus/Seal/Arweave | 未开始 |
-| 来源/身份与钱包/Agent 轨道 | 未开始 |
-| main 合并、推送 | 未完成：GitHub 不可达 |
-
-## 验证命令与结果（2026-10-23）
-
-| 命令 | 结果 |
-| --- | --- |
-| `npm run typecheck`、`npm run build` | 通过 |
-| `npm run check:bridge` | 通过；真实 stdio + Streamable HTTP MCP，初始化成功，54 个工具，真实 CID，上游错误使外层失败 |
-| `node dist/cli/main.js call dev_status --input '{}'` | Forge/Cast/Anvil 1.7.1、Hardhat 本地依赖、solc 0.7.3、Slither 未安装 |
-| `node dist/cli/main.js call dev_solidity_compile --input '{"path":"examples/contracts/src/Counter.sol"}'` | 编译成功，返回 ABI/bytecode，无诊断 |
-| `node dist/cli/main.js call dev_skill_list --input '{"maxResults":5}'` | 读取本机 `~/.agents/skills` 成功 |
-| `dev_forge_build`（offline） | 真实失败：没有匹配 `^0.7.0` 的 solc，且无法下载；工具返回 `ok:false`，未伪造成功 |
-| 真实 Anvil viem 脚本 | `viem_chain/block/balance`、部署 Counter、`viem_read` 0→1、`viem_transaction`、`viem_logs` 全部通过 |
-| 真实 Anvil EAS 脚本 | 多声明 2 个 UID、时间戳、PrivateData 证明、Delegated 签名/提交/撤销、批量撤销全部通过 |
-| `git diff --check` | 通过 |
+| S1：EAS/EVM、CID/Kubo | 20 个工具，真实本地验证通过 |
+| MCP 桥接 | 6 个工具，真实 stdio/Streamable HTTP 验证通过 |
+| 开发工具 | 12 个工具；本机 Forge、Cast、Hardhat、Slither、solc 和 Skills 已运行 |
+| viem 与 EAS 扩展 | 6 个 viem 工具与 10 个 EAS 扩展；EAS 批量、时间戳、Delegated、PrivateData 的已有实际结果见 [S2 进度](tasks/S2-progress.md) |
+| 外部 MCP 供应商真实调用 | 未完成；Alchemy 手机验证仍需用户完成 |
+| Sign/SAS/Sui/Aptos/Walrus/Seal/Arweave、来源/身份、钱包/Agent | 未开始 |
+| main 合并 | 未执行；Windows 修复保留在当前开发分支 |
 
 ## 真实限制与未执行操作
 
-- 外部 MCP 供应商（CoinGecko、Alchemy、Allium、Tenderly、Chainstack、thirdweb、Nansen、Dune、Token Terminal、Messari、GoPlus、Kaito）尚未完成真实 `tools/list`/`callTool`。预设和配置入口已实现；本机代理到外网上游持续超时。
-- Alchemy 官方强制手机短信/语音验证；Allium 登录页 CDP 读取超时。网页登录成功不等于 MCP 授权完成。
-- Slither 未安装；Forge 没有本机 solc，网络被阻断无法下载。
-- 公共测试网写入、生产交易、npm 公开发布、生产钱包和原生 Codex 控制器审计未执行。包保持 `private: true`。
-- `main` 尚未合并；本轮提交尚不能推送，原因是 GitHub 连接失败。
+- Slither 安装在隔离环境 `.work/windows-tools`，使用时需将其 `Scripts` 加入当前进程 PATH；示例采用的 Solidity 0.7.x 有两项版本信息提示。
+- Hardhat 实测版本为本机安装的 2.22.4；Windows 验证限定本机 Windows 11、PowerShell 7 和 Node.js 24，未验证 Windows ARM64、Windows PowerShell 5.1 或其他系统版本。
+- npm 和 GitHub 本次均可连接；外部 MCP 供应商未在本轮重新验证，不能据此判定供应商调用可用。
+- 公共测试网写入、生产交易、npm 公开发布和原生 Codex 控制器审计未执行；包保持 `private: true`。

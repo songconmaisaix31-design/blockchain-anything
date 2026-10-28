@@ -1,6 +1,6 @@
 # 开发工具
 
-更新日期：2026-10-23。实现位于 `src/development/`，全部使用真实本机 CLI 或官方编译器，不提供任意 shell 执行器。
+更新日期：2026-10-29。实现位于 `src/development/`，全部使用真实本机 CLI 或官方编译器，不提供任意 shell 执行器。
 
 ## 工具
 
@@ -21,6 +21,8 @@
 
 子进程使用固定命令与参数，`shell:false`，超时与输出上限可配；默认不把 `BCA_PRIVATE_KEY` 和 MCP 凭据传给子进程。
 
+敏感环境变量过滤忽略名称大小写。Solidity import 与技能读取在读取前解析真实路径并核对根目录范围；拒绝跨盘符路径与指向根目录外的 junction。技能根目录本身可以是 junction，其实际目标作为读取边界。
+
 ## 示例项目
 
 `examples/contracts/` 是一个最小 Foundry 项目：
@@ -29,11 +31,17 @@
 - `test/Counter.t.sol` — Forge 测试。
 - `foundry.toml` — 标准配置。
 
-## 实际验证（2026-10-23）
+## 实际验证（2026-10-29）
 
-- `dev_status`：Forge/Cast/Anvil 1.7.1、Hardhat 本地依赖、solc 0.7.3 被正确识别；Slither 未安装返回 `null`。
+- `dev_status`：Forge/Cast/Anvil 1.7.1、Hardhat 本地依赖、solc 0.7.3 被正确识别；Slither 位于本轮隔离的 Python 环境。
 - `dev_solidity_compile` 编译 `Counter.sol` 成功，返回 ABI 与 bytecode，无诊断。
 - `dev_skill_list` / `dev_skill_read` 读取本机 `~/.agents/skills` 成功。
-- `dev_forge_build`（`offline:true`）真实返回失败：本机没有与 `^0.7.0` 匹配的 solc；网络被代理阻断，Forge 无法自动下载编译器。这是环境限制，工具没有伪造成功。
-- `dev_cast_*` 已按固定参数实现；本机 DSH 会话对 Anvil 的 TCP 连接返回 `EADDRINUSE`（curl 可连），因此 Cast 调用尚未在本会话复测。该限制不影响普通终端中的 Cast。
-- Slither 未安装，`dev_slither_analyze` 会明确失败并提示安装。
+- `dev_forge_build` 使用 Solidity 0.7.6 实际编译成功；`dev_forge_test` 离线运行 `CounterTest.testIncrement` 成功。
+- `dev_cast_*` 的 chain ID、区块号、余额和只读合约调用均在真实 Anvil 上通过。
+- `dev_hardhat_compile` 通过本地 Hardhat 2.22.4 编译实际 Counter 源码，使用正常下载的 Solidity 0.7.6。
+- Slither 0.11.6 安装于 `.work/windows-tools`；把其 `Scripts` 加入当前进程 PATH 后，`dev_slither_analyze` 对 Foundry 示例完成真实分析，返回 `success:true`、两项 `solc-version` 信息提示及原始非零退出码 `4294967295`。结果没有删除发现项。
+
+```powershell
+$env:PATH = (Join-Path (Get-Location) '.work/windows-tools/Scripts') + [IO.Path]::PathSeparator + $env:PATH
+node dist/cli/main.js call dev_slither_analyze --input '{"target":"examples/contracts","timeoutMs":120000}'
+```

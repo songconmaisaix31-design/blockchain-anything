@@ -266,8 +266,6 @@ function parseDocument(text: string, source: string): Record<string, ResolvedSer
   return servers;
 }
 
-let cached: { key: string; servers: Record<string, ResolvedServer> } | undefined;
-
 export function configSource(): { inline: boolean; file: string | null } {
   const inline = Boolean(process.env.BCA_MCP_SERVERS);
   return { inline, file: process.env.BCA_MCP_CONFIG ?? null };
@@ -279,20 +277,12 @@ export async function loadMcpServers(): Promise<Record<string, ResolvedServer>> 
   if (inline && file) throw new Error('BCA_MCP_SERVERS 与 BCA_MCP_CONFIG 只能设置一个');
   if (!inline && !file) return {};
   if (inline) {
-    const key = `inline:${inline}`;
-    if (cached?.key === key) return cached.servers;
-    const servers = parseDocument(inline, 'BCA_MCP_SERVERS');
-    cached = { key, servers };
-    return servers;
+    return parseDocument(inline, 'BCA_MCP_SERVERS');
   }
   const path = isAbsolute(file!) ? file! : resolve(process.cwd(), file!);
   const text = await readFile(path, 'utf8');
   if (Buffer.byteLength(text) > 1024 * 1024) throw new Error('BCA_MCP_CONFIG 文件超过 1MB');
-  const key = `file:${path}:${text.length}`;
-  if (cached?.key === key) return cached.servers;
-  const servers = parseDocument(text, 'BCA_MCP_CONFIG');
-  cached = { key, servers };
-  return servers;
+  return parseDocument(text, 'BCA_MCP_CONFIG');
 }
 
 export function describeServers(servers: Record<string, ResolvedServer>) {

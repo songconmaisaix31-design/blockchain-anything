@@ -1,8 +1,8 @@
 import { createRequire } from 'node:module';
-import { readFileSync } from 'node:fs';
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { readFileSync, realpathSync } from 'node:fs';
+import { readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { basename, join, relative, resolve, sep } from 'node:path';
+import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { z } from 'zod';
 import type { Config } from '../config.js';
 import { defineTool } from '../types.js';
@@ -33,12 +33,12 @@ async function readSkillRoot(): Promise<string> {
   const root = configured ? resolve(configured) : join(homedir(), '.agents', 'skills');
   const info = await stat(root).catch(() => null);
   if (!info?.isDirectory()) throw new Error(`技能目录不存在：${root}；设置 BCA_SKILLS_ROOT`);
-  return root;
+  return realpath(root);
 }
 
 function inside(root: string, target: string): boolean {
   const path = relative(root, target);
-  return path !== '..' && !path.startsWith(`..${sep}`) && !path.startsWith(sep);
+  return path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path);
 }
 
 const timeoutSchema = z.number().int().positive().max(600_000).optional();
@@ -94,7 +94,9 @@ export function developmentTools(config: Config) {
               const candidate = resolve(root, importPath);
               if (!inside(root, candidate)) return { error: `import 超出 BCA_WORKING_ROOT：${importPath}` };
               try {
-                return { contents: readFileSync(candidate, 'utf8') };
+                const resolved = realpathSync(candidate);
+                if (!inside(root, resolved)) return { error: `import 超出 BCA_WORKING_ROOT：${importPath}` };
+                return { contents: readFileSync(resolved, 'utf8') };
               } catch {
                 return { error: `无法解析 import：${importPath}；仅支持 BCA_WORKING_ROOT 内的路径` };
               }
@@ -263,7 +265,7 @@ export function developmentTools(config: Config) {
       async ({ name }) => {
         const root = await readSkillRoot();
         if (name.includes('..') || name.includes('/') || name.includes('\\')) throw new Error('name 必须为技能目录名');
-        const path = join(root, name, 'SKILL.md');
+        const path = await realpath(join(root, name, 'SKILL.md'));
         if (!inside(root, path)) throw new Error('路径超出 BCA_SKILLS_ROOT');
         const text = await readFile(path, 'utf8');
         return { name, path, bytes: Buffer.byteLength(text), content: text };

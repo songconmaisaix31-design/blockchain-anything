@@ -28,10 +28,24 @@ npm run smoke -- --scope package
 | `package` | npm pack 后在隔离目录安装真实依赖，运行包内 CLI 的 JSON 结果和非零错误，通过官方 MCP client 发现全部工具、调用 CID 和接收结构化错误 |
 | `core` | 本地真实部署下的 EIP-191 恢复、篡改消息失败、EAS v2 链下签署/验签及篡改拒绝、未检查项标志、配置 chain ID 不匹配拒绝 |
 | `interfaces` | 对当前 dist 执行与安装包相同的 CLI/官方 MCP client 检查 |
+| `windows` | 真实 Windows 中文/空格路径、Solidity import 与技能读取的 junction 边界、技能根目录 junction、混合大小写敏感环境变量隔离 |
+| `development` | 真实 Anvil 上 solc 编译/部署 Counter、Cast 四项只读调用和 viem 六项操作，核对 Counter 从 0 到 1 |
 
 每次运行均核对实际 README 的 raw CID、字节数与 SHA-256。`core` 和 `interfaces` 用于相关代码变更后的回归检查；可通过逗号选择多个范围。打包检查需要已生成的 `dist`，因此从新 checkout 运行前须完成构建。
 
 本地 Anvil 结果、官方 MCP SDK 结果、公共测试网结果和原生 Codex 控制器审计分别记录。此脚本没有执行公共网络写入、生产交易、npm 公开发布或原生 Codex SQLite/HTTP/会话/event_id 审计。
+
+## Windows 专项检查
+
+```powershell
+npm run smoke -- --scope windows
+npm run smoke -- --scope development
+npm run check:bridge
+```
+
+`windows` 必须在真实 Windows 上运行，使用仓库合约和 README 的实际内容，在 `.work/smoke-*` 中创建目录与 junction。`development` 需要 PATH 中的 Cast，以及 `ANVIL_BIN` 或 PATH 中的 Anvil；直接使用正常 RPC 传输。桥接检查还验证配置文件同长度修改与当前环境变量重新展开。
+
+2026-10-29 在 Windows 11 `10.0.26200`、PowerShell 7.6.9、Node.js 24.16.0、npm 11.13.0 上通过类型/构建、上述专项检查及真实 EAS/Kubo/CLI/MCP/包入口验证。Forge 1.7.1 的 Solidity 0.7.6 构建和测试、Hardhat 2.22.4 编译通过；Slither 0.11.6 实际分析完成并返回两项 `solc-version` 信息提示。完整命令与结果见 [Windows 验证任务](../../tasks/windows-availability.md)。
 
 ## 2026-10-23 实际结果
 
