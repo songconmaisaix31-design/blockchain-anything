@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { createMcpHandler } from '@modelcontextprotocol/server';
 import { createMcpServer } from '../src/mcp/main.js';
 import { createToolkit } from '../src/toolkit.js';
+import { loadMcpServers } from '../src/bridge/config.js';
 
 // 用仓库自己构建出的真实官方 MCP 服务验证桥接的 stdio 与 Streamable HTTP。
 // 外部供应商端点需要网络和操作者授权，不在此脚本内伪造。
@@ -33,7 +34,7 @@ const port = typeof address === 'object' && address ? address.port : 0;
 
 const configPath = resolve(root, '.work/bridge-check-config.json');
 await mkdir(resolve(root, '.work'), { recursive: true });
-await writeFile(configPath, JSON.stringify({
+const configuration = {
   mcpServers: {
     'bca-self': {
       transport: 'stdio', readOnlyTools: ['content_cid'],
@@ -44,8 +45,10 @@ await writeFile(configPath, JSON.stringify({
     },
     'bca-http': { readOnlyTools: ['content_cid'], url: `http://127.0.0.1:${port}/mcp` },
   },
-}, null, 2));
+};
+await writeFile(configPath, JSON.stringify(configuration, null, 2));
 
+for (const key of Object.keys(process.env)) if (key.toUpperCase() === 'BCA_MCP_SERVERS') delete process.env[key];
 process.env.BCA_MCP_CONFIG = configPath;
 const toolkit = createToolkit();
 const call = async (name: string, input: unknown = {}) => toolkit.invoke(name, input) as Promise<any>;
@@ -87,12 +90,31 @@ try {
   });
   assert.equal(httpCalled.result.structuredContent.result.cid, structured.cid);
 
+  const updated = { mcpServers: { 'bca-copy': configuration.mcpServers['bca-self'], 'bca-http': configuration.mcpServers['bca-http'] } };
+  assert.equal(JSON.stringify(updated).length, JSON.stringify(configuration).length);
+  await writeFile(configPath, JSON.stringify(updated, null, 2));
+  const reloaded = await call('bridge_call', { server: 'bca-copy', tool: 'content_cid', arguments: { path: 'README.md' } });
+  assert.equal(reloaded.result.structuredContent.result.cid, structured.cid);
+  await assert.rejects(() => call('bridge_discover', { server: 'bca-self' }), /未知 MCP 服务/);
+  delete process.env.BCA_MCP_CONFIG;
+  process.env.BCA_MCP_SERVERS = JSON.stringify({ mcpServers: { local: { ...configuration.mcpServers['bca-self'], env: { BCA_WORKING_ROOT: '${BCA_CHECK_ROOT}' } } } });
+  process.env.BCA_CHECK_ROOT = root;
+  const first = (await loadMcpServers()).local;
+  assert(first?.transport === 'stdio');
+  assert.equal(first.env.BCA_WORKING_ROOT, root);
+  process.env.BCA_CHECK_ROOT = resolve(root, '.work');
+  const second = (await loadMcpServers()).local;
+  assert(second?.transport === 'stdio');
+  assert.equal(second.env.BCA_WORKING_ROOT, resolve(root, '.work'));
+
   process.stdout.write(`${JSON.stringify({
     ok: true,
     tools: discovered.tools.length,
     cid: structured.cid,
     transports: ['stdio', 'http'],
     httpPort: port,
+    sameLengthConfigReload: true,
+    environmentReload: true,
   }, null, 2)}\n`);
 } finally {
   await toolkit.close();

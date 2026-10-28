@@ -3,7 +3,7 @@ import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { once } from 'node:events';
 import { createWriteStream } from 'node:fs';
-import { mkdir, mkdtemp, readFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, symlink } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { createServer } from 'node:net';
 import { resolve } from 'node:path';
@@ -13,12 +13,13 @@ import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { ContractFactory, JsonRpcProvider, Wallet, ZeroHash, hexlify, parseEther } from 'ethers';
 import { CID } from 'multiformats/cid';
 import { createToolkit } from '../src/toolkit.js';
+import { run } from '../src/development/exec.js';
 
 const { values } = parseArgs({ options: { scope: { type: 'string', default: 'onchain,ipfs,package' } } });
 const scopes = values.scope!.split(',');
-assert(scopes.every((scope) => ['core', 'onchain', 'ipfs', 'interfaces', 'package'].includes(scope)), '未知 scope');
+assert(scopes.every((scope) => ['core', 'onchain', 'ipfs', 'interfaces', 'package', 'windows', 'development'].includes(scope)), '未知 scope');
 const root = process.cwd();
-for (const key of Object.keys(process.env)) if (key.startsWith('BCA_')) delete process.env[key];
+for (const key of Object.keys(process.env)) if (key.toUpperCase().startsWith('BCA_')) delete process.env[key];
 process.env.BCA_WORKING_ROOT = root;
 process.env.BCA_TIMEOUT_MS = '15000';
 const cleanEnv = { ...process.env };
@@ -109,6 +110,31 @@ async function evmChecks() {
     const decoded = await call('eas_schema_decode', { schema, data: encoded.data });
     assert.equal(decoded.fields[0].value.value, content.cid);
     assert.equal(decoded.fields[1].value.value, hexlify(bytes));
+    if (scopes.includes('development')) {
+      const compiled = await call('dev_solidity_compile', { path: 'examples/contracts/src/Counter.sol' });
+      assert.equal(compiled.success, true);
+      const artifact = compiled.contracts.find((contract: { name: string }) => contract.name === 'Counter');
+      assert(artifact);
+      const counter = await new ContractFactory(artifact.abi, artifact.bytecode, deployer).deploy();
+      await counter.waitForDeployment();
+      const address = await counter.getAddress();
+      assert.equal((await call('dev_cast_chain_id')).chainId, '31337');
+      assert(BigInt((await call('dev_cast_block_number')).blockNumber) > 0n);
+      assert.equal((await call('dev_cast_balance', { address: wallet.address })).balanceWei, parseEther('1').toString());
+      assert.equal((await call('dev_cast_call', { to: address, signature: 'get()(uint256)' })).parsed[0], 0);
+      assert.equal((await call('viem_chain')).chainId, '31337');
+      assert.equal((await call('viem_balance', { address: wallet.address })).balanceWei, parseEther('1').toString());
+      assert(BigInt((await call('viem_block')).block.number) > 0n);
+      assert.equal((await call('viem_read', { address, abi: artifact.abi, functionName: 'get' })).result, '0');
+      const increment = await counter.getFunction('increment')();
+      await increment.wait();
+      assert.equal((await call('viem_read', { address, abi: artifact.abi, functionName: 'get' })).result, '1');
+      const transaction = await call('viem_transaction', { hash: increment.hash });
+      assert.equal(transaction.found, true);
+      assert.equal(transaction.receiptFound, true);
+      assert.equal((await call('viem_logs', { address, fromBlock: '0' })).count, 0);
+      console.log(JSON.stringify({ scope: 'development', compiler: compiled.compiler, cast: true, viem: true, contract: address, incrementHash: increment.hash }));
+    }
     if (scopes.includes('onchain')) {
       const registered = await call('eas_schema_register', { schema, revocable: true, submit: true });
       assert.equal(registered.receipt.status, 1);
@@ -156,7 +182,7 @@ async function evmChecks() {
     }
   } finally {
     provider.destroy();
-    for (const key of Object.keys(process.env)) if (key.startsWith('BCA_')) delete process.env[key];
+    for (const key of Object.keys(process.env)) if (key.toUpperCase().startsWith('BCA_')) delete process.env[key];
     Object.assign(process.env, cleanEnv);
   }
 }
@@ -224,9 +250,57 @@ async function interfaceChecks(cli: string, mcp: string, cwd: string) {
   }
 }
 
+async function windowsChecks() {
+  assert.equal(process.platform, 'win32', 'windows 范围需要真实 Windows 系统');
+  const workspace = resolve(work, '中文 空格');
+  const restricted = resolve(work, 'restricted');
+  await cp(resolve(root, 'examples/contracts'), workspace, { recursive: true, filter: (path) => !['out', 'cache'].includes(path.split(/[\\/]/).at(-1)!) });
+  await cp(resolve(root, 'README.md'), resolve(workspace, 'README.md'));
+  await mkdir(resolve(restricted, 'test'), { recursive: true });
+  await cp(resolve(root, 'examples/contracts/test/Counter.t.sol'), resolve(restricted, 'test/Counter.t.sol'));
+  await symlink(resolve(workspace, 'src'), resolve(restricted, 'src'), 'junction');
+  try {
+    process.env.BCA_WORKING_ROOT = workspace;
+    const allowed = createToolkit();
+    assert.equal((await allowed.invoke('content_cid', { path: 'README.md' }) as any).cid, content.cid);
+    assert.equal((await allowed.invoke('dev_solidity_compile', { path: 'test/Counter.t.sol' }) as any).success, true);
+    process.env.BCA_WORKING_ROOT = restricted;
+    const confined = createToolkit();
+    const denied = await confined.invoke('dev_solidity_compile', { path: 'test/Counter.t.sol' }) as any;
+    assert.equal(denied.success, false);
+    assert(denied.diagnostics.some((item: { message: string }) => item.message.includes('import 超出 BCA_WORKING_ROOT')));
+    await assert.rejects(confined.invoke('content_cid', { path: 'src/Counter.sol' }), /超出 BCA_WORKING_ROOT/);
+    await assert.rejects(confined.invoke('dev_forge_build', { dir: 'src', offline: true }), /超出 BCA_WORKING_ROOT/);
+    await mkdir(resolve(restricted, 'skills'));
+    await cp(resolve(root, 'README.md'), resolve(workspace, 'SKILL.md'));
+    await symlink(workspace, resolve(restricted, 'skills/external'), 'junction');
+    process.env.BCA_SKILLS_ROOT = resolve(restricted, 'skills');
+    await assert.rejects(confined.invoke('dev_skill_read', { name: 'external' }), /超出 BCA_SKILLS_ROOT/);
+    const skillParent = resolve(work, 'skill-parent');
+    await mkdir(skillParent);
+    await symlink(skillParent, resolve(work, 'skill-root'), 'junction');
+    await mkdir(resolve(skillParent, 'local'));
+    await cp(resolve(root, 'README.md'), resolve(skillParent, 'local/SKILL.md'));
+    process.env.BCA_SKILLS_ROOT = resolve(work, 'skill-root');
+    assert.equal((await confined.invoke('dev_skill_read', { name: 'local' }) as any).content, bytes.toString('utf8'));
+    process.env.BcA_PrIvAtE_KeY = Wallet.createRandom().privateKey;
+    process.env.BcA_McP_SeRvErS = JSON.stringify({ mcpServers: {} });
+    process.env.BcA_McP_CoNfIg = resolve(work, 'mcp.json');
+    for (const key of ['BcA_Api_ToKeN', 'BcA_AuTh', 'BcA_SeCrEt', 'BcA_PaSsWoRd']) process.env[key] = process.execPath;
+    const child = await run(process.execPath, ['-e', 'console.log(JSON.stringify(Object.keys(process.env).filter(key => { const name = key.toUpperCase(); return ["BCA_MCP_SERVERS", "BCA_MCP_CONFIG"].includes(name) || (name.startsWith("BCA_") && /KEY|TOKEN|AUTH|SECRET|PASSWORD/.test(name)); })))'], { cwd: workspace, timeoutMs: 10000 });
+    assert.equal(child.exitCode, 0);
+    assert.deepEqual(JSON.parse(child.stdout), []);
+    console.log(JSON.stringify({ scope: 'windows', unicodeAndSpaces: true, junctionRejected: true, skillRootJunction: true, childCredentialsRemoved: true }));
+  } finally {
+    for (const key of Object.keys(process.env)) if (key.toUpperCase().startsWith('BCA_')) delete process.env[key];
+    Object.assign(process.env, cleanEnv);
+  }
+}
+
 try {
   console.log(JSON.stringify({ scopes, tools: local.tools.length, work }));
-  if (scopes.includes('core') || scopes.includes('onchain')) await evmChecks();
+  if (scopes.includes('windows')) await windowsChecks();
+  if (scopes.includes('core') || scopes.includes('onchain') || scopes.includes('development')) await evmChecks();
   if (scopes.includes('ipfs')) await ipfsChecks();
   if (scopes.includes('interfaces')) {
     const tools = await interfaceChecks(resolve(root, 'dist/cli/main.js'), resolve(root, 'dist/mcp/main.js'), root);

@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import { readFileSync, realpathSync, statSync } from 'node:fs';
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { readWorkingFile } from '../providers/files.js';
@@ -34,7 +34,7 @@ async function readSkillRoot(): Promise<string> {
   const root = configured ? resolve(configured) : join(homedir(), '.agents', 'skills');
   const info = await stat(root).catch(() => null);
   if (!info?.isDirectory()) throw new Error(`技能目录不存在：${root}；设置 BCA_SKILLS_ROOT`);
-  return root;
+  return realpath(root);
 }
 
 function inside(root: string, target: string): boolean {
@@ -93,10 +93,11 @@ export function developmentTools(config: Config) {
         try {
           output = JSON.parse(solc().compile(JSON.stringify(input), {
             import: (importPath: string) => {
+              if (!inside(root, resolve(root, importPath))) return { error: `import 超出 BCA_WORKING_ROOT：${importPath}` };
               for (const base of [root, join(root, 'node_modules')]) {
                 try {
                   const candidate = realpathSync(resolve(base, importPath));
-                  if (!inside(root, candidate)) continue;
+                  if (!inside(root, candidate)) return { error: `import 超出 BCA_WORKING_ROOT：${importPath}` };
                   const info = statSync(candidate);
                   if (!info.isFile() || info.size > config.maxFileBytes) continue;
                   const contents = readFileSync(candidate, 'utf8');
@@ -282,8 +283,8 @@ export function developmentTools(config: Config) {
       async ({ name }) => {
         const root = await readSkillRoot();
         if (name.includes('..') || name.includes('/') || name.includes('\\')) throw new Error('name 必须为技能目录名');
-        const path = realpathSync(join(root, name, 'SKILL.md'));
-        if (!inside(realpathSync(root), path)) throw new Error('路径超出 BCA_SKILLS_ROOT');
+        const path = await realpath(join(root, name, 'SKILL.md'));
+        if (!inside(root, path)) throw new Error('路径超出 BCA_SKILLS_ROOT');
         if (statSync(path).size > config.maxFileBytes) throw new Error('SKILL.md 超过文件大小上限');
         const text = await readFile(path, 'utf8');
         return { name, path, bytes: Buffer.byteLength(text), content: text };

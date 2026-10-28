@@ -46,3 +46,5 @@ BCA 使用官方 MCP TypeScript Client，支持 stdio 与 Streamable HTTP。配�
 直接 HTTP 配置适合已经具有有效授权头的服务；仅填 OAuth 服务 URL 并不能完成登录。Allium 旧域名 mcp-oauth.allium.so 将于 2026-10-31 停用；Chainstack 旧 rpc-nodes-mcp 与 Base MCP 不再作为新接入使用。
 
 Bankr、Brian、Heurist Mesh 采用原生 SDK/HTTP 适配，见 [钱包与 Agent](wallets-agents.md)。新供应商优先复用此桥接，不复制上游工具实现。
+
+`npm run check:bridge` 使用真实本地 stdio/HTTP 服务验证工具发现、CID 和错误传播，并检查同长度配置修改及当前环境变量重新展开。Windows 实际结果见 [验证记录](../../tasks/windows-availability.md)。

@@ -1,6 +1,6 @@
 # BCA 当前进度
 
-2026-10-27，版本 1.0.0。精简改动已通过 PR #1 合并 main（`9ef990a`）；v1 产品入口已完成相关真实验证，按 D14 授权交付 main。保持 `private:true`，未发布 npm。
+2026-10-29，版本 1.0.0。精简改动已通过 PR #1 合并 main（`9ef990a`）；v1 产品入口已完成相关真实验证，按 D14 授权交付 main。保持 `private:true`，未发布 npm。
 
 - 产品入口：`find / init / build / test / connect / setup / doctor`，共用 SDK/CLI/MCP 实现。
 - 实际任务：Counter / OpenZeppelin ERC20 创建、Foundry/Hardhat 编译测试、官方 MCP 发现和调用、EVM 失败诊断、本地 Anvil 部署并读回状态。
@@ -12,3 +12,5 @@
 本轮安装修复：PR #9 已合并，补齐跨平台 optional peer 锁文件和官方 registry 说明；PR #10 补上 Windows 官方 Foundry 二进制安装、Node 22.12 / 24 入口支持、Windows 文件身份检查与 npm 10 重打包兼容，新增三平台/版本 CI。Linux Node 22.12 的实际 tarball 安装、重复 setup、MCP CID、Counter 编译测试已通过；各 CI 结果见 PR 检查。
 
 依赖修复移除已记录的 critical 告警；持久运行目录在自己的根清单应用安全 overrides，并验证实际 protobuf 消息编解码。上游 high 等剩余告警继续由 #6 跟踪，见 [依赖安全状态](docs/guides/dependency-security.md)。在线文档源位于 docs/index.html，仓库描述和主题已补全；客户端 UI 与账户型业务仍未代验。
+
+Windows 修复已通过主线合并验证：进程凭据过滤忽略变量名大小写，保留主线的通用敏感字段过滤；Solidity import 与 Skills 拒绝根目录外的真实路径，保留依赖导入和大小限制；MCP 配置更新检查使用主线只读许可和会话关闭接口。类型、构建、Windows/本地链/125 个工具入口、MCP 桥接与会话、S2 离线 SDK、OpenZeppelin 依赖编译均通过。验证范围、命令和结果见 [Windows 记录](tasks/windows-availability.md)。

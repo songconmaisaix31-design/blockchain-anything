@@ -43,3 +43,9 @@ BCA_SKILLS_ROOT=.agents/skills node dist/cli/main.js call dev_skill_read --input
 Slither MCP 示例固定官方源码提交 `17755731bf7aba6e5ed4d72e116d9d394430b1e2`，并采用该提交 `uv.lock` 中的 FastMCP 2.14.3、MCP 1.25.0、Pydantic 2.12.5。实际发现浮动升级到 Pydantic 2.14.1 等组合时，上游 `tools/list` 序列化出现循环引用；固定官方版本后工具发现恢复。首次使用先在终端安装/运行示例中的 uvx 命令，确认环境可下载依赖；受代理限制时通过 MCP 的 env 显式传入所需代理变量。
 
 `examples/services/slither.json` 的 `cwd` 为仓库内 `examples/contracts`；从仓库根目录启动 BCA。分析其他项目时，将 cwd 和上游 request.path 同时指向那个项目，确保原生 Slither 的相对 import 按项目目录解析。先发现工具 Schema，例如 list_contracts 需要 `{"request":{"path":"/absolute/project"}}`；同时检查上游 structuredContent.success，MCP isError=false 本身不表示分析成功。
+
+## Windows 路径与进程环境
+
+敏感环境变量过滤忽略名称大小写。Solidity import 与技能读取在读取前解析真实路径并核对根目录范围；拒绝跨盘符路径与指向根目录外的 junction。技能根目录本身可以是 junction，其实际目标作为读取边界。
+
+主线使用 solc 0.8.35，保留 node_modules 导入、source map 和大小限制。Windows 局部验证见 [验证记录](../../tasks/windows-availability.md)。

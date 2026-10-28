@@ -50,10 +50,10 @@ export interface RunResult {
 export function childEnv(extra?: Record<string, string | undefined>): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env };
   // 子进程不需要 BCA 的签署私钥或 MCP 凭据；默认不继承。
-  delete env.BCA_PRIVATE_KEY;
-  delete env.BCA_MCP_SERVERS;
-  delete env.BCA_MCP_CONFIG;
-  for (const key of Object.keys(env)) if (key.startsWith('BCA_') && /KEY|TOKEN|AUTH|SECRET|PASSWORD/.test(key)) delete env[key];
+  for (const key of Object.keys(env)) {
+    const name = key.toUpperCase();
+    if (['BCA_MCP_SERVERS', 'BCA_MCP_CONFIG'].includes(name) || (name.startsWith('BCA_') && /KEY|TOKEN|AUTH|SECRET|PASSWORD/.test(name))) delete env[key];
+  }
   for (const [key, value] of Object.entries(extra ?? {})) {
     if (value === undefined) delete env[key];
     else env[key] = value;
