@@ -220,7 +220,10 @@ export function catalogTools(config: Config, getTools: () => ToolDefinition[]) {
     if (context.task && !['create', 'develop', 'mint'].includes(context.task)) return { task: context.task, facts: [], mismatches: [`NFT 创建不支持任务 ${context.task}`], steps: [] };
     const task = context.task ?? 'create'; const facts = task === 'mint' || context.dir ? [] : ['dir'];
     const mismatches = evmMismatches(context, true);
-    if (context.provider && !['foundry', 'openzeppelin'].includes(context.provider.toLowerCase())) mismatches.push(`NFT 模板未支持供应商 ${context.provider}`);
+    if (context.provider && context.provider.toLowerCase() !== 'foundry') {
+      const selected = await inspectProviders('', config.workingRoot, context.provider);
+      if (selected.matches.length !== 1 || selected.matches[0]!.preset.id !== 'openzeppelin') mismatches.push(`NFT 模板未支持供应商 ${context.provider}`);
+    }
     const dir = context.dir ?? '<new-directory>'; const steps: Step[] = [];
     if (task !== 'mint') {
       steps.push({ tool: 'project_init', input: { dir, template: 'erc721', submit: true }, purpose: '在新目录创建 OpenZeppelin ERC721URIStorage/Ownable 项目' });
