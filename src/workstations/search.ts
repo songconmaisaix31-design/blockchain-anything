@@ -3,7 +3,7 @@ import type { Config } from '../config.js';
 import { defineTool, type ToolDefinition } from '../types.js';
 import type { BridgeSessions } from '../bridge/session.js';
 import { isReadOnlyUpstream } from '../bridge/index.js';
-import { includesAlias, inspectProviders, loadMcpConfiguration, type ProviderMatch } from '../bridge/config.js';
+import { identifyChains, includesAlias, inspectProviders, loadMcpConfiguration, type ProviderMatch } from '../bridge/config.js';
 import { capabilityStatus } from './catalog.js';
 
 // 词汇只用于匹配实际目录，复杂任务由宿主补全。
@@ -15,14 +15,14 @@ const vocabulary = [
   ['ipfs', '去中心化存储'], ['file', '文件'], ['ticker', '行情', '价格'], ['exchange', '交易所', 'ccxt'],
   ['orderbook', '订单簿', '深度'], ['identity', '身份', 'did'], ['encrypt', '加密', 'seal'],
   ['source', '源码'], ['trace', '调用轨迹'], ['proxy', '代理'], ['event', '事件', 'logs', '日志'],
-  ['scan', '扫描', '漏洞', 'security', '安全', 'risk', '风险'], ['volume', '交易量'],
+  ['scan', '扫描', '漏洞', 'security', '安全', 'risk', '风险', 'slither', 'audit', '审计'], ['volume', '交易量'],
   ['simulation', 'simulate', '模拟'], ['analytics', '分析', 'sql', 'table', '数据表'],
 ];
 const stop = new Set(['a', 'an', 'the', 'my', 'me', 'to', 'for', 'of', 'in', 'on', 'use', 'using', 'with',
   'query', 'read', 'data', 'get', 'find', 'create', 'generate', 'please', 'help', 'list',
-  '请帮', '帮我', '一下', '一个', '如何', '怎么', '查询', '数据', '读取', '生成', '创建', '列出',
+  '请帮', '帮我', '一下', '一个', '如何', '怎么', '查询', '数据', '读取', '生成', '创建', '列出', '用', '在', '的', '请', '我', '帮',
   'evm', 'ethereum', 'base', 'arbitrum', 'optimism', 'polygon', 'bsc', 'avalanche', 'solana', 'sui', 'aptos', 'bitcoin', 'near', 'ton', 'tron', '链上', '以太', '太坊']);
-const specificConcepts = new Set(['balance', 'erc721', 'cid', 'ticker', 'orderbook', 'volume', 'simulation']);
+const specificConcepts = new Set(['balance', 'erc721', 'cid', 'ticker', 'orderbook', 'volume', 'simulation', 'scan']);
 
 function words(text: string) {
   const cleaned = text.toLowerCase().replace(/请帮|帮我|一下|一个|如何|怎么|查询|数据(?!表)|读取|生成|创建|列出/g, ' ');
@@ -36,23 +36,13 @@ function rank(query: string, name: string, description: string, requireObject = 
   const requested = vocabulary.filter((group) => group.some((word) => includesAlias(input, word)));
   const concepts = requested.filter((group) => group.some((word) => includesAlias(text, word)));
   const specific = requested.filter((group) => specificConcepts.has(group[0]!));
+  if (requireObject && requested.some((group) => group[0] === 'scan') && !concepts.some((group) => group[0] === 'scan')) return { score: 0, reasons: [] as string[] };
   if (requireObject && specific.length && !specific.some((group) => concepts.includes(group))) return { score: 0, reasons: [] as string[] };
   const actions = requested.filter((group) => ['compile', 'test', 'deploy'].includes(group[0]!));
   if (requireObject && actions.length && !actions.some((group) => concepts.includes(group))) return { score: 0, reasons: [] as string[] };
   const matches = words(input).filter((word) => includesAlias(text, word));
   return { score: (input === name.toLowerCase() ? 100 : 0) + matches.length * 2 + concepts.length * 3,
     reasons: [...new Set([...matches, ...concepts.map((group) => group[0]!)])] };
-}
-
-function requestedChains(query: string, chainFamily?: string) {
-  const names = ['evm', 'ethereum', 'base', 'arbitrum', 'optimism', 'polygon', 'bsc', 'avalanche', 'solana', 'sui', 'aptos', 'bitcoin', 'near', 'ton', 'tron'];
-  const found = names.filter((name) => includesAlias(query, name));
-  if (/以太坊/.test(query)) found.push('ethereum');
-  if (/索拉纳/.test(query)) found.push('solana');
-  if (/比特币/.test(query)) found.push('bitcoin');
-  if (chainFamily) found.push(chainFamily.toLowerCase());
-  const evm = new Set(['ethereum', 'base', 'arbitrum', 'optimism', 'polygon', 'bsc', 'avalanche']);
-  return { chains: [...new Set(found)], families: [...new Set(found.map((name) => evm.has(name) ? 'evm' : name))] };
 }
 
 function supportsChains(targets: string[], chains: string[]) {
@@ -78,11 +68,12 @@ export const capabilitySearchSchema = z.strictObject({
 export function searchTools(config: Config, getTools: () => ToolDefinition[], sessions: BridgeSessions) {
   return [defineTool('capability_search', '按任务查找内置工具与官方供应商；指定服务后发现真实目录，返回缺项、Schema 入口及实际调用入口。', capabilitySearchSchema, true,
     async ({ query, dir, chainFamily, provider, server, limit, offset, readOnly, details }) => {
-      const chains = requestedChains(query, chainFamily);
-      const inspected = await inspectProviders(query, config.workingRoot, provider);
+      const chains = identifyChains(query, chainFamily);
+      const localProvider = provider && ['foundry', 'hardhat', 'rpc', 'viem'].includes(provider.toLowerCase()) ? provider.toLowerCase() : undefined;
+      const inspected = await inspectProviders(query, config.workingRoot, localProvider ? undefined : provider);
       const selected = inspected.explicit ? inspected.matches : [];
       const providerMatches = inspected.explicit ? selected : inspected.matches.filter((item) =>
-        rank(query, item.preset.id, item.preset.tasks.join(' ')).score > 0 && (!chains.families.length || !item.preset.chains.length || supportsChains(item.preset.chains, chains.families)));
+        rank(query, item.preset.id, item.preset.tasks.join(' '), true).score > 0 && (!chains.families.length || !item.preset.chains.length || supportsChains(item.preset.chains, chains.families)));
       const providers = providerMatches.map((match) => providerResult(match, chains.families));
       let selectedServer = server;
       if (!server && selected.length === 1 && !inspected.ambiguity && selected[0]!.status === 'configured') selectedServer = selected[0]!.servers[0]!.name;
@@ -101,7 +92,11 @@ export function searchTools(config: Config, getTools: () => ToolDefinition[], se
           const snapshot = await sessions.list(entry, true);
           const aliases = service ? [service.preset.id, service.preset.label, ...service.preset.aliases, ...service.servers.map((item) => item.name)] : [selectedServer!];
           let taskQuery = query;
-          for (const alias of aliases) taskQuery = taskQuery.replace(new RegExp(alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), ' ');
+          for (const alias of aliases) {
+            const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const pattern = `${/^[a-z0-9]/i.test(alias) ? '(?<![a-z0-9])' : ''}${escaped}${/[a-z0-9]$/i.test(alias) ? '(?![a-z0-9])' : ''}`;
+            taskQuery = taskQuery.replace(new RegExp(pattern, 'ig'), ' ');
+          }
           const specificTask = vocabulary.some((group) => group.some((word) => includesAlias(taskQuery, word)));
           const generic = !words(taskQuery).length && !specificTask;
           const matches = snapshot.tools.map((tool) => ({ tool, readOnly: isReadOnlyUpstream(resolved, tool.name), ...rank(taskQuery, tool.name, tool.description ?? '') }))
@@ -120,8 +115,13 @@ export function searchTools(config: Config, getTools: () => ToolDefinition[], se
       }
       if (inspected.explicit) return { source: 'provider', providers, chains, total: 0, matches: [], nextOffset: null,
         ambiguity: inspected.ambiguity, reason: selected.length ? '先完成指定供应商的连接条件，再读取真实工具目录' : '未找到匹配供应商' };
-      const matches = getTools().filter((tool) => supportsChains((tool.metadata?.targets as string[] | undefined) ?? [], chains.families)
-          && (readOnly === undefined || tool.readOnly === readOnly))
+      const matches = getTools().filter((tool) => {
+        const source = (tool.metadata?.source as { name?: string } | undefined)?.name ?? '';
+        if (localProvider === 'foundry' && source.includes('hardhat')) return false;
+        if (localProvider === 'hardhat' && source.startsWith('@foundry-rs/')) return false;
+        return supportsChains((tool.metadata?.targets as string[] | undefined) ?? [], chains.families)
+          && (readOnly === undefined || tool.readOnly === readOnly);
+      })
         .map((tool) => ({ tool, ...rank(query, tool.name, tool.description, true) }))
         .filter((item) => item.score > 0).sort((a, b) => b.score - a.score || a.tool.name.localeCompare(b.tool.name));
       return { source: 'catalog', providers, chains, total: matches.length, nextOffset: offset + limit < matches.length ? offset + limit : null,

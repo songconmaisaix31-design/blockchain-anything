@@ -2,18 +2,6 @@
   "mcpServers": {
     "slither": {
       "preset": "slither",
-      "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/trailofbits/slither-mcp@17755731bf7aba6e5ed4d72e116d9d394430b1e2",
-        "--with",
-        "fastmcp==2.14.3",
-        "--with",
-        "mcp==1.25.0",
-        "--with",
-        "pydantic==2.12.5",
-        "slither-mcp"
-      ],
       "cwd": "examples/contracts"
     }
   }
