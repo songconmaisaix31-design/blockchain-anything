@@ -29,11 +29,19 @@ try {
     assert.equal(solana.candidates[0].provider, 'solana-agent-kit');
     assert.ok(solana.candidates[0].missingRequirements.some((item: string) => item.includes('plugin-nft')));
     assert.equal(solana.candidates[0].steps[0].tool, 'agent_actions');
+    assert.equal((await call('workstation_search', { query: '索拉纳 NFT' })).candidates[0].provider, 'solana-agent-kit');
     const dune = await call('workstation_search', { query: '用 Dune 查询 Base 最近七天交易量' });
     assert.equal(dune.candidates[0].id, 'onchain-data');
     assert.equal(dune.candidates[0].provider, 'dune');
     assert.ok(dune.candidates[0].missingRequirements.includes('BCA_DUNE_API_KEY'));
     assert.ok(dune.candidates[0].steps.some((step: any) => step.tool === 'bridge_configure'));
+    await call('bridge_configure', { preset: 'dune', name: 'analytics', submit: true });
+    const alias = await call('workstation_search', { query: 'analytics 查询 Base 交易量' });
+    assert.equal(alias.candidates[0].provider, 'dune');
+    assert.equal(alias.candidates[0].steps.find((step: any) => step.tool === 'bridge_refresh').input.server, 'analytics');
+    const unknownChains = await call('workstation_guide', { id: 'onchain-data', context: { provider: 'messari', chainFamily: 'solana' } });
+    assert.deepEqual(unknownChains.mismatches, []);
+    assert.ok(unknownChains.factsNeeded.includes('provider chain support'));
     for (const [securityInput, provider] of [['source', 'slither'], ['address', 'goplus'], ['transaction', 'tenderly']]) {
       const guide = await call('workstation_guide', { id: 'security-check', context: { securityInput } });
       assert.equal(guide.provider, provider);

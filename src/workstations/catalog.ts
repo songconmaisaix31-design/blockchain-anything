@@ -7,7 +7,7 @@ import { defineTool, type ToolDefinition } from '../types.js';
 import { resolveExecutable } from '../development/exec.js';
 import { inspectProject } from '../development/workspace.js';
 import { resolveWorkingDir } from '../development/exec.js';
-import { inspectProviders, type ProviderMatch } from '../bridge/config.js';
+import { identifyChains, inspectProviders, type ProviderMatch } from '../bridge/config.js';
 
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
 const pkg = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
@@ -162,7 +162,8 @@ export function catalogTools(config: Config, getTools: () => ToolDefinition[]) {
     if (found.matches.length !== 1) return { task: stationId, facts: ['provider'], mismatches: [found.ambiguity ?? `无法确定供应商 ${context.provider ?? defaultProvider}`], steps: [] };
     const service = found.matches[0]!;
     if (!service.preset.workstations.includes(stationId)) mismatches.push(`${service.preset.label} 未登记此工作站能力`);
-    if (context.chainFamily && !service.preset.chains.includes('any') && !service.preset.chains.includes(context.chainFamily.toLowerCase())) mismatches.push(`${service.preset.label} 未登记支持 ${context.chainFamily}`);
+    if (context.chainFamily && !service.preset.chains.length) facts.push('provider chain support');
+    else if (context.chainFamily && !service.preset.chains.includes('any') && !service.preset.chains.includes(context.chainFamily.toLowerCase())) mismatches.push(`${service.preset.label} 未登记支持 ${context.chainFamily}`);
     const exactServer = service.servers.find((entry) => entry.name.toLowerCase() === context.provider?.toLowerCase());
     const server = exactServer?.name ?? (service.servers.length === 1 ? service.servers[0]!.name : service.servers.length === 0 ? service.preset.id : undefined);
     if (!server) facts.push('provider 配置名称');
@@ -266,6 +267,8 @@ export function catalogTools(config: Config, getTools: () => ToolDefinition[]) {
   async function guide(id: string, context: Context) {
     const station = workstations.find((item) => item.id === id);
     if (!station) throw new Error('未知工作站');
+    const normalizedFamily = identifyChains('', context.chainFamily).families[0];
+    context = { ...context, chainFamily: normalizedFamily };
     const plan = await ({ 'evm-develop': developGuide, 'evm-diagnose': diagnoseGuide, 'nft-create': nftGuide, 'onchain-data': dataGuide, 'security-check': securityGuide }[id]!(context));
     const { steps } = plan; const required = [...new Set(steps.map((step) => step.tool))];
     const requiredCapabilities = await statuses(required, context.dir);
@@ -294,10 +297,10 @@ export function catalogTools(config: Config, getTools: () => ToolDefinition[]) {
         const normalized = query.toLowerCase();
         const localProvider = context.provider && ['foundry', 'hardhat', 'rpc', 'viem', 'solana-agent-kit'].includes(context.provider.toLowerCase());
         const providers = await inspectProviders(query, config.workingRoot, localProvider ? undefined : context.provider);
-        const chains = [...new Set([...normalized.matchAll(/(?:^|[^a-z])(solana|bitcoin|sui|aptos|ethereum|base|arbitrum|optimism|polygon|evm)(?=$|[^a-z])/g)].map((match) => match[1]!))];
+        const identified = identifyChains(`${query} ${context.chain ?? ''}`, context.chainFamily);
+        const chains = identified.chains.filter((chain) => chain !== 'evm' || identified.chains.length === 1);
         const chain = chains.length === 1 ? chains[0] : undefined;
-        const inferredFamily = chain && ['ethereum', 'base', 'arbitrum', 'optimism', 'polygon', 'evm'].includes(chain) ? 'evm' : chain;
-        const family = context.chainFamily ?? inferredFamily;
+        const family = identified.families.length === 1 ? identified.families[0] : undefined;
         const isSecurity = /安全|风险|漏洞|审计|模拟|security|risk|audit|simulat/.test(normalized);
         const isDiagnosis = /失败|报错|回滚|诊断|revert|failed|debug|trace/.test(normalized);
         const isData = /交易量|数据|分析|活跃地址|volume|analytics|on.?chain data/.test(normalized);
