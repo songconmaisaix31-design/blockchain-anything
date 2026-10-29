@@ -56,8 +56,9 @@ export function metadataFor(tool: ToolDefinition) {
   if (name.startsWith('dev_hardhat')) Object.assign(source, { type: 'CLI', name: 'project-installed hardhat', version: null, official: true, url: 'https://hardhat.org/docs' });
   if (['evm_proxy', 'evm_contract_source'].includes(name)) Object.assign(source, { type: 'SDK/API', name: name === 'evm_proxy' ? 'viem / ERC-1967 / ERC-1167' : 'Sourcify v2 / local compiler artifact / viem', version: dependencies.viem, official: true, url: name === 'evm_proxy' ? 'https://viem.sh' : 'https://docs.sourcify.dev/docs/api/' });
   return { source, workstations: workstations.filter((station) => [...station.required, ...station.optional].includes(name)).map((station) => station.id),
-    targets: /^(evm_|viem_|eas_|dev_(forge|cast|solidity|hardhat)|workstation_diagnose)/.test(name) ? ['evm'] : ['provider-specific'],
-    impact: name === 'dev_forge_deploy_local' ? ['local-files', 'onchain-submit'] : name === 'dev_forge_verify' ? ['source-upload'] :
+    targets: /^(evm_|viem_|eas_|safe_|project_|dev_(forge|cast|solidity|hardhat|slither|erc721)|workstation_diagnose)/.test(name) ? ['evm']
+      : ['solana', 'sas'].includes(family) ? ['solana'] : ['sui', 'seal'].includes(family) ? ['sui'] : family === 'aptos' ? ['aptos'] : ['any'],
+    impact: name === 'dev_erc721_mint_local' ? ['onchain-submit'] : name === 'dev_forge_deploy_local' ? ['local-files', 'onchain-submit'] : name === 'dev_forge_verify' ? ['source-upload'] :
       /^(dev_(forge|hardhat)|project_|system_setup|bridge_configure)/.test(name) ? ['local-files'] : tool.readOnly ? ['read'] : ['provider-defined-write-or-sign'],
     requirements: { executable: binary ?? null, projectDirectory: /^dev_/.test(name), authorization: tool.readOnly ? 'read' : 'host/operator authorization according to tool schema' } };
 }

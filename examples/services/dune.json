@@ -1,5 +1,5 @@
 {
   "mcpServers": {
-    "dune": { "preset": "dune", "headers": { "x-dune-api-key": "${BCA_DUNE_API_KEY}" } }
+    "dune": { "preset": "dune" }
   }
 }
