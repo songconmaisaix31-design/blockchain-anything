@@ -1,8 +1,94 @@
 import assert from 'node:assert/strict';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
+import { createServer } from 'node:net';
+import { promisify } from 'node:util';
+import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
+import { Client } from '@modelcontextprotocol/client';
 import { createToolkit } from '../src/toolkit.js';
+import { ProcessTreeStdioClientTransport } from '../src/bridge/session.js';
+
+async function checkWindowsProcessTrees() {
+  assert.equal(process.platform, 'win32', '--windows-tree 需要 Windows');
+  type Process = { ProcessId: number; ParentProcessId: number; Created: string };
+  const processes = async (): Promise<Process[]> => {
+    const { stdout } = await promisify(execFile)('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
+      "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,@{Name='Created';Expression={$_.CreationDate.ToUniversalTime().ToString('o')}} | ConvertTo-Json -Compress"],
+    { windowsHide: true, timeout: 10_000, maxBuffer: 4 * 1024 * 1024 });
+    return JSON.parse(stdout);
+  };
+  const descendants = (all: Process[], root: number) => {
+    const selected = new Set([root]);
+    for (let size = 0; size !== selected.size;) {
+      size = selected.size;
+      for (const item of all) if (selected.has(item.ParentProcessId)) selected.add(item.ProcessId);
+    }
+    return all.filter((item) => selected.has(item.ProcessId));
+  };
+  const assertGone = async (owned: Process[]) => {
+    const remaining = (await processes()).filter((item) => owned.some((prior) => prior.ProcessId === item.ProcessId && prior.Created === item.Created));
+    assert.deepEqual(remaining, [], '本次 transport 启动的进程树必须全部退出');
+  };
+  const official = new ProcessTreeStdioClientTransport({ command: 'npx', args: ['--no-install', '@openzeppelin/contracts-mcp'], stderr: 'pipe' });
+  official.stderr?.on('data', () => {});
+  const client = new Client({ name: 'bca-session-check', version: '1.0.0' });
+  try {
+    await client.connect(official, { timeout: 30_000 });
+    assert.ok(official.pid);
+    const rootPid = official.pid;
+    const owned = descendants(await processes(), rootPid);
+    assert.ok(owned.length >= 2, '通过真实 npx 启动的官方 OpenZeppelin 必须包含后代进程');
+    assert.ok((await client.listTools()).tools.some((tool) => tool.name === 'solidity-erc20'));
+    const generated = await client.callTool({ name: 'solidity-erc20', arguments: { name: 'TreeToken', symbol: 'TREE' } });
+    assert.match(JSON.stringify(generated), /contract TreeToken/);
+    await client.close();
+    await official.close();
+    await assertGone(owned);
+    console.log(JSON.stringify({ check: '官方 OpenZeppelin 正常关闭', transportPid: rootPid, observedPids: owned.map((item) => item.ProcessId), remaining: 0 }));
+  } finally { await official.close(); }
+
+  await mkdir(resolve('.work'), { recursive: true });
+  const isolated = await mkdtemp(resolve('.work/oauth-session-'));
+  const cache = resolve(isolated, 'oauth-cache'); await mkdir(cache);
+  const listener = createServer();
+  await new Promise<void>((done) => listener.listen(0, '127.0.0.1', done));
+  const port = (listener.address() as { port: number }).port;
+  await new Promise<void>((done, reject) => listener.close((error) => error ? reject(error) : done()));
+  const remote = new ProcessTreeStdioClientTransport({ command: 'npx',
+    args: ['-y', 'mcp-remote@0.15.2', 'https://api.dune.com/mcp/v1', String(port), '--auth-timeout', '120'],
+    env: { MCP_REMOTE_CONFIG_DIR: cache }, stderr: 'pipe' });
+  remote.stderr?.on('data', () => {});
+  const remoteClient = new Client({ name: 'bca-oauth-timeout-check', version: '1.0.0' });
+  let settled = false;
+  const connected = remoteClient.connect(remote, { timeout: 15_000 }).then(() => { settled = true; return null; }, (error: unknown) => { settled = true; return error; });
+  try {
+    // 只检查官方 OAuth 写出的文件名，不读取验证信息或令牌内容。
+    let authorizationPending = false;
+    const deadline = Date.now() + 12_000;
+    while (!settled && Date.now() < deadline) {
+      authorizationPending = (await readdir(cache, { recursive: true })).some((name) => name.includes('code_verifier'));
+      if (authorizationPending) break;
+      await delay(100);
+    }
+    assert.ok(authorizationPending, '真实官方服务必须进入独立缓存下的 OAuth 等待');
+    assert.ok(remote.pid);
+    const rootPid = remote.pid;
+    const owned = descendants(await processes(), rootPid);
+    assert.ok(owned.length >= 3, '真实 mcp-remote 必须存在 npx 与后代进程');
+    const error = await connected;
+    assert.ok(error instanceof Error);
+    assert.match(error.message, /timed out|timeout/i);
+    await remote.close();
+    await assertGone(owned);
+    console.log(JSON.stringify({ check: '官方 Dune OAuth 初始化超时', transportPid: rootPid, observedPids: owned.map((item) => item.ProcessId), remaining: 0, isolatedCache: cache }));
+  } finally { await remote.close(); await connected; }
+}
+
+if (process.argv.includes('--windows-tree')) {
+  await checkWindowsProcessTrees();
+} else {
 
 const root = process.cwd(); const work = resolve('.work/sessions');
 await mkdir(work, { recursive: true });
@@ -49,3 +135,4 @@ try {
     malformedSupplierIsolation: 'passed', credentialChangeInvalidates: 'passed, no replay', disconnect: 'passed, no replay', explicitReconnect: 'passed', at: new Date().toISOString() };
   await writeFile(resolve(work, 'result.json'), JSON.stringify(report, null, 2)); console.log(JSON.stringify(report, null, 2));
 } finally { await toolkit.close(); }
+}

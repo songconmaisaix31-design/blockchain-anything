@@ -79,6 +79,23 @@ export function resolveExecutable(command: string, cwd = process.env.BCA_WORKING
   return executable;
 }
 
+export function terminateWindowsProcessTree(pid: number): Promise<void> {
+  if (process.platform !== 'win32' || !Number.isSafeInteger(pid) || pid <= 0 || pid === process.pid) throw new Error('需要本次启动的 Windows 子进程 PID');
+  return new Promise((resolveKill, rejectKill) => {
+    const killer = spawn('taskkill.exe', ['/PID', String(pid), '/T', '/F'], { shell: false, windowsHide: true, stdio: 'ignore' });
+    const timer = setTimeout(() => {
+      killer.kill();
+      rejectKill(new Error(`PID ${pid} 的进程树清理未在 1500ms 内确认`));
+    }, 1500);
+    killer.once('error', () => { clearTimeout(timer); rejectKill(new Error(`无法启动 taskkill 清理 PID ${pid} 的进程树`)); });
+    killer.once('close', (code) => {
+      clearTimeout(timer);
+      if (code === 0) resolveKill();
+      else rejectKill(new Error(`taskkill 未确认 PID ${pid} 的进程树清理成功 (${code})`));
+    });
+  });
+}
+
 export function run(command: string, args: string[], options: RunOptions): Promise<RunResult> {
   const maxBytes = options.maxBytes ?? 1024 * 1024;
   const executable = resolveExecutable(command, options.cwd);
@@ -124,13 +141,7 @@ export function run(command: string, args: string[], options: RunOptions): Promi
       }, 2000);
       if (!child.pid) return;
       if (process.platform === 'win32') {
-        const killer = spawn('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], { shell: false, windowsHide: true, stdio: 'ignore' });
-        const killTimer = setTimeout(() => killer.kill(), 1500);
-        killer.once('close', (code) => {
-          clearTimeout(killTimer);
-          if (code !== 0) failure = `${reason}；taskkill 未确认清理成功 (${code})`;
-        });
-        killer.once('error', () => { failure = `${reason}；taskkill 无法启动，清理未确认`; });
+        void terminateWindowsProcessTree(child.pid).catch((error: Error) => { failure = `${reason}；${error.message}`; });
       } else {
         try { process.kill(-child.pid, 'SIGKILL'); }
         catch (error) {
