@@ -62,11 +62,12 @@ async function checkWindowsProcessTrees() {
   remote.stderr?.on('data', () => {});
   const remoteClient = new Client({ name: 'bca-oauth-timeout-check', version: '1.0.0' });
   let settled = false;
-  const connected = remoteClient.connect(remote, { timeout: 15_000 }).then(() => { settled = true; return null; }, (error: unknown) => { settled = true; return error; });
+  // 为官方 metadata 发现与客户端注册的网络请求留出时间，仍须观察真实 OAuth 等待和初始化超时。
+  const connected = remoteClient.connect(remote, { timeout: 60_000 }).then(() => { settled = true; return null; }, (error: unknown) => { settled = true; return error; });
   try {
     // 只检查官方 OAuth 写出的文件名，不读取验证信息或令牌内容。
     let authorizationPending = false;
-    const deadline = Date.now() + 12_000;
+    const deadline = Date.now() + 50_000;
     while (!settled && Date.now() < deadline) {
       authorizationPending = (await readdir(cache, { recursive: true })).some((name) => name.includes('code_verifier'));
       if (authorizationPending) break;

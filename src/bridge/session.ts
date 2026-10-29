@@ -3,7 +3,7 @@ import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/cli
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import type { Config } from '../config.js';
 import { VERSION } from '../version.js';
-import { terminateWindowsProcessTree } from '../development/exec.js';
+import { terminateWindowsProcessTree, WINDOWS_PROCESS_CLEANUP_TIMEOUT_MS } from '../development/exec.js';
 import { loadMcpServers, loadMcpConfiguration, type ResolvedServer } from './config.js';
 
 type UpstreamTool = Awaited<ReturnType<Client['listTools']>>['tools'][number];
@@ -89,10 +89,11 @@ export class BridgeSessions {
     clearTimeout(entry.timer);
     this.entries.delete(id);
     let timer: ReturnType<typeof setTimeout> | undefined;
+    const cleanupTimeoutMs = process.platform === 'win32' ? WINDOWS_PROCESS_CLEANUP_TIMEOUT_MS : 3000;
     try {
       await Promise.race([
         entry.client.close().then(() => entry.transport.close()),
-        new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('MCP 会话关闭超过 3000ms，清理未确认')), 3000); }),
+        new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error(`MCP 会话关闭超过 ${cleanupTimeoutMs}ms，清理未确认`)), cleanupTimeoutMs); }),
       ]);
     } finally { clearTimeout(timer); }
     return { session: id, closed: true };

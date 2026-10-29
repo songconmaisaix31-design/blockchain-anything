@@ -79,14 +79,18 @@ export function resolveExecutable(command: string, cwd = process.env.BCA_WORKING
   return executable;
 }
 
+export const WINDOWS_PROCESS_CLEANUP_TIMEOUT_MS = 10_000;
+
 export function terminateWindowsProcessTree(pid: number): Promise<void> {
   if (process.platform !== 'win32' || !Number.isSafeInteger(pid) || pid <= 0 || pid === process.pid) throw new Error('需要本次启动的 Windows 子进程 PID');
+  // 为调用方确认管道关闭预留时间；Windows 进程树结束本身可能耗时数秒。
+  const killTimeoutMs = WINDOWS_PROCESS_CLEANUP_TIMEOUT_MS - 2_000;
   return new Promise((resolveKill, rejectKill) => {
     const killer = spawn('taskkill.exe', ['/PID', String(pid), '/T', '/F'], { shell: false, windowsHide: true, stdio: 'ignore' });
     const timer = setTimeout(() => {
       killer.kill();
-      rejectKill(new Error(`PID ${pid} 的进程树清理未在 1500ms 内确认`));
-    }, 1500);
+      rejectKill(new Error(`PID ${pid} 的进程树清理未在 ${killTimeoutMs}ms 内确认`));
+    }, killTimeoutMs);
     killer.once('error', () => { clearTimeout(timer); rejectKill(new Error(`无法启动 taskkill 清理 PID ${pid} 的进程树`)); });
     killer.once('close', (code) => {
       clearTimeout(timer);
@@ -121,6 +125,7 @@ export function run(command: string, args: string[], options: RunOptions): Promi
     let timedOut = false;
     let truncated = false;
     let stopping = false;
+    let stoppingTree: Promise<void> | undefined;
     let failure: string | undefined;
     let cleanupTimer: ReturnType<typeof setTimeout> | undefined;
     const dispose = () => {
@@ -134,14 +139,15 @@ export function run(command: string, args: string[], options: RunOptions): Promi
       failure = reason;
       // The deadline includes pipes held by descendants. Never report a clean
       // stop when the OS operation or the close event cannot confirm it.
+      const cleanupTimeoutMs = process.platform === 'win32' ? WINDOWS_PROCESS_CLEANUP_TIMEOUT_MS : 2000;
       cleanupTimer = setTimeout(() => {
         dispose();
         child.stdout?.destroy(); child.stderr?.destroy(); child.unref();
-        rejectRun(new Error(`${reason}；进程树清理未在 2000ms 内确认，请按本次 PID ${child.pid} 检查；提交状态未知`));
-      }, 2000);
+        rejectRun(new Error(`${reason}；进程树清理未在 ${cleanupTimeoutMs}ms 内确认，请按本次 PID ${child.pid} 检查；提交状态未知`));
+      }, cleanupTimeoutMs);
       if (!child.pid) return;
       if (process.platform === 'win32') {
-        void terminateWindowsProcessTree(child.pid).catch((error: Error) => { failure = `${reason}；${error.message}`; });
+        stoppingTree = terminateWindowsProcessTree(child.pid).catch((error: Error) => { failure = `${reason}；${error.message}`; });
       } else {
         try { process.kill(-child.pid, 'SIGKILL'); }
         catch (error) {
@@ -171,7 +177,8 @@ export function run(command: string, args: string[], options: RunOptions): Promi
       dispose();
       rejectRun(new Error(`无法运行 ${command}：${error.message}`));
     });
-    child.on('close', (code) => {
+    child.on('close', async (code) => {
+      await stoppingTree;
       dispose();
       if (failure) {
         rejectRun(new Error(`${failure}；不自动重放操作`));
