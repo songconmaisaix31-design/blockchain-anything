@@ -313,7 +313,7 @@ function connectionFields(server: RawServer, preset?: McpPreset) {
   return { command, url,
     args: command ? server.args ?? (server.command ? undefined : preset?.args) : undefined,
     env: command ? server.env : undefined,
-    headers: url ? server.headers ?? preset?.headers : undefined };
+    headers: url ? server.headers ?? (server.url ? undefined : preset?.headers) : undefined };
 }
 
 const SERVER_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
@@ -369,7 +369,7 @@ function parseServer(name: string, raw: unknown): ResolvedServer {
     try { parsed = new URL(url); } catch { throw new Error(`MCP 服务 ${name}.url 必须为有效 URL`); }
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error(`MCP 服务 ${name}.url 必须为 HTTP(S)`);
     if (parsed.username || parsed.password) throw new Error(`MCP 服务 ${name}.url 不能包含凭据`);
-    const headers = stringRecord(server.headers ?? preset?.headers, `${name}.headers`, HEADER_NAME);
+    const headers = stringRecord(server.headers ?? (explicitUrl ? undefined : preset?.headers), `${name}.headers`, HEADER_NAME);
     for (const [key, value] of Object.entries(headers)) {
       if (/[\r\n\0]/.test(value)) throw new Error(`MCP 服务 ${name}.headers.${key} 包含非法字符`);
     }

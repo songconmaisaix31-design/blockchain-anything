@@ -75,6 +75,11 @@ export function searchTools(config: Config, getTools: () => ToolDefinition[], se
       const providerMatches = inspected.explicit ? selected : inspected.matches.filter((item) =>
         rank(query, item.preset.id, item.preset.tasks.join(' '), true).score > 0 && (!chains.families.length || !item.preset.chains.length || supportsChains(item.preset.chains, chains.families)));
       const providers = providerMatches.map((match) => providerResult(match, chains.families));
+      const contextChains = identifyChains('', chainFamily).families;
+      const chainConflict = contextChains.length && identifyChains(query).families.some((chain) => !contextChains.includes(chain));
+      const providerConflict = selected.some((item) => item.preset.chains.length && !supportsChains(item.preset.chains, chains.families));
+      if (chainConflict || providerConflict) return { source: inspected.explicit ? 'provider' : 'catalog', providers, chains, total: 0, matches: [], nextOffset: null,
+        ambiguity: chainConflict ? '问题中的链与 chainFamily 不一致，请明确目标链' : '指定供应商的已登记链范围不包含请求链，请确认供应商支持情况' };
       let selectedServer = server;
       if (!server && selected.length === 1 && !inspected.ambiguity && selected[0]!.status === 'configured') selectedServer = selected[0]!.servers[0]!.name;
       if (server && selected.length) {

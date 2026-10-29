@@ -34,6 +34,8 @@ try {
   assert.ok(!solana.matches.some((item: any) => item.name === 'solana_balance'));
   const duneSolana = await call('capability_search', { query: 'Dune Solana 数据分析' });
   assert.equal(duneSolana.providers[0].chainSupport, 'listed');
+  assert.match((await call('capability_search', { query: 'OpenZeppelin Solana NFT' })).ambiguity, /供应商/);
+  assert.match((await call('capability_search', { query: 'Dune Solana 数据分析', chainFamily: 'evm' })).ambiguity, /chainFamily/);
   const compile = await call('capability_search', { query: '只编译合约' });
   assert.ok(compile.matches.some((item: any) => /compile|build/.test(item.name)));
   assert.ok(!compile.matches.some((item: any) => /deploy|sign/.test(item.name)));
@@ -81,6 +83,8 @@ try {
   assert.ok(configuration.configured.every((server) => server.missingEnvironment.length === 0));
   assert.equal(configuration.configured.find((server) => server.name === 'analytics')!.preset, 'dune');
   assert.deepEqual((await inspectProviders('authorized', root)).matches[0]!.requirements, []);
+  await saveConfiguration({ analytics: { url: 'https://api.dune.com/mcp/v1?api_key=${BCA_DUNE_URL_KEY}' } });
+  assert.deepEqual((await inspectProviders('analytics', root)).matches[0]!.missingEnvironment, ['BCA_DUNE_URL_KEY']);
 
   await saveConfiguration({});
   await call('bridge_configure', { preset: 'openzeppelin', name: 'contracts', submit: true });
