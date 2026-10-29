@@ -1,5 +1,11 @@
 # BCA · Blockchain Anything
 
+> **[Anything Universe](https://github.com/songconmaisaix31-design#anything-universe)** · *Tools for agents. Room for anything.*
+>
+> 链上工具入口：聚合官方 SDK、CLI 与 MCP，让 Agent 发现和调用区块链能力。
+>
+> 同系列：[mcpet](https://github.com/songconmaisaix31-design/mcpet) · [swarm-anything](https://github.com/songconmaisaix31-design/swarm-anything)
+
 **在 Codex、Claude Code 或终端中，找到区块链工具并完成真实任务。**
 
 [在线文档](https://songconmaisaix31-design.github.io/blockchain-anything/) · [安装说明](docs/guides/setup.md) · [依赖安全状态](docs/guides/dependency-security.md)
