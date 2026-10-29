@@ -87,13 +87,13 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     options: workstationContextSchema.extend({ server: z.string().optional(), limit: z.number().int().min(1).max(100).default(8), details: z.boolean().default(false) }),
     async run({ args, options }) {
       const { server, limit, details, ...context } = options;
-      const tools = await invoke('capability_search', { query: args.query, dir: context.dir, chainFamily: context.chainFamily, server, limit, details });
+      const tools = await invoke('capability_search', { query: args.query, dir: context.dir, chainFamily: context.chainFamily, provider: context.provider, server, limit, details });
       const stations = server ? { candidates: [] } : await invoke('workstation_search', { query: args.query, context });
       return { ...(stations as object), tools };
     },
   });
   cli.command('init', {
-    description: '创建新 Foundry 项目，默认 Counter；--template erc20 复用 OpenZeppelin',
+    description: '创建新 Foundry 项目，默认 Counter；--template erc20 或 erc721 复用 OpenZeppelin',
     args: z.strictObject({ dir: z.string() }), options: projectInitSchema.omit({ dir: true, submit: true }),
     run: ({ args, options }) => invoke('project_init', { ...args, ...options, submit: true }),
   });
@@ -103,7 +103,7 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     run: ({ args, options }) => invoke('project_run', { ...args, ...options, action }),
   });
   cli.command('connect', {
-    description: '保存官方 MCP 服务配置；--key-env 指定密钥环境变量名，--oauth 使用官方登录桥接',
+    description: '保存官方 MCP 默认认证与启动配置；--key-env 自定义密钥环境变量名，OAuth 预设默认使用登录桥接',
     args: z.strictObject({ preset: z.string() }), options: connectSchema.omit({ preset: true, submit: true }),
     run: ({ args, options }) => invoke('bridge_configure', { ...args, ...options, submit: true }),
   });
@@ -145,8 +145,8 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
       description: '成熟区块链工具聚合',
       version: VERSION,
       commands: [
-        { name: 'find <query> [--dir <path>] [--server <name>]', description: '搜索工作站、内置工具或上游 MCP' },
-        { name: 'init <dir> [--template counter|erc20]', description: '创建可编译、测试的新项目' },
+        { name: 'find <query> [--dir <path>] [--provider <name>] [--server <name>]', description: '搜索工作站、内置工具或上游 MCP' },
+        { name: 'init <dir> [--template counter|erc20|erc721]', description: '创建可编译、测试的新项目' },
         { name: 'build [dir] / test [dir]', description: '运行项目原生编译或测试' },
         { name: 'connect <preset>', description: '接入官方 MCP 服务' },
         { name: 'setup [--client codex|claude|both] [--install]', description: '接入已有 Agent 客户端' },

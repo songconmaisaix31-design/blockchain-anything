@@ -53,6 +53,8 @@
     "check:setup": "node --import tsx scripts/check-setup.ts",
     "check:handoff": "node --import tsx scripts/check-handoff.ts",
     "check:v1": "node --import tsx scripts/check-v1.ts",
+    "check:discovery": "node --import tsx scripts/check-discovery.ts",
+    "check:workstations": "node --import tsx scripts/check-workstations.ts",
     "prepare": "node scripts/prepare.mjs"
   },
   "dependencies": {

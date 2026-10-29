@@ -67,6 +67,8 @@ S2 来源验证调用官方 CLI 或 verifier ABI；钱包使用 Safe/x402；Agen
 
 ## v1 产品入口
 
-`capability_search` 按问题搜索完整目录，可指定 `server` 查询已配置 MCP 的最新工具。`project_init` 在新目录创建 Counter / OpenZeppelin ERC20；`project_run` 识别 Foundry/Hardhat 并调用已有编译/测试适配。CLI 提供 `find / init / build / test / connect`。
+`capability_search` 汇合 `MCP_PRESETS` 与内置工具元数据，按供应商、任务和支持链返回候选。指定供应商或已有配置别名时限定服务，缺凭据时保留配置关联与具体缺项；已选择且配置可用的服务读取真实 MCP 目录，连接错误直接传播。只由泛词组成的请求返回无匹配。完整 Schema 按需读取，搜索不写配置。`project_init` 在新目录创建 Counter / OpenZeppelin ERC20 / ERC721；`project_run` 识别 Foundry/Hardhat 并调用已有编译/测试适配。CLI 提供 `find / init / build / test / connect`。
 
 `bridge_configure` 只保存官方预设和凭据环境变量引用，默认配置为项目 `.bca/mcp.json`；现有显式环境配置优先。setup 在所选客户端的 AGENTS.md / CLAUDE.md 添加工作流入口并保留其他文本。包的 prepare 脚本支持 Git 源码安装，继续保持 private。
+
+NFT、链上数据查询、安全检查分别生成步骤。NFT 先明确链；EVM 模板复用 OpenZeppelin ERC721URIStorage/Ownable，本机铸造核对回执并读取 ownerOf/tokenURI。Solana NFT 通过已有框架 actions 发现路径返回插件和配置缺项。数据查询由宿主根据真实服务 Schema 补全链、协议、指标与时间区间，再执行和读取结果；账户错误与执行标识保留。安全检查根据地址、源码或待执行交易选择 GoPlus、Slither 或 Tenderly，分别保留发现与未检查字段。编译和测试请求只生成对应操作，不要求 RPC 或部署权限。

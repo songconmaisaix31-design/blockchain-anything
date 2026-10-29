@@ -2,10 +2,11 @@ import { readFile, readdir } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { parse } from 'smol-toml';
 import { z } from 'zod';
+import { encodeFunctionData, parseAbi, walletActions, type PublicClient } from 'viem';
 import type { Config } from '../config.js';
 import { assertConfiguration, requireWrites } from '../config.js';
 import { defineTool } from '../types.js';
-import { addressSchema, bytesSchema, submitSchema } from '../providers/common.js';
+import { addressSchema, bytesSchema, submitSchema, uint256Schema } from '../providers/common.js';
 import { withClient } from '../chains/viem.js';
 import { parseJsonOutput, resolveWorkingDir, resolveWorkingPath, run } from './exec.js';
 
@@ -28,6 +29,23 @@ async function contractId(config: Config, cwd: string, contract: string) {
   return `${relative(cwd, path)}:${match[2]}`;
 }
 
+async function withLocalAnvil<T>(config: Config, operation: (client: PublicClient) => Promise<T>): Promise<T> {
+  requireWrites(config, false); assertConfiguration(config, 'evm');
+  const url = new URL(config.rpcUrl ?? 'http://invalid');
+  if (!['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) || ![31337n, 1337n].includes(config.chainId ?? 0n)) throw new Error('仅支持本机 31337/1337 Anvil；公共链操作交给宿主钱包授权');
+  return withClient(config, async (client) => {
+    const version = await client.request({ method: 'web3_clientVersion' });
+    if (!/anvil/i.test(version)) throw new Error('目标 RPC 未识别为 Anvil');
+    return operation(client);
+  });
+}
+
+const nftAbi = parseAbi([
+  'function safeMint(address to, uint256 tokenId, string uri)',
+  'function ownerOf(uint256 tokenId) view returns (address)',
+  'function tokenURI(uint256 tokenId) view returns (string)',
+]);
+
 export function workspaceTools(config: Config) {
   return [
     defineTool('dev_project', '读取现有 Foundry/Hardhat 配置、依赖与编译器要求，不执行项目配置。', z.strictObject({ dir: z.string().default('.') }), true,
@@ -47,12 +65,7 @@ export function workspaceTools(config: Config) {
     defineTool('dev_forge_deploy_local', '通过官方 forge create 将已有合约部署到本机 Anvil；仅支持 loopback + 31337/1337、显式 unlocked from，确认回执及代码。',
       z.strictObject({ dir: z.string().default('.'), contract: z.string(), from: addressSchema, constructorArgs: z.array(z.string().refine((value) => !value.startsWith('-') || /^-\d+(?:\.\d+)?$/.test(value), '构造参数不能包含 CLI 选项')).default([]), submit: submitSchema }), false,
       async ({ dir, contract, from, constructorArgs }) => {
-        requireWrites(config, false); assertConfiguration(config, 'evm');
-        const url = new URL(config.rpcUrl ?? 'http://invalid');
-        if (!['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) || ![31337n, 1337n].includes(config.chainId ?? 0n)) throw new Error('仅支持本机 31337/1337 Anvil；公共链部署交给宿主钱包授权');
-        return withClient(config, async (client) => {
-          const version = await client.request({ method: 'web3_clientVersion' });
-          if (!/anvil/i.test(version)) throw new Error('目标 RPC 未识别为 Anvil');
+        return withLocalAnvil(config, async (client) => {
           const cwd = await resolveWorkingDir(config, dir);
           const args = ['create', await contractId(config, cwd, contract), '--json', '--broadcast', '--unlocked', '--from', from, '--rpc-url', config.rpcUrl!];
           if (constructorArgs.length) args.push('--constructor-args', ...constructorArgs);
@@ -66,6 +79,27 @@ export function workspaceTools(config: Config) {
             chainId: config.chainId, codePresent: !!code && code !== '0x', network: 'local Anvil', fetchedAt: new Date().toISOString() };
         });
       }),
+    defineTool('dev_erc721_mint_local', '在本机 Anvil 调用 ERC721 safeMint(address,uint256,string)，确认回执并读回 ownerOf/tokenURI；需要显式 unlocked from 和写入授权。',
+      z.strictObject({ address: addressSchema, from: addressSchema, recipient: addressSchema, tokenId: uint256Schema, tokenUri: z.string().min(1), submit: submitSchema }), false,
+      async ({ address, from, recipient, tokenId, tokenUri }) => withLocalAnvil(config, async (client) => {
+        const to = address as `0x${string}`; const account = from as `0x${string}`;
+        const args = [recipient as `0x${string}`, BigInt(tokenId), tokenUri] as const;
+        const code = await client.getBytecode({ address: to });
+        if (!code || code === '0x') throw new Error('目标地址没有合约代码');
+        await client.simulateContract({ address: to, abi: nftAbi, functionName: 'safeMint', args, account });
+        const hash = await client.extend(walletActions).sendTransaction({ account, chain: null, to, data: encodeFunctionData({ abi: nftAbi, functionName: 'safeMint', args }) });
+        let receipt;
+        try { receipt = await client.waitForTransactionReceipt({ hash, timeout: config.timeoutMs, retryCount: 0 }); }
+        catch (error) { throw new Error(`交易 ${hash} 已提交，回执未确认；查询该哈希，不要自动重发。${error instanceof Error ? error.message : ''}`); }
+        if (receipt.status !== 'success') return { taskStatus: 'business_failed', hash, receipt, chainId: config.chainId, network: 'local Anvil' };
+        let owner; let uri;
+        try {
+          owner = await client.readContract({ address: to, abi: nftAbi, functionName: 'ownerOf', args: [BigInt(tokenId)], blockNumber: receipt.blockNumber });
+          uri = await client.readContract({ address: to, abi: nftAbi, functionName: 'tokenURI', args: [BigInt(tokenId)], blockNumber: receipt.blockNumber });
+        } catch (error) { throw new Error(`交易 ${hash} 已在区块 ${receipt.blockNumber} 成功，读取铸造结果失败；查询该哈希与 tokenId ${tokenId}，不要重新铸造。${error instanceof Error ? error.message : ''}`); }
+        return { taskStatus: owner.toLowerCase() === recipient.toLowerCase() && uri === tokenUri ? 'succeeded' : 'business_failed',
+          hash, receipt, address, tokenId, owner, tokenUri: uri, chainId: config.chainId, network: 'local Anvil' };
+      })),
     defineTool('dev_forge_verify', '调用官方 forge verify-contract --verifier sourcify --watch；会向公共服务上传源码，不签署交易。',
       z.strictObject({ dir: z.string().default('.'), contract: z.string(), address: addressSchema, constructorArgs: bytesSchema.optional(), submit: submitSchema }), false,
       async ({ dir, contract, address, constructorArgs }) => {
