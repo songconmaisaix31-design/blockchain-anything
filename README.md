@@ -43,7 +43,7 @@ bca build contracts
 bca test contracts
 ```
 
-默认模板是 Counter；ERC20 复用 OpenZeppelin Contracts，`supply` 按最小单位计。新建操作拒绝覆盖已有目录。已有 Foundry/Hardhat 项目直接运行 `build` / `test`，保留原项目配置；两种框架并存时用 `--provider foundry|hardhat` 选择。Foundry 可用 `--offline`，测试可用 `--match-path`。
+默认模板是 Counter；ERC20 复用 OpenZeppelin Contracts，`supply` 按最小单位计。NFT 项目使用 `bca init nft --template erc721`，包含铸造权限、重复 tokenId 和 tokenURI 测试；本机 Anvil 铸造步骤见[工作站说明](docs/guides/workstations.md)。新建操作拒绝覆盖已有目录。已有 Foundry/Hardhat 项目直接运行 `build` / `test`，保留原项目配置；两种框架并存时用 `--provider foundry|hardhat` 选择。Foundry 可用 `--offline`，测试可用 `--match-path`。
 
 Agent 对应调用 `project_init` 和 `project_run`。本地编译、测试无需 RPC 或签名权限。编译/测试失败保留诊断，CLI 业务失败退出 2，执行失败退出 1；MCP 返回 `isError`。
 
@@ -53,11 +53,14 @@ Agent 对应调用 `project_init` 和 `project_run`。本地编译、测试无�
 bca find '只编译合约' --dir contracts
 bca find 'Solana 余额'
 bca find '计算文件 CID'
+bca find '用 Dune 查询 Base 最近七天的交易量'
+bca find '创建 NFT'
+bca find '检查合约源码安全' --target contracts
 bca tools content_cid
 bca call content_cid --input '{"path":"contracts/src/MyToken.sol"}'
 ```
 
-`find` 检索实际工具目录，返回匹配项、必填参数、可用条件和调用入口；EVM 开发或诊断任务还会给出相关步骤。`--details` 查看完整 Schema。检索能力由 `capability_search` 提供；指定工具时也可调用 `capability_list({name:"viem_logs"})`。
+`find` 检索内置工具与官方供应商，返回匹配项、必填参数、可用条件和调用入口。指定供应商或配置别名时限定该服务；缺凭据时给出环境变量名称，连接失败时保留服务错误。开发、诊断、NFT、数据查询和安全检查分别返回任务步骤；NFT 未指定链时要求补充链。`--details` 查看完整 Schema。检索能力由 `capability_search` 提供；指定工具时也可调用 `capability_list({name:"viem_logs"})`。
 
 需要上游新增能力时，保存官方 MCP 配置并读取它的实时目录：
 
@@ -67,7 +70,7 @@ bca find 'generate ERC20' --server openzeppelin --details
 bca call bridge_call --input '{"server":"openzeppelin","tool":"solidity-erc20","arguments":{"name":"MyToken","symbol":"TOKEN"}}'
 ```
 
-配置保存在项目 `.bca/mcp.json`，CLI 与 MCP 都自动读取。`BCA_MCP_CONFIG` 或 `BCA_MCP_SERVERS` 可覆盖项目配置。需要 API key 时使用 `--key-env 环境变量名 --header 请求头名称`，需要 OAuth 的托管服务使用 `--oauth`；账户权限按服务要求提供。已有不同配置不会被覆盖。[服务接入说明](docs/integrations/services.md)。
+配置保存在项目 `.bca/mcp.json`，CLI 与 MCP 都自动读取。`BCA_MCP_CONFIG` 或 `BCA_MCP_SERVERS` 可覆盖项目配置。`bca connect dune` 自动保存 `x-dune-api-key` 对 `BCA_DUNE_API_KEY` 的引用，操作者在环境中提供实际密钥；`--name analytics` 可设置配置别名。OAuth 预设默认使用授权桥接，Dune 也可显式使用 `--oauth`。需要自定义认证时使用 `--key-env 环境变量名 --header 请求头名称`。已有配置会保留。[供应商接入说明](docs/guides/providers.md)。
 
 连续调用可用 `bridge_open → bridge_call → bridge_close` 复用连接。发现工具不会自动获得写权限；真实业务结果以调用为准。
 
@@ -96,7 +99,7 @@ try {
 
 `bca mcp` 启动 stdio 服务。现有 EAS、IPFS/Kubo、Sui、Aptos、Solana/SAS、Sign、Walrus、Seal、Arweave、Safe、x402、CCXT、身份和来源验证适配继续保留；各生态实际验证范围见 [S2 记录](tasks/S2-progress.md)。
 
-v1 的验证范围和已知限制集中在 [本轮记录](docs/acceptance/2026-10-25-v1.md)。Linux x64 已运行；Windows/macOS 原生客户端、账户型服务和公共测试网源码上传仍有未验证项。源码定位只覆盖已实现的标准代理和 trace 路径。
+v1 的验证范围见[初始记录](docs/acceptance/2026-10-25-v1.md)，供应商发现与三个工作站见[任务记录](tasks/task-discovery.md)。账户型服务、Solana NFT 业务和公共测试网源码上传仍有未验证项。源码定位只覆盖已实现的标准代理和 trace 路径。
 
 [开发规则](docs/TASKS.md) · [用户决定](docs/QUESTIONS.md) · [当前进度](STATUS.md) · [REA 参考](docs/REA-REFERENCE.md)
 
