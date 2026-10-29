@@ -10,6 +10,10 @@
 
 默认连接配置统一维护在 `MCP_PRESETS`：Dune、Nansen、Chainstack 和 thirdweb 使用各自凭据环境变量；GoPlus 需要 `BCA_GOPLUS_API_KEY` 与 `BCA_GOPLUS_API_SECRET`；Slither 使用已固定版本的本地 `uvx` 启动参数。OAuth 服务默认通过现有 `mcp-remote` 完成首次账户授权，Dune 也可显式使用 `--oauth`。`--key-env` 可替换预设的单个认证请求头所用变量，其他请求头需同时提供 `--header`。
 
+GoPlus 的公开 ERC20 风险查询使用内置 `goplus_token_security`，无需账户。`bca find "GoPlus 代币风险" --provider goplus-public --chainId 1 --address <ERC20地址>` 返回官方 HTTP API 的 Schema 与调用步骤。未指定已有 MCP 配置名称时，明确的 GoPlus 代币查询同样选择公开 API。指定 `--server`、配置别名或与现有配置同名的 `--provider goplus` 时继续使用该 MCP；缺凭据与连接错误保留。`goplus-public` 明确选择公开代币接口，其范围与原始风险字段见 [GoPlus 指南](goplus.md)。
+
+已有 MCP 配置名称优先；若配置恰好名为 `goplus-public`，该名称仍选择原配置。公开代币工具始终可通过 `bca call goplus_token_security --input '<JSON>'` 直接调用。
+
 `connect` 保留已有配置的请求头、传输方式和只读工具许可；需要改变现有配置时编辑 `.bca/mcp.json` 或使用新的配置名。`find` 只读取配置。多个配置指向同一供应商时，可在问题中指定配置别名，或通过 `--server` 选择。没有公开接入端点的预设保留具体说明和官方文档链接。
 
 `node --import tsx scripts/check-discovery.ts` 检查真实配置文件、缺项、别名选择、默认认证和 OpenZeppelin 实际目录及 ERC721 生成；添加 `--dune` 检查官方 Dune 端点对无授权连接的实际拒绝。有效 Dune 账户查询、过期凭据与账户额度不足，需要相应账户条件才能验证。
@@ -47,6 +51,7 @@
 | `evm_balance` | `address` | `balanceWei` 十进制字符串 |
 | `evm_receipt` | `transactionHash` | `found` 与官方 receipt JSON |
 | `evm_verify_message` | `message, signature, expectedSigner` | `signatureValid`、恢复地址、EIP-191 EOA 验证范围 |
+| `goplus_token_security` | `chainId, address` | GoPlus 公开 EVM 代币风险原始 `response`、官方来源和查询时间 |
 | `eas_schema_encode` | `schema, fields: [{name,type,value}]` | ABI `data` |
 | `eas_schema_decode` | `schema, data` | 官方嵌套 `fields`，整数序列化为字符串 |
 | `eas_status` | `{}` | 实际网络、合约版本及检查结果 |

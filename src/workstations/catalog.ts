@@ -7,7 +7,7 @@ import { defineTool, type ToolDefinition } from '../types.js';
 import { resolveExecutable } from '../development/exec.js';
 import { inspectProject } from '../development/workspace.js';
 import { resolveWorkingDir } from '../development/exec.js';
-import { identifyChains, inspectProviders, type ProviderMatch } from '../bridge/config.js';
+import { identifyChains, includesAlias, inspectProviders, type ProviderMatch } from '../bridge/config.js';
 
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
 const pkg = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
@@ -50,12 +50,24 @@ export const workstations = [
     facts: ['chain', 'metric', 'timeRange'], officialSkills: ['https://docs.dune.com/docs/agents/mcp'],
   },
   { id: 'security-check', name: '安全检查', target: 'input-specific',
-    description: '按地址、源码或待执行交易选择 GoPlus 风险查询、Slither 分析或 Tenderly 模拟',
+    description: '按代币、地址、源码或待执行交易选择 GoPlus 风险查询、Slither 分析或 Tenderly 模拟',
     aliases: ['安全', '风险', '漏洞', '审计', '模拟交易', '交易模拟', 'security', 'risk', 'audit', 'simulate'],
-    required: [], optional: ['dev_slither_analyze', 'bridge_refresh', 'capability_search', 'bridge_call'],
+    required: [], optional: ['goplus_token_security', 'dev_slither_analyze', 'bridge_refresh', 'capability_search', 'bridge_call'],
     facts: ['securityInput'], officialSkills: ['https://github.com/GoPlusSecurity/goplus-mcp', 'https://github.com/crytic/slither', 'https://tenderly.co/blog/validating-agentic-workflows-with-tenderly-mcp-server/'],
   },
 ];
+
+export const goplusPublicProvider = 'goplus-public';
+
+export function isTokenSecurityQuery(query: string) {
+  return ['erc20', 'token', '代币', 'goplus_token_security'].some((word) => includesAlias(query, word))
+    && !/nft|erc721|erc1155|非同质化|钱包|wallet|approval|授权|源码|source|模拟|simulat/i.test(query);
+}
+
+export function usesPublicGoPlus(match: ProviderMatch | undefined, provider?: string, query = '') {
+  return match?.preset.id === 'goplus' && !match.servers.some((server) => provider
+    ? server.name.toLowerCase() === provider.toLowerCase() : includesAlias(query, server.name));
+}
 
 function binaryFor(name: string) {
   if (name.startsWith('dev_forge')) return 'forge';
@@ -71,10 +83,11 @@ export function metadataFor(tool: ToolDefinition) {
   const source = dependency ? { type: binary ? 'CLI' : family === 'bridge' ? 'MCP' : 'SDK', name: dependency, version: dependencies[dependency] ?? null,
     official: true, url: `https://www.npmjs.com/package/${dependency}` } : { type: 'adapter', name: family, version: pkg.version, official: false, url: null };
   if (binary === 'slither') Object.assign(source, { type: 'CLI', name: 'slither-analyzer', version: null, official: true, url: 'https://github.com/crytic/slither' });
+  if (name === 'goplus_token_security') Object.assign(source, { type: 'HTTP API', name: 'GoPlus Token Security API', version: 'v1', official: true, url: 'https://docs.gopluslabs.io/reference/tokensecurityusingget_1' });
   if (name.startsWith('dev_hardhat')) Object.assign(source, { type: 'CLI', name: 'project-installed hardhat', version: null, official: true, url: 'https://hardhat.org/docs' });
   if (['evm_proxy', 'evm_contract_source'].includes(name)) Object.assign(source, { type: 'SDK/API', name: name === 'evm_proxy' ? 'viem / ERC-1967 / ERC-1167' : 'Sourcify v2 / local compiler artifact / viem', version: dependencies.viem, official: true, url: name === 'evm_proxy' ? 'https://viem.sh' : 'https://docs.sourcify.dev/docs/api/' });
   return { source, workstations: workstations.filter((station) => [...station.required, ...station.optional].includes(name)).map((station) => station.id),
-    targets: /^(evm_|viem_|eas_|safe_|project_|dev_(forge|cast|solidity|hardhat|slither|erc721)|workstation_diagnose)/.test(name) ? ['evm']
+    targets: /^(goplus_token_security|evm_|viem_|eas_|safe_|project_|dev_(forge|cast|solidity|hardhat|slither|erc721)|workstation_diagnose)/.test(name) ? ['evm']
       : ['solana', 'sas'].includes(family) ? ['solana'] : ['sui', 'seal'].includes(family) ? ['sui'] : family === 'aptos' ? ['aptos'] : ['any'],
     impact: name === 'dev_erc721_mint_local' ? ['onchain-submit'] : name === 'dev_forge_deploy_local' ? ['local-files', 'onchain-submit'] : name === 'dev_forge_verify' ? ['source-upload'] :
       /^(dev_(forge|hardhat)|project_|system_setup|bridge_configure)/.test(name) ? ['local-files'] : tool.readOnly ? ['read'] : ['provider-defined-write-or-sign'],
@@ -92,6 +105,7 @@ export async function capabilityStatus(tool: ToolDefinition, config: Config, dir
   else if (group === 'ipfs' && !config.ipfsUrl) { status = 'configuration_error'; reason = '需要 BCA_IPFS_URL'; requirements.push('BCA_IPFS_URL'); }
   else if (/^content_|^capability_|^workstation_(list|search|guide)$|^system_doctor$|^project_init$|^dev_(project|solidity_compile)$|^evm_(status|verify_message)$/.test(name)) { status = 'available'; reason = '本地内置能力；不要求外部账户'; }
   if (easLocal) { status = 'available'; reason = '本地 EAS 编码/PrivateData 功能'; }
+  if (name === 'goplus_token_security') { status = 'available'; reason = 'GoPlus 官方公开 EVM 代币风险 API；无需账户，实际覆盖与限流由上游返回'; }
   if (family === 'eas' && !tool.readOnly) {
     if (config.issues?.signer?.length) { status = 'configuration_error'; reason = config.issues.signer.join('；'); }
     else if (!config.privateKey || !config.allowWrites) { status = 'missing_authorization'; reason = '需要签署配置与写入许可；全局开关不代表逐笔用户授权'; }
@@ -128,7 +142,7 @@ export const workstationContextSchema = z.strictObject({
   address: z.string().optional(), dir: z.string().optional(), provider: z.string().optional(), contract: z.string().optional(),
   chain: z.string().optional(), protocol: z.string().optional(), metric: z.string().optional(), timeRange: z.string().optional(),
   target: z.string().optional().describe('本地源码文件或项目目录'),
-  securityInput: z.enum(['address', 'source', 'transaction']).optional(),
+  securityInput: z.enum(['token', 'address', 'source', 'transaction']).optional().describe('token 指 ERC20 合约；address 指钱包或其他地址检查'),
   transaction: z.strictObject({ from: z.string().optional(), to: z.string().optional(), data: z.string().optional(), value: z.string().optional() }).optional(),
   from: z.string().optional(), recipient: z.string().optional(), tokenId: z.string().optional(), tokenUri: z.string().optional(),
   task: z.enum(['compile', 'test', 'deploy', 'develop', 'create', 'mint', 'query', 'security']).optional(),
@@ -248,6 +262,9 @@ export function catalogTools(config: Config, getTools: () => ToolDefinition[]) {
   async function securityGuide(context: Context): Promise<Plan> {
     const kind = context.securityInput ?? (context.target ? 'source' : context.transaction ? 'transaction' : context.address ? 'address' : undefined);
     if (!kind) return { task: 'security', facts: ['securityInput'], mismatches: [], steps: [] };
+    const publicRequested = context.provider?.toLowerCase() === goplusPublicProvider && !(await inspectProviders('', config.workingRoot, context.provider)).matches.length;
+    if (publicRequested && kind !== 'token') return { task: 'security', provider: 'goplus', facts: [],
+      mismatches: ['GoPlus 公开入口仅支持 ERC20 代币检查，请明确 securityInput 为 token 并提供代币合约地址'], steps: [] };
     if (kind === 'source') {
       const target = context.target ?? context.dir;
       if (context.provider && context.provider.toLowerCase() !== 'slither') {
@@ -258,11 +275,22 @@ export function catalogTools(config: Config, getTools: () => ToolDefinition[]) {
       return { task: 'security', provider: 'slither', facts: target ? [] : ['target'], mismatches: evmMismatches(context, false),
         steps: [{ tool: 'dev_slither_analyze', input: { target: target ?? '<source-path>' }, purpose: '运行真实 Slither，保留官方发现、位置与分析错误' }] };
     }
-    const plan = await servicePlan(context, kind === 'address' ? 'goplus' : 'tenderly', 'security-check', kind === 'address' ? 'token address approval security risk' : 'simulate transaction');
-    if (plan.provider !== (kind === 'address' ? 'goplus' : 'tenderly')) plan.mismatches.push(`${kind === 'address' ? '地址风险检查需要 GoPlus' : '待执行交易模拟需要 Tenderly'} 或其已配置服务名称`);
+    if (kind === 'token') {
+      const selected = await inspectProviders('', config.workingRoot, publicRequested ? 'goplus' : context.provider ?? 'goplus');
+      if (selected.matches.length === 1 && usesPublicGoPlus(selected.matches[0], context.provider)) {
+        return { task: 'security', provider: 'goplus', facts: [...(!context.chainId ? ['chainId'] : []), ...(!context.address ? ['address'] : [])],
+          mismatches: identifyChains(context.chain ?? '', context.chainFamily).families.filter((family) => family !== 'evm').map((family) => `GoPlus 公开代币查询不支持 ${family} 目标`),
+          steps: [{ tool: 'goplus_token_security', input: { chainId: context.chainId ?? '<EVM chainId>', address: context.address ?? '<ERC20 contract address>' }, purpose: '读取官方公开代币风险字段；空数据与上游失败均返回错误' }],
+          request: { securityInput: kind, access: 'public', chainId: context.chainId, address: context.address,
+            scope: '仅检查 EVM ERC20 代币合约；不检查钱包、授权或待执行交易，缺失字段保留为未提供' } };
+      }
+    }
+    const addressInput = kind === 'address' || kind === 'token';
+    const plan = await servicePlan(context, addressInput ? 'goplus' : 'tenderly', 'security-check', kind === 'token' ? 'token security risk' : addressInput ? 'address approval security risk' : 'simulate transaction');
+    if (plan.provider !== (addressInput ? 'goplus' : 'tenderly')) plan.mismatches.push(`${addressInput ? '代币或地址风险检查需要 GoPlus' : '待执行交易模拟需要 Tenderly'} 或其已配置服务名称`);
     const facts = [...plan.facts];
     if (!context.chainId && !context.chain) facts.push('chainId');
-    if (kind === 'address' && !context.address) facts.push('address');
+    if (addressInput && !context.address) facts.push('address');
     if (kind === 'transaction') for (const key of ['from', 'to', 'data', 'value'] as const) if (context.transaction?.[key] === undefined) facts.push(`transaction.${key}`);
     return { ...plan, task: 'security', facts, request: { securityInput: kind, chainId: context.chainId, chain: context.chain, address: context.address, transaction: context.transaction,
       execution: '宿主按工具 Schema 调用 bridge_call，保留各服务原始检查结果及未检查字段；模拟不提交链上交易' } };
@@ -299,7 +327,8 @@ export function catalogTools(config: Config, getTools: () => ToolDefinition[]) {
       z.strictObject({ query: z.string().min(1), context: workstationContextSchema.default({}) }), true, async ({ query, context }) => {
         const normalized = query.toLowerCase();
         const localProvider = context.provider && ['foundry', 'hardhat', 'rpc', 'viem', 'solana-agent-kit'].includes(context.provider.toLowerCase());
-        const providers = await inspectProviders(query, config.workingRoot, localProvider ? undefined : context.provider);
+        let providers = await inspectProviders(query, config.workingRoot, localProvider ? undefined : context.provider);
+        if (context.provider?.toLowerCase() === goplusPublicProvider && !providers.matches.length) providers = await inspectProviders(query, config.workingRoot, 'goplus');
         const identified = identifyChains(`${query} ${context.chain ?? ''}`, context.chainFamily);
         const chains = identified.chains.filter((chain) => chain !== 'evm' || identified.chains.length === 1);
         const chain = chains.length === 1 ? chains[0] : undefined;
@@ -310,7 +339,7 @@ export function catalogTools(config: Config, getTools: () => ToolDefinition[]) {
         const isNft = /nft|erc721|非同质化/.test(normalized) && !isSecurity && !isData;
         const selected = providers.explicit ? providers.matches.flatMap((match) => match.preset.workstations) : [];
         const selectedProvider = providers.explicit && providers.matches.length === 1 ? providers.matches[0] : undefined;
-        const providerName = selectedProvider?.servers.find((server) => selectedProvider.matchedAliases.includes(server.name.toLowerCase()))?.name ?? selectedProvider?.preset.id;
+        const providerName = selectedProvider?.servers.find((server) => selectedProvider.matchedAliases.some((alias) => alias.toLowerCase() === server.name.toLowerCase()))?.name ?? selectedProvider?.preset.id;
         const candidates = [];
         for (const station of workstations) {
           const matches = station.aliases.filter((alias) => normalized.includes(alias.toLowerCase()));
@@ -322,15 +351,16 @@ export function catalogTools(config: Config, getTools: () => ToolDefinition[]) {
           if (station.id === 'evm-develop' && (isSecurity || isData || isNft)) continue;
           if (station.id === 'onchain-data' && !isData && !selected.includes(station.id)) continue;
           if (family && family !== 'evm' && station.target === 'evm') continue;
-          const inferred = station.id === 'security-check' ? /源码|source|slither/.test(normalized) ? 'source' : /模拟|simulat/.test(normalized) ? 'transaction' : /地址|代币|token|address/.test(normalized) ? 'address' : undefined : undefined;
-          const details = await guide(station.id, { ...context, chain: context.chain ?? chain, chainFamily: family,
+          const inferred = station.id === 'security-check' ? /源码|source|slither/.test(normalized) ? 'source' : /模拟|simulat/.test(normalized) ? 'transaction' : isTokenSecurityQuery(normalized) ? 'token' : /地址|钱包|address|wallet|approval|授权/.test(normalized) ? 'address' : undefined : undefined;
+          const details = await guide(station.id, { ...context, chain: context.chain ?? chain ?? (station.id === 'security-check' && chains.length > 1 ? chains.join(' ') : undefined), chainFamily: family,
             provider: context.provider ?? providerName,
             securityInput: context.securityInput ?? inferred,
             task: context.task ?? (station.id === 'evm-develop' || (station.id === 'nft-create' && ['compile', 'test', 'deploy'].includes(taskFor(normalized)!)) ? taskFor(normalized) : station.id === 'nft-create' && /铸造|mint/.test(normalized) ? 'mint' : undefined) });
           candidates.push({ ...details, score: matches.length, reasons: matches, selectable: details.mismatches.length === 0 && details.missingCapabilities.length === 0 });
         }
         candidates.sort((a, b) => Number(b.selectable) - Number(a.selectable) || Number(b.executable) - Number(a.executable) || b.score - a.score);
-        return { candidates, ambiguity: providers.ambiguity ?? (chains.length > 1 && !context.chain ? '检测到多个链，请明确本次范围' : candidates.length > 1 && candidates[0]!.score === candidates[1]!.score ? '请明确本次工作站任务' : null),
+        const providerAmbiguity = providers.matches.length === 1 && candidates.some((candidate) => candidate.request?.access === 'public') ? null : providers.ambiguity;
+        return { candidates, ambiguity: providerAmbiguity ?? (chains.length > 1 && !context.chain ? '检测到多个链，请明确本次范围' : candidates.length > 1 && candidates[0]!.score === candidates[1]!.score ? '请明确本次工作站任务' : null),
           reason: candidates.length ? '按任务及当前配置匹配' : '未匹配已支持任务，请补充目标' };
       }),
   ];

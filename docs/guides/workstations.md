@@ -71,11 +71,14 @@ tokenURI 由操作者提供。使用 IPFS 时，先通过已配置 Kubo 的 `ipf
 
 | 输入 | context | 步骤 |
 | --- | --- | --- |
-| 地址或代币风险 | `securityInput:"address"`、`address`、`chainId` | 发现 GoPlus 实际工具，按对象选择 token、address 或 approval 检查 |
+| ERC20 代币风险 | `securityInput:"token"`、`address`、`chainId` | `goplus_token_security` 读取 GoPlus 官方公开 API；显式指定 MCP 配置时读取该服务的 token 工具 |
+| 钱包、其他地址或授权风险 | `securityInput:"address"`、`address`、`chainId` | 发现 GoPlus MCP 实际工具，按对象选择 address 或 approval 检查 |
 | 本地源码 | `securityInput:"source"`、`target` | `dev_slither_analyze` 运行真实 Slither，返回官方发现及位置 |
 | 待执行交易 | `securityInput:"transaction"`、`chainId`、`transaction:{from,to,data,value}` | 发现 Tenderly 实际模拟工具，按 Schema 填入交易，不发送该链上交易 |
 
 Slither 需要安装官方 `slither-analyzer` 和目标项目所需编译器；`BCA_SOLC_PATH` 可显式指定 solc。Findings 是分析结果，发现问题的非零退出码会连同官方 JSON 保留；编译或分析失败不会标记成功。GoPlus 与 Tenderly 结果各自保留来源和未检查字段，不合成为安全保证。
+
+`bca find "GoPlus 代币风险" --provider goplus-public --chainId 1 --address <ERC20地址>` 返回可直接调用的公开查询步骤。公开接口只接受 EVM ERC20 合约；仅提供普通 `address` 时工作站保留地址检查路径。缺失风险字段表示上游未提供，空结果会报错，不能据此判定钱包或代币安全。已选择 GoPlus MCP 配置名称时沿用其认证与工具目录；服务失败不会切换到公开 API。
 
 ## MCP 会话和刷新
 

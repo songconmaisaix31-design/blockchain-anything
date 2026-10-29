@@ -33,11 +33,14 @@ BCA 使用官方 MCP TypeScript Client，支持 stdio 与 Streamable HTTP。配�
 | [Token Terminal](https://tokenterminal.com/docs/mcp/introduction) | https://mcp.tokenterminal.com/mcp；tokenterminal.json | OAuth | 待账户授权 |
 | [Messari](https://docs.messari.io/mcp-server/hosted) | https://mcp.messari.io/mcp；messari.json | OAuth 流程 + Messari API key | 待账户权限 |
 | [GoPlus](https://github.com/GoPlusSecurity/goplus-mcp) | npx goplus-mcp@1.0.1；goplus.json | key / secret | 待凭据与原生调用 |
+| [GoPlus Token Security API](https://docs.gopluslabs.io/reference/tokensecurityusingget_1) | `goplus_token_security({chainId,address})`；[调用指南](../guides/goplus.md) | 公开 ERC20 查询无需账户 | Ethereum / Base USDC 真实风险字段读取通过；MCP 仍使用自己的认证条件 |
 | [Slither MCP](https://github.com/trailofbits/slither-mcp) | uvx 官方仓库；slither.json | 本地环境 | 2026-10-23 已真实发现及分析；2026-10-24 补测 CLI 状态分类。完整审计仍未代验 |
 | [Coinbase Wallet](https://docs.cdp.coinbase.com/ai-agents/coinbase-for-agents/wallet-mcp) | https://wallet-mcp.coinbase.com；coinbase-wallet.json | OAuth | 待钱包授权 |
 | [Kaito Pro](https://www.pro.kaito.ai/portal) | 无可核实的通用官方 API/MCP | 商业账户 | 未适配；仅保留准确的发现信息 |
 
 文件均位于 `examples/services/`。当前 CoinGecko 上游暴露 `execute` 与 `search_docs`，执行前以当次发现的 Schema 为准。
+
+GoPlus 公开 HTTP API 使用明确的内置入口。`find "GoPlus 代币风险" --provider goplus-public` 返回该工具；指定 MCP server 或配置别名时仍发现并调用指定服务，不在认证失败后改用其他入口。公开接口保留完整上游风险字段，不覆盖钱包、授权或交易模拟检查。
 
 ## OAuth
 
