@@ -1,4 +1,6 @@
-# 工作站、证据与会话
+# 工作站与会话
+
+`bca find "任务"` 返回相关工作站、当前缺项和实际工具入口。宿主补全参数并执行步骤；搜索本身不写配置或提交交易。`workstation_guide({id,context})` 可以直接读取某个工作站的步骤。
 
 ## EVM 交易诊断
 
@@ -37,6 +39,44 @@ Foundry 路径：
 
 公共链部署由宿主使用原项目脚本和官方钱包，BCA 新增入口不读取私钥或提交主网交易。Hardhat 对应 `dev_hardhat_compile`、`dev_hardhat_test`，部署仍由宿主执行原脚本，当前不声称 Hardhat 完整部署工作站已经验收。
 
+## NFT 创建
+
+`bca find "创建 NFT"` 要求明确 `chainFamily`。选择 EVM 后，`nft-create` 工作站使用 OpenZeppelin ERC721URIStorage 和 Ownable，创建者拥有铸造权限，每个 tokenId 保存自己的 tokenURI。模板包含铸造与元数据、重复 tokenId 拒绝、非所有者拒绝三个真实合约测试。
+
+```bash
+bca init nft --template erc721 --name "My Collection" --symbol NFT
+bca build nft
+bca test nft
+```
+
+本地操作使用真实 Anvil。启动 `anvil --host 127.0.0.1 --chain-id 31337`，设置对应 `BCA_RPC_URL`、`BCA_CHAIN_ID=31337` 和 `BCA_ALLOW_WRITES=true`，由宿主明确选择 Anvil 的 unlocked 账户：
+
+1. `dev_forge_deploy_local({dir:"nft",contract:"src/MyNFT.sol:MyNFT",from,submit:true})` 返回实际 `deployment.deployedTo` 和回执。
+2. `dev_erc721_mint_local({address:deployedTo,from,recipient,tokenId:"7",tokenUri,submit:true})` 调用 `safeMint(address,uint256,string)`，确认回执并读取同一区块的 `ownerOf`、`tokenURI`。
+3. `dev_cast_call({to:deployedTo,signature:"tokenURI(uint256)(string)",args:["7"]})` 可再次读取；使用编译产物的 ABI 时也可调用 `viem_read`。
+
+tokenURI 由操作者提供。使用 IPFS 时，先通过已配置 Kubo 的 `ipfs_add` 上传实际元数据，再将返回 CID 组成 URI。铸造入口只接受本机 31337/1337 Anvil；提交后回执或结果读取失败会保留交易哈希，不自动重新提交。
+
+`bca find "Solana NFT"` 返回 Solana Agent Kit 路径。默认 `examples/agents/solana-agent-kit.mjs` 仅加载 TokenPlugin，需要配置兼容的 `@solana-agent-kit/plugin-nft` 与 core 版本。设置 `BCA_SOLANA_AGENT_MODULE`、`BCA_SOLANA_RPC_URL` 后，调用 `agent_actions({provider:"solana-agent-kit"})` 检查实际 NFT actions 与输入 Schema；宿主按实际 Schema 选择和调用。本轮未执行 Solana NFT 铸造。
+
+## 链上数据查询
+
+`bca find "用 Dune 查询 Base 最近七天的交易量"` 选择 `onchain-data`，保持 Dune 供应商与 Base 目标。缺连接时返回 `bridge_configure`，缺凭据时列出 `BCA_DUNE_API_KEY`。已配置的自定义服务名称沿用原配置。
+
+`context` 可提供 `chain`、`chainId`、`chainFamily`、`protocol`、`metric`、`timeRange`。工作站先要求读取实际 MCP 工具目录及相关 Schema，再由宿主准备数据表、字段与查询参数，执行查询并根据服务返回的执行标识读取结果。查询执行和结果导出可能使用账户 credits，真实账户权限、超时和额度错误由上游返回；失败后不切换供应商或自动重发查询。完整账户业务仍需实际凭据验证。
+
+## 安全检查
+
+`security-check` 按输入选择路径；输入类型不清楚时返回缺少 `securityInput`。
+
+| 输入 | context | 步骤 |
+| --- | --- | --- |
+| 地址或代币风险 | `securityInput:"address"`、`address`、`chainId` | 发现 GoPlus 实际工具，按对象选择 token、address 或 approval 检查 |
+| 本地源码 | `securityInput:"source"`、`target` | `dev_slither_analyze` 运行真实 Slither，返回官方发现及位置 |
+| 待执行交易 | `securityInput:"transaction"`、`chainId`、`transaction:{from,to,data,value}` | 发现 Tenderly 实际模拟工具，按 Schema 填入交易，不发送该链上交易 |
+
+Slither 需要安装官方 `slither-analyzer` 和目标项目所需编译器；`BCA_SOLC_PATH` 可显式指定 solc。Findings 是分析结果，发现问题的非零退出码会连同官方 JSON 保留；编译或分析失败不会标记成功。GoPlus 与 Tenderly 结果各自保留来源和未检查字段，不合成为安全保证。
+
 ## MCP 会话和刷新
 
 旧的无 session 调用仍使用短连接。长工作流在同一个 SDK toolkit 或 MCP 服务中：
@@ -67,6 +107,6 @@ await toolkit.close();
 
 ## 目录输出
 
-`capability_list({})` 返回名称、说明、读写标记和配置状态。指定 `name` 自动附带完整 Schema/来源；`details:true` 返回全量详细目录，`dir` 指定检查的项目。删除了 `availability.verification`：一次调用的成败由工具原结果报告，历史业务验证见验收文档。
+`capability_list({})` 返回名称、说明、读写标记和配置状态。指定 `name` 自动附带完整 Schema/来源；`details:true` 返回全量详细目录，`dir` 指定检查的项目。一次调用的成败由工具原结果报告。
 
-工作站结果保留 `steps`、`requiredCapabilities`、`missingCapabilities`、`factsNeeded` 和 `mismatches`；移除重复的 `lifecycle`、`executed:false`、完整项目依赖与可选工具状态副本。可选能力列在 `optionalTools`，需要时再查状态。`executable` 仅表示任务配置条件通过，执行前仍需补全步骤参数并授权。
+工作站结果包括 `steps`、`requiredCapabilities`、`missingCapabilities`、`factsNeeded`、`mismatches` 和 `missingRequirements`；账户服务同时返回 `services` 的连接条件，数据查询和安全检查的业务参数放在 `request`。可选能力列在 `optionalTools`，需要时再查状态。`executable` 仅表示已知配置条件通过，实际业务由宿主按最新 Schema 执行。

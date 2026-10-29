@@ -2,6 +2,18 @@
 
 `createToolkit()` 从进程环境读取配置，返回 `{ tools, invoke }`。`tools` 的每项提供 `name`、`description`、Zod v4 严格对象 `inputSchema` 和 `readOnly`。`invoke(name, input)` 返回可 JSON 序列化的数据；bigint 使用十进制字符串。未知工具、额外字段、输入错误和实际 SDK 错误会抛出异常。
 
+## 按任务发现供应商
+
+`bca find "用 Dune 查询 Base 最近七天的交易量"` 返回 Dune、支持链、配置名、缺少的环境变量和连接入口。指定供应商或配置别名时，搜索范围限定为该服务；尚未配置时不连接其他供应商。查询、数据、帮我等词单独出现时不会产生工具匹配。链名用于限定目标，具体任务决定候选工具。
+
+执行 `bca connect dune --name analytics` 后，项目 `.bca/mcp.json` 保存 `x-dune-api-key` 对 `BCA_DUNE_API_KEY` 的引用。设置该环境变量后，`bca find "analytics 查询数据"` 读取此配置的真实 MCP 目录；`bca find "ERC721" --server contracts --details` 可取得所选工具的实际 Schema。连接或授权失败会返回该服务的错误，宿主根据错误处理账户权限或连接条件。目录发现不证明账户能够执行收费查询。
+
+默认连接配置统一维护在 `MCP_PRESETS`：Dune、Nansen、Chainstack 和 thirdweb 使用各自凭据环境变量；GoPlus 需要 `BCA_GOPLUS_API_KEY` 与 `BCA_GOPLUS_API_SECRET`；Slither 使用已固定版本的本地 `uvx` 启动参数。OAuth 服务默认通过现有 `mcp-remote` 完成首次账户授权，Dune 也可显式使用 `--oauth`。`--key-env` 可替换预设的单个认证请求头所用变量，其他请求头需同时提供 `--header`。
+
+`connect` 保留已有配置的请求头、传输方式和只读工具许可；需要改变现有配置时编辑 `.bca/mcp.json` 或使用新的配置名。`find` 只读取配置。多个配置指向同一供应商时，可在问题中指定配置别名，或通过 `--server` 选择。没有公开接入端点的预设保留具体说明和官方文档链接。
+
+`node --import tsx scripts/check-discovery.ts` 检查真实配置文件、缺项、别名选择、默认认证和 OpenZeppelin 实际目录及 ERC721 生成；添加 `--dune` 检查官方 Dune 端点对无授权连接的实际拒绝。有效 Dune 账户查询、过期凭据与账户额度不足，需要相应账户条件才能验证。
+
 依赖固定为 EAS SDK 2.10.0、ethers 6.17.0、multiformats 14.0.5、kubo-rpc-client 7.1.0、Zod 4.6.7；入口使用 Incur 0.7.1 和官方 MCP server/client 2.3.1。EAS 使用其官方 CommonJS 导出，Node.js ESM 通过 `createRequire` 加载。
 
 ## 进程配置
