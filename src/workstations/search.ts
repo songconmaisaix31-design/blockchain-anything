@@ -4,7 +4,7 @@ import { defineTool, type ToolDefinition } from '../types.js';
 import type { BridgeSessions } from '../bridge/session.js';
 import { isReadOnlyUpstream } from '../bridge/index.js';
 import { identifyChains, includesAlias, inspectProviders, loadMcpConfiguration, type ProviderMatch } from '../bridge/config.js';
-import { capabilityStatus } from './catalog.js';
+import { capabilityStatus, goplusPublicProvider, isTokenSecurityQuery, usesPublicGoPlus } from './catalog.js';
 
 // 词汇只用于匹配实际目录，复杂任务由宿主补全。
 const vocabulary = [
@@ -70,18 +70,23 @@ export function searchTools(config: Config, getTools: () => ToolDefinition[], se
     async ({ query, dir, chainFamily, provider, server, limit, offset, readOnly, details }) => {
       const chains = identifyChains(query, chainFamily);
       const localProvider = provider && ['foundry', 'hardhat', 'rpc', 'viem'].includes(provider.toLowerCase()) ? provider.toLowerCase() : undefined;
-      const inspected = await inspectProviders(query, config.workingRoot, localProvider ? undefined : provider);
+      let inspected = await inspectProviders(query, config.workingRoot, localProvider ? undefined : provider);
+      const publicProvider = provider?.toLowerCase() === goplusPublicProvider && !inspected.matches.length;
+      if (publicProvider) inspected = await inspectProviders(query, config.workingRoot, 'goplus');
       const selected = inspected.explicit ? inspected.matches : [];
+      const publicGoPlus = !server && (publicProvider || (selected.length === 1 && isTokenSecurityQuery(query) && usesPublicGoPlus(selected[0], provider, query)));
       const providerMatches = inspected.explicit ? selected : inspected.matches.filter((item) =>
         rank(query, item.preset.id, item.preset.tasks.join(' '), true).score > 0 && (!chains.families.length || !item.preset.chains.length || supportsChains(item.preset.chains, chains.families)));
-      const providers = providerMatches.map((match) => providerResult(match, chains.families));
+      const providers = publicGoPlus ? [{ id: 'goplus', label: 'GoPlus Token Security API', access: 'public', status: 'available', supportedChains: ['evm'],
+        docs: 'https://docs.gopluslabs.io/reference/tokensecurityusingget_1', requirements: [], nextCall: { tool: 'capability_list', input: { name: 'goplus_token_security' } } }]
+        : providerMatches.map((match) => providerResult(match, chains.families));
       const contextChains = identifyChains('', chainFamily).families;
       const chainConflict = contextChains.length && identifyChains(query).families.some((chain) => !contextChains.includes(chain));
-      const providerConflict = selected.some((item) => item.preset.chains.length && !supportsChains(item.preset.chains, chains.families));
+      const providerConflict = publicGoPlus ? !supportsChains(['evm'], chains.families) : selected.some((item) => item.preset.chains.length && !supportsChains(item.preset.chains, chains.families));
       if (chainConflict || providerConflict) return { source: inspected.explicit ? 'provider' : 'catalog', providers, chains, total: 0, matches: [], nextOffset: null,
         ambiguity: chainConflict ? '问题中的链与 chainFamily 不一致，请明确目标链' : '指定供应商的已登记链范围不包含请求链，请确认供应商支持情况' };
       let selectedServer = server;
-      if (!server && selected.length === 1 && !inspected.ambiguity && selected[0]!.status === 'configured') selectedServer = selected[0]!.servers[0]!.name;
+      if (!server && !publicGoPlus && selected.length === 1 && !inspected.ambiguity && selected[0]!.status === 'configured') selectedServer = selected[0]!.servers[0]!.name;
       if (server && selected.length) {
         if (!selected.some((item) => item.servers.some((entry) => entry.name === server))) throw new Error(`指定供应商与 MCP 配置 ${server} 不一致`);
       }
@@ -118,9 +123,11 @@ export function searchTools(config: Config, getTools: () => ToolDefinition[], se
             })), note: '真实上游目录已读取；宿主按 Schema 补全参数，查询执行可能消耗账户额度。' };
         });
       }
-      if (inspected.explicit) return { source: 'provider', providers, chains, total: 0, matches: [], nextOffset: null,
+      if (inspected.explicit && !publicGoPlus) return { source: 'provider', providers, chains, total: 0, matches: [], nextOffset: null,
         ambiguity: inspected.ambiguity, reason: selected.length ? '先完成指定供应商的连接条件，再读取真实工具目录' : '未找到匹配供应商' };
       const matches = getTools().filter((tool) => {
+        if (publicGoPlus && tool.name !== 'goplus_token_security') return false;
+        if (tool.name === 'goplus_token_security' && !isTokenSecurityQuery(query)) return false;
         const source = (tool.metadata?.source as { name?: string } | undefined)?.name ?? '';
         if (localProvider === 'foundry' && source.includes('hardhat')) return false;
         if (localProvider === 'hardhat' && source.startsWith('@foundry-rs/')) return false;
@@ -129,14 +136,14 @@ export function searchTools(config: Config, getTools: () => ToolDefinition[], se
       })
         .map((tool) => ({ tool, ...rank(query, tool.name, tool.description, true) }))
         .filter((item) => item.score > 0).sort((a, b) => b.score - a.score || a.tool.name.localeCompare(b.tool.name));
-      return { source: 'catalog', providers, chains, total: matches.length, nextOffset: offset + limit < matches.length ? offset + limit : null,
+      return { source: publicGoPlus ? { provider: 'goplus', access: 'public' } : 'catalog', providers, chains, total: matches.length, nextOffset: offset + limit < matches.length ? offset + limit : null,
         matches: await Promise.all(matches.slice(offset, offset + limit).map(async ({ tool, score, reasons }) => {
           const schema = z.toJSONSchema(tool.inputSchema, { io: 'input' });
           return { name: tool.name, description: tool.description, readOnly: tool.readOnly, score, reasons,
             requiredInputs: schema.required ?? [], ...(details ? { inputSchema: schema } : {}),
             availability: await capabilityStatus(tool, config, dir),
             schemaCall: { tool: 'capability_list', input: { name: tool.name, dir } }, call: { tool: tool.name, input: {} } };
-        })), reason: matches.length || providers.length ? '按任务匹配；选择供应商后读取真实目录' : '未找到匹配能力',
-        note: '按原工具 Schema 补全参数后调用；find 不写入服务配置。' };
+        })), reason: publicGoPlus ? matches.length ? 'GoPlus 官方公开 EVM 代币风险查询' : '公开入口仅支持 ERC20 代币风险查询，请明确代币任务' : matches.length || providers.length ? '按任务匹配；选择供应商后读取真实目录' : '未找到匹配能力',
+        note: publicGoPlus ? '按 Schema 提供 chainId 和 ERC20 合约地址；保留原始风险字段与上游错误。' : '按原工具 Schema 补全参数后调用；find 不写入服务配置。' };
     })];
 }

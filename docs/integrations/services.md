@@ -17,27 +17,32 @@ BCA 使用官方 MCP TypeScript Client，支持 stdio 与 Streamable HTTP。配�
 
 配置会在每次调用重读，同长度修改和环境变量变更立即生效。URL/凭据不作为工具输入；子进程 stderr 不转发到协议输出。请求头和配置中的秘密会从异常中屏蔽。
 
-## 服务矩阵（2026-10-23）
+## 服务矩阵（2026-10-29）
 
 | 项目 | 官方入口 / 示例 | 授权 | 实际结果 |
 | --- | --- | --- | --- |
 | [OpenZeppelin](https://github.com/OpenZeppelin/openzeppelin-mcp) | preset openzeppelin，npx @openzeppelin/contracts-mcp@0.8.0 | 本地 | 发现与 ERC20 生成通过 |
 | [CoinGecko](https://docs.coingecko.com/ai-integration/mcp-server) | https://mcp.api.coingecko.com/mcp；public.json | 公开入口 | 发现与 search_docs 调用通过；未验证所有行情方法 |
 | [Alchemy](https://www.alchemy.com/docs/build-with-ai) | https://mcp.alchemy.com/mcp；alchemy.json | OAuth | 配置就绪，账户验收待完成 |
-| [Tenderly](https://tenderly.co/blog/validating-agentic-workflows-with-tenderly-mcp-server/) | https://mcp.tenderly.co/mcp；oauth.json | OAuth | 待凭据与模拟调用 |
+| [Tenderly](https://tenderly.co/blog/validating-agentic-workflows-with-tenderly-mcp-server/) | https://mcp.tenderly.co/mcp；oauth.json | OAuth、项目 MCP 权限 | OAuth、60 个工具发现及同一会话项目选择通过；trace_transaction 被项目计划拒绝，未成功执行模拟 |
 | [Chainstack](https://github.com/chainstacklabs/mcp-server) | https://mcp.chainstack.com/mcp；chainstack.json | API key | 待凭据 |
 | [thirdweb AI](https://portal.thirdweb.com/changelog/nebula-is-now-thirdweb-ai) | https://api.thirdweb.com/mcp；thirdweb.json | secretKey | 待凭据 |
 | [Nansen](https://academy.nansen.ai/articles/2711728-get-started-with-nansen-mcp) | https://mcp.nansen.ai/ra/mcp；nansen.json | NANSEN-API-KEY | 待凭据 |
-| [Dune](https://docs.dune.com/api-reference/agents/quickstart) | https://api.dune.com/mcp/v1；dune.json | x-dune-api-key | 待凭据 |
+| [Dune](https://docs.dune.com/api-reference/agents/quickstart) | https://api.dune.com/mcp/v1；dune.json | x-dune-api-key 或 OAuth | OAuth、33 个工具发现、getUsage 与 Base 表 Schema 读取通过；quota=0，createAndExecuteQuery 被 read-only 权限拒绝 |
 | [Allium](https://docs.allium.so/ai/mcp/overview) | https://mcp.allium.so；allium.json | Bearer API key 或 OAuth | 待凭据；官方 get_skill 同样通过 bridge_call 读取 |
 | [Token Terminal](https://tokenterminal.com/docs/mcp/introduction) | https://mcp.tokenterminal.com/mcp；tokenterminal.json | OAuth | 待账户授权 |
 | [Messari](https://docs.messari.io/mcp-server/hosted) | https://mcp.messari.io/mcp；messari.json | OAuth 流程 + Messari API key | 待账户权限 |
 | [GoPlus](https://github.com/GoPlusSecurity/goplus-mcp) | npx goplus-mcp@1.0.1；goplus.json | key / secret | 待凭据与原生调用 |
+| [GoPlus Token Security API](https://docs.gopluslabs.io/reference/tokensecurityusingget_1) | `goplus_token_security({chainId,address})`；[调用指南](../guides/goplus.md) | 公开 ERC20 查询无需账户 | Ethereum / Base USDC 真实风险字段读取通过；MCP 仍使用自己的认证条件 |
 | [Slither MCP](https://github.com/trailofbits/slither-mcp) | uvx 官方仓库；slither.json | 本地环境 | 2026-10-23 已真实发现及分析；2026-10-24 补测 CLI 状态分类。完整审计仍未代验 |
 | [Coinbase Wallet](https://docs.cdp.coinbase.com/ai-agents/coinbase-for-agents/wallet-mcp) | https://wallet-mcp.coinbase.com；coinbase-wallet.json | OAuth | 待钱包授权 |
 | [Kaito Pro](https://www.pro.kaito.ai/portal) | 无可核实的通用官方 API/MCP | 商业账户 | 未适配；仅保留准确的发现信息 |
 
 文件均位于 `examples/services/`。当前 CoinGecko 上游暴露 `execute` 与 `search_docs`，执行前以当次发现的 Schema 为准。
+
+GoPlus 公开 HTTP API 使用明确的内置入口。`find "GoPlus 代币风险" --provider goplus-public` 返回该工具；指定 MCP server 或配置别名时仍发现并调用指定服务，不在认证失败后改用其他入口。公开接口保留完整上游风险字段，不覆盖钱包、授权或交易模拟检查。
+
+Dune 当前账户的 `getUsage` 返回 `subscriptionPlanName=visitor_fluid_engine`、`creditsQuota=0`；读取 Base 表 Schema 成功，SQL 查询执行尚未获准。Tenderly 的 `list_projects` 与 `set_active_project` 在同一会话成功，追踪工具明确返回项目所有者计划不包含 MCP。两家官方支持的开发/评估接入申请已发送，尚未收到业务权益授权，未开通付费订阅。实际权限错误保留，OAuth 和目录发现不会将业务标记为成功。
 
 ## OAuth
 

@@ -2,6 +2,8 @@
 
 当前进度见 [STATUS](STATUS.md)，供应商发现与工作站结果见[任务记录](tasks/task-discovery.md)。D14 授权通过相关真实验证的改动合并主线；D16 确定本轮功能范围，D17 明确批准本轮使用 Codex 子 Agent。后续并行默认遵循最新 Swarm CLI 执行协议。
 
+Dune、GoPlus、Tenderly 后续结果见[真实业务记录](tasks/service-workflows.md)。本机项目已配置并授权 Dune/Tenderly OAuth，官方缓存可复用；Dune 只读计划拒绝执行查询，Tenderly 默认项目缺少 MCP 业务权益。已向两家官方支持发送开发/评估权限申请，等待回复。GoPlus 公开代币风险读取不需要账户，沿用 `goplus_token_security`；钱包、授权检查及账户限定字段仍沿用官方 MCP 配置。Windows MCP 关闭和授权超时会清理本次启动的进程树。
+
 共享入口是 `src/toolkit.ts`。`development/project.ts` 创建并运行 Counter/ERC20/ERC721 项目，`development/workspace.ts` 完成本机 Anvil 部署和 NFT 铸造；`workstations/search.ts` 检索工具与供应商，`bridge/config.ts` 维护唯一预设及认证模板，`bridge/manage.ts` 保存配置。各工作站步骤在 `workstations/catalog.ts`，宿主补全实际参数并执行，错误与缺项保留。
 
 使用 Node 22.12+（22 LTS）或 Node 24 LTS；`npm ci` 会通过 prepare 构建。按变更选择相关检查：`check:v1` 跑新建项目和真实 OpenZeppelin MCP；`check:setup` 跑实际打包安装；`check:next -- onchain` 跑本地链开发与诊断；`check:sessions` 跑连接边界。只有改动或失败涉及相应路径时才复测，不重复全生态验收。

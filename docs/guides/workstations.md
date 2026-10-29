@@ -21,7 +21,7 @@ node --env-file=.env dist/cli/main.js workstation diagnose --input '{"hash":"<�
 
 证据保留 chain ID、交易/区块、来源和获取时间。本轮没有链上结果缓存。历史区块结果不等于未来模拟/交易结果。
 
-缺 trace 时可明确选择已授权 Tenderly：`bridge_refresh({server:"tenderly"})` 读取真实工具 Schema，再由宿主选取相应调用；不要猜工具名。需要 fork 时，宿主使用官方 `anvil --fork-url ... --fork-block-number <固定区块>` 或 `cast run <hash> --rpc-url ...`，核对同一区块内前序交易和历史状态。BCA 本轮未验收公共交易 fork 重放或 Tenderly 账户路径。
+缺 trace 时可明确选择 Tenderly：打开会话后读取真实工具 Schema，并在同一会话选择项目再调用追踪工具。当前已完成 OAuth 和项目选择，`trace_transaction` 返回项目计划不包含 MCP 的错误；追踪及模拟尚未成功。需要 fork 时，宿主使用官方 `anvil --fork-url ... --fork-block-number <固定区块>` 或 `cast run <hash> --rpc-url ...`，核对同一区块内前序交易和历史状态。本轮未验收公共交易 fork 重放。
 
 ## EVM 合约开发
 
@@ -61,9 +61,11 @@ tokenURI 由操作者提供。使用 IPFS 时，先通过已配置 Kubo 的 `ipf
 
 ## 链上数据查询
 
-`bca find "用 Dune 查询 Base 最近七天的交易量"` 选择 `onchain-data`，保持 Dune 供应商与 Base 目标。缺连接时返回 `bridge_configure`，缺凭据时列出 `BCA_DUNE_API_KEY`。已配置的自定义服务名称沿用原配置。
+`bca find "用 Dune 查询 Base 最近七天的交易量"` 选择 `onchain-data`，保持 Dune 供应商与 Base 目标。缺连接时返回 `bridge_configure`；API key 配置缺凭据时列出 `BCA_DUNE_API_KEY`。使用 OAuth 时执行 `bca connect dune --oauth` 并完成官方授权。已配置的自定义服务名称沿用原配置。
 
-`context` 可提供 `chain`、`chainId`、`chainFamily`、`protocol`、`metric`、`timeRange`。工作站先要求读取实际 MCP 工具目录及相关 Schema，再由宿主准备数据表、字段与查询参数，执行查询并根据服务返回的执行标识读取结果。查询执行和结果导出可能使用账户 credits，真实账户权限、超时和额度错误由上游返回；失败后不切换供应商或自动重发查询。完整账户业务仍需实际凭据验证。
+`context` 可提供 `chain`、`chainId`、`chainFamily`、`protocol`、`metric`、`timeRange`。工作站先要求读取实际 MCP 工具目录及相关 Schema，再由宿主准备数据表、字段与查询参数，执行查询并根据服务返回的执行标识读取结果。查询执行和结果导出可能使用账户 credits，真实账户权限、超时和额度错误由上游返回；失败后不切换供应商或自动重发查询。
+
+2026-10-29 的 Dune OAuth 会话发现 33 个工具，`getUsage` 返回 `subscriptionPlanName=visitor_fluid_engine`、`creditsUsed=0`、`creditsQuota=0`；`searchTables` 成功读取 Base 的 blocks、transactions、traces 表及真实 Schema。按这些字段提交最近七个完整 UTC 日期的交易数查询，`createAndExecuteQuery` 返回账户 read-only 拒绝。没有成功创建查询或执行标识，没有查询结果可读取。
 
 ## 安全检查
 
@@ -71,11 +73,16 @@ tokenURI 由操作者提供。使用 IPFS 时，先通过已配置 Kubo 的 `ipf
 
 | 输入 | context | 步骤 |
 | --- | --- | --- |
-| 地址或代币风险 | `securityInput:"address"`、`address`、`chainId` | 发现 GoPlus 实际工具，按对象选择 token、address 或 approval 检查 |
+| ERC20 代币风险 | `securityInput:"token"`、`address`、`chainId` | `goplus_token_security` 读取 GoPlus 官方公开 API；显式指定 MCP 配置时读取该服务的 token 工具 |
+| 钱包、其他地址或授权风险 | `securityInput:"address"`、`address`、`chainId` | 发现 GoPlus MCP 实际工具，按对象选择 address 或 approval 检查 |
 | 本地源码 | `securityInput:"source"`、`target` | `dev_slither_analyze` 运行真实 Slither，返回官方发现及位置 |
 | 待执行交易 | `securityInput:"transaction"`、`chainId`、`transaction:{from,to,data,value}` | 发现 Tenderly 实际模拟工具，按 Schema 填入交易，不发送该链上交易 |
 
 Slither 需要安装官方 `slither-analyzer` 和目标项目所需编译器；`BCA_SOLC_PATH` 可显式指定 solc。Findings 是分析结果，发现问题的非零退出码会连同官方 JSON 保留；编译或分析失败不会标记成功。GoPlus 与 Tenderly 结果各自保留来源和未检查字段，不合成为安全保证。
+
+`bca find "GoPlus 代币风险" --provider goplus-public --chainId 1 --address <ERC20地址>` 返回可直接调用的公开查询步骤。公开接口只接受 EVM ERC20 合约；仅提供普通 `address` 时工作站保留地址检查路径。缺失风险字段表示上游未提供，空结果会报错，不能据此判定钱包或代币安全。已选择 GoPlus MCP 配置名称时沿用其认证与工具目录；服务失败不会切换到公开 API。
+
+Tenderly 连续调用使用同一个 `bridge_open` 返回的 session：读取目录后，按实际 Schema 调用 `list_projects`、`set_active_project`，再调用模拟或追踪工具。每次 `bridge_call` 传入同一个 server 和 session。当前 OAuth、60 个工具发现与项目选择均成功，`trace_transaction` 返回 `MCP access is not included in the plan of the active project's owner`，尚未成功执行模拟。Dune 与 Tenderly 的开发/评估接入申请已发送，业务权限尚待官方处理，未开通付费订阅。
 
 ## MCP 会话和刷新
 
@@ -103,7 +110,7 @@ await toolkit.close();
 {"mcpServers":{"local-service":{"command":"node","args":["/absolute/official/server.js"],"readOnlyTools":["verified_read_tool"]}}}
 ```
 
-未映射且未获只读许可的工具需要既有写开关及 `submit:true`。这些是有限调用许可，逐笔授权仍由宿主/官方钱包完成。官方 MCP SDK 负责 transport 关闭；`run()` 的进程组清理保证单独适用于本地 CLI 适配器。
+未映射且未获只读许可的工具需要既有写开关及 `submit:true`。这些是有限调用许可，逐笔授权仍由宿主/官方钱包完成。Windows stdio 会话关闭时，在官方 SDK 清除 PID 前结束本次启动的进程树，正常关闭与初始化超时均执行清理；本地 CLI 适配器复用同一个 Windows 清理函数。其他系统沿用官方 SDK 的 transport 生命周期。
 
 ## 目录输出
 

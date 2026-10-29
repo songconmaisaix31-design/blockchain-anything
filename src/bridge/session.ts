@@ -3,6 +3,7 @@ import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/cli
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import type { Config } from '../config.js';
 import { VERSION } from '../version.js';
+import { terminateWindowsProcessTree, WINDOWS_PROCESS_CLEANUP_TIMEOUT_MS } from '../development/exec.js';
 import { loadMcpServers, loadMcpConfiguration, type ResolvedServer } from './config.js';
 
 type UpstreamTool = Awaited<ReturnType<Client['listTools']>>['tools'][number];
@@ -14,6 +15,24 @@ interface Entry {
   previousDigest?: string;
 }
 const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+
+export class ProcessTreeStdioClientTransport extends StdioClientTransport {
+  private closing?: Promise<void>;
+
+  override close(): Promise<void> {
+    return this.closing ??= this.closeTree();
+  }
+
+  private async closeTree() {
+    // SDK 初始化失败也会直接调用 close；须在 SDK 清空 PID 前结束 npx 的整个进程树。
+    const pid = this.pid;
+    try {
+      if (process.platform === 'win32' && pid !== null) await terminateWindowsProcessTree(pid);
+    } finally {
+      await super.close();
+    }
+  }
+}
 
 /** Owned by one toolkit. No credentials or connections cross toolkit instances. */
 export class BridgeSessions {
@@ -28,7 +47,7 @@ export class BridgeSessions {
     if (this.entries.size >= 16) throw new Error('最多 16 个会话；先 bridge_close');
     const transport = server.transport === 'http'
       ? new StreamableHTTPClientTransport(new URL(server.url), { requestInit: { headers: server.headers } })
-      : new StdioClientTransport({ command: server.command, args: server.args, env: server.env, cwd: server.cwd, stderr: 'pipe' });
+      : new ProcessTreeStdioClientTransport({ command: server.command, args: server.args, env: server.env, cwd: server.cwd, stderr: 'pipe' });
     if (transport instanceof StdioClientTransport) transport.stderr?.on('data', () => { /* drain, never disclose credentials */ });
     let entry: Entry;
     const client = new Client({ name: 'bca', version: VERSION }, {
@@ -70,10 +89,11 @@ export class BridgeSessions {
     clearTimeout(entry.timer);
     this.entries.delete(id);
     let timer: ReturnType<typeof setTimeout> | undefined;
+    const cleanupTimeoutMs = process.platform === 'win32' ? WINDOWS_PROCESS_CLEANUP_TIMEOUT_MS : 3000;
     try {
       await Promise.race([
         entry.client.close().then(() => entry.transport.close()),
-        new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('MCP 会话关闭超过 3000ms，清理未确认')), 3000); }),
+        new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error(`MCP 会话关闭超过 ${cleanupTimeoutMs}ms，清理未确认`)), cleanupTimeoutMs); }),
       ]);
     } finally { clearTimeout(timer); }
     return { session: id, closed: true };
