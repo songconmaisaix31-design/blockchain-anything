@@ -32,7 +32,7 @@ Solana 资产操作、跨链报价、Safe 提案、x402 消费与 dApp 模板保
 
 ## 当前结果
 
-轨道 A 已推送 `36906413fcc4a1deb98884f288ab9cb7c9faef4e`，轨道 B 已推送 `323ee58996ef6f6d73cb6e3cc75bacf863f8a022`，B 包含 A。独立集成完成后交主 Agent 最终检查。实现直接扩展已有预设、检索、指南、项目模板和本地操作工具。
+轨道 A 已推送 `36906413fcc4a1deb98884f288ab9cb7c9faef4e`，通过 [PR #11](https://github.com/songconmaisaix31-design/blockchain-anything/pull/11) 合并主线；轨道 B 已推送 `f6ba6e6647d2f4abff0192d3f574e29631012357`，B 包含 A。独立集成提交 `17fe10825f65048412523f3c60fddd6c7cd9eb6d` 补齐 CLI 供应商参数转发、ERC721 帮助和检查命令。实现直接扩展已有预设、检索、指南、项目模板和本地操作工具。
 
 Windows x64，Node 24.16.0、npm 11.13.0；相关真实验证：
 
@@ -44,6 +44,9 @@ Windows x64，Node 24.16.0、npm 11.13.0；相关真实验证：
 | `node --import tsx scripts/check-workstations.ts guides` | 各工作站路由、缺链/插件/业务参数、仅编译、中文链名和配置别名通过 |
 | `node --import tsx scripts/check-workstations.ts nft` | 新建真实 ERC721，编译测试，本机 Anvil 部署与铸造，读取真实 JSON data URI；拒绝非所有者、重复 tokenId 与无代码地址 |
 | `node --import tsx scripts/check-workstations.ts all` | 安装官方 Slither 0.11.6 后实际分析新项目，JSON `success=true`、48 项发现，保留原始退出码 `4294967295` |
+| `npm run check:sessions` | 集成后真实 OpenZeppelin 会话、凭据变更失效、断开后不重放与显式重连通过 |
+| `npm run smoke -- --scope interfaces` | CLI 与官方 MCP 入口通过，实际注册 126 个工具 |
+| 集成目录 `node .work/check-cli.mjs` | 实际 CLI 供应商参数、缺链/插件、ERC721 初始化与依赖安装、仅编译、安全源码、无匹配和 OpenZeppelin 目录通过 |
 
 Slither 环境通过 `uv venv .work/slither-env` 和 `uv pip install --python .work/slither-env/Scripts/python.exe slither-analyzer` 安装；运行时将该 Scripts 目录加入 PATH，`BCA_SOLC_PATH` 指向本机 `C:/Users/DW/AppData/Roaming/svm/0.8.35/solc-0.8.35`。分析发现由官方返回，调用者需阅读具体内容。NFT 验证使用本机 Anvil 31337，元数据为实际 JSON data URI。
 
