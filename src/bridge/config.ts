@@ -398,7 +398,7 @@ function parseDocument(text: string, source: string): McpConfiguration {
     try {
       preset = presetForRaw(name, value);
       const raw = value as RawServer;
-      required = missingEnvironment(connectionFields(raw, preset));
+      if (value && typeof value === 'object' && !Array.isArray(value)) required = missingEnvironment(connectionFields(raw, preset));
       servers[name] = parseServer(name, preset ? { preset: preset.id, ...raw } : value);
     } catch (error) { errors[name] = error instanceof Error ? error.message : '配置无效'; }
     const args = value && typeof value === 'object' ? (value as RawServer).args : undefined;

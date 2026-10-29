@@ -1,5 +1,5 @@
 {
   "mcpServers": {
-    "nansen": { "preset": "nansen", "headers": { "NANSEN-API-KEY": "${BCA_NANSEN_API_KEY}" } }
+    "nansen": { "preset": "nansen" }
   }
 }
