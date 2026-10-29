@@ -14,8 +14,8 @@ Solana 资产操作、跨链报价、Safe 提案、x402 消费与 dApp 模板保
 
 | 轨道 | Agent / Worktree / Branch | write_paths | 职责 |
 | --- | --- | --- | --- |
-| A 供应商 | Orca Codex；创建后补充路径；`codex/task-providers` | `src/bridge/config.ts`、`src/bridge/manage.ts`、`src/workstations/search.ts`、`examples/services/`、`scripts/check-discovery.ts`、`docs/guides/providers.md` | 单一预设元数据、认证模板、配置别名、供应商限制、链支持、实际 MCP 发现、针对性验证 |
-| B 工作站 | Orca Codex；创建后补充路径；`codex/task-workstations` | `src/workstations/catalog.ts`、`src/development/project.ts`、`src/development/workspace.ts`、`src/development/index.ts`、`scripts/check-workstations.ts`、`docs/guides/workstations.md` | 分别生成任务步骤，ERC721 模板与本地铸造调用，数据查询及三类安全检查，真实本地验证 |
+| A 供应商 | Codex `providers`；`C:/Users/DW/.codex/worktrees/task-providers/blockchain-anything`；`codex/task-providers` | `src/bridge/config.ts`、`src/bridge/manage.ts`、`src/workstations/search.ts`、`examples/services/`、`scripts/check-discovery.ts`、`docs/guides/providers.md` | 单一预设元数据、认证模板、配置别名、供应商限制、链支持、实际 MCP 发现、针对性验证 |
+| B 工作站 | Codex `workstations`；`C:/Users/DW/.codex/worktrees/task-workstations/blockchain-anything`；`codex/task-workstations` | `src/workstations/catalog.ts`、`src/development/project.ts`、`src/development/workspace.ts`、`src/development/index.ts`、`scripts/check-workstations.ts`、`docs/guides/workstations.md` | 分别生成任务步骤，ERC721 模板与本地铸造调用，数据查询及三类安全检查，真实本地验证 |
 | 集成 | 完成后启动独立集成 Agent；`codex/task-discovery` | 只合并两轨提交；必要的 `src/cli/main.ts`、`src/toolkit.ts`、`package.json` 等入口与类型衔接 | 领域问题交回原 Worker，执行集成检查 |
 
 主 Agent 维护本文件、`STATUS.md`、`HANDOFF.md`、`docs/QUESTIONS.md` 与必要规格说明，负责最终检查和提交。Worker 只修改各自范围，负责开发、运行、返修、Commit 和 push，不覆盖其他贡献。中间结果放在已忽略的 `.work/`。
@@ -26,7 +26,7 @@ Solana 资产操作、跨链报价、Safe 提案、x402 消费与 dApp 模板保
 
 ## 实际客户端与模型
 
-主 Agent：Codex 桌面当前会话。官方资料核对：继承当前会话模型的只读子 Agent。开发：计划通过本机 Orca 启动 Codex，使用客户端已配置模型，启动结果确认后记录。
+主 Agent：Codex 桌面当前会话。官方资料核对：继承当前会话模型的只读子 Agent。Orca 启动返回 `runtime_open_timeout`，后续状态为 `runtime_unavailable`；用户已明确允许本轮改用 Codex 子 Agent，保留独立 Worktree、分支和互斥文件范围。开发使用继承当前会话模型的 Codex 子 Agent。
 
 ## 当前结果
 
