@@ -7,7 +7,9 @@
 - 精简原则：按任务调用现有工具，按需读取 Schema，沿用官方组件；不增加评分、覆盖率门槛或重复运行时验收记录。
 - 已知缺项：Windows/macOS 原生客户端、账户型服务业务路径、公共测试网源码上传验证。保留实际未测状态，不阻塞已验证主线。
 
-供应商发现和三个工作站的实际检查见[任务记录](tasks/task-discovery.md)。`find` 支持指定供应商和配置别名，`connect` 复用认证模板；NFT、链上数据查询、安全检查分别生成步骤。Windows Node 24.16.0 下已完成真实 OpenZeppelin 目录与生成、Dune 无授权错误、ERC721 本地部署/铸造/tokenURI 和 Slither 分析。有效账户的 Dune 查询、GoPlus/Tenderly 业务、过期凭据与额度不足仍待验证。
+供应商发现和三个工作站的实际检查见[任务记录](tasks/task-discovery.md)。`find` 支持指定供应商和配置别名，`connect` 复用认证模板；NFT、链上数据查询、安全检查分别生成步骤。Windows Node 24.16.0 下已完成真实 OpenZeppelin 目录与生成、Dune 无授权错误、ERC721 本地部署/铸造/tokenURI 和 Slither 分析。Dune 查询、GoPlus 账户限定业务、Tenderly 模拟、过期凭据与额度不足按后续记录保留实际未通过状态。
+
+服务业务后续见[真实业务记录](tasks/service-workflows.md)：GoPlus 公开 API 已完成 Ethereum/Base USDC 风险查询；Tenderly OAuth、60 个工具发现、项目列表与项目选择通过，业务被现有免费计划的 MCP 权限拒绝；Dune OAuth、33 个工具、用量和 Base 表结构读取通过，查询执行被只读计划拒绝。已向两家官方支持申请开发/评估权限，未开通订阅。Windows MCP 授权超时后的进程树清理已修复并通过真实检查。
 
 历史参考：[v1 记录](docs/acceptance/2026-10-25-v1.md)、[精简审阅](docs/acceptance/2026-10-25.md)、[工作站](docs/acceptance/2026-10-24.md)、[S2 生态](tasks/S2-progress.md)。
 
