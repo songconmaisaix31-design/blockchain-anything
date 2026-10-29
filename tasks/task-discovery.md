@@ -28,6 +28,8 @@ Solana 资产操作、跨链报价、Safe 提案、x402 消费与 dApp 模板保
 
 主 Agent：Codex 桌面当前会话。官方资料核对：继承当前会话模型的只读子 Agent。Orca 启动返回 `runtime_open_timeout`，后续状态为 `runtime_unavailable`；用户已明确允许本轮改用 Codex 子 Agent，保留独立 Worktree、分支和互斥文件范围。开发使用继承当前会话模型的 Codex 子 Agent。
 
+执行期间用户更新通用协议为 Swarm CLI；本轮沿用已明确批准的 Codex 子 Agent 方式。
+
 ## 当前结果
 
 已读取交接、状态、规格、任务、用户决定与所附规划；已核实主线、工作区和现有实现。开发与验证尚未完成。
