@@ -39,6 +39,11 @@ try {
     const alias = await call('workstation_search', { query: 'analytics 查询 Base 交易量' });
     assert.equal(alias.candidates[0].provider, 'dune');
     assert.equal(alias.candidates[0].steps.find((step: any) => step.tool === 'bridge_refresh').input.server, 'analytics');
+    await call('bridge_configure', { preset: 'openzeppelin', name: 'contracts', submit: true });
+    const nftAlias = await call('workstation_search', { query: '创建 NFT', context: { chainFamily: 'evm', provider: 'contracts' } });
+    assert.equal(nftAlias.candidates[0].id, 'nft-create');
+    assert.deepEqual(nftAlias.candidates[0].mismatches, []);
+    assert.equal(nftAlias.candidates[0].steps[0].input.template, 'erc721');
     const unknownChains = await call('workstation_guide', { id: 'onchain-data', context: { provider: 'messari', chainFamily: 'solana' } });
     assert.deepEqual(unknownChains.mismatches, []);
     assert.ok(unknownChains.factsNeeded.includes('provider chain support'));
