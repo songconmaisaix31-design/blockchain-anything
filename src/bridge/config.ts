@@ -283,6 +283,16 @@ export function includesAlias(query: string, alias: string): boolean {
   return new RegExp(`${/^[a-z0-9]/i.test(alias) ? '(?<![a-z0-9])' : ''}${escaped}${/[a-z0-9]$/i.test(alias) ? '(?![a-z0-9])' : ''}`, 'i').test(query);
 }
 
+export function identifyChains(query: string, chainFamily?: string) {
+  const names = ['evm', 'ethereum', 'base', 'arbitrum', 'optimism', 'polygon', 'bsc', 'avalanche', 'solana', 'sui', 'aptos', 'bitcoin', 'near', 'ton', 'tron'];
+  const aliases: Record<string, string> = { '以太坊': 'ethereum', '索拉纳': 'solana', '比特币': 'bitcoin' };
+  const found = names.filter((name) => includesAlias(query, name));
+  for (const [alias, name] of Object.entries(aliases)) if (query.includes(alias)) found.push(name);
+  if (chainFamily) found.push(aliases[chainFamily] ?? chainFamily.toLowerCase());
+  const evm = new Set(['ethereum', 'base', 'arbitrum', 'optimism', 'polygon', 'bsc', 'avalanche']);
+  return { chains: [...new Set(found)], families: [...new Set(found.map((name) => evm.has(name) ? 'evm' : name))] };
+}
+
 function presetForRaw(name: string, value: unknown): McpPreset | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
   const raw = value as RawServer;

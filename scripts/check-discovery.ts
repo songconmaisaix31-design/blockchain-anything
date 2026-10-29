@@ -37,6 +37,10 @@ try {
   const compile = await call('capability_search', { query: '只编译合约' });
   assert.ok(compile.matches.some((item: any) => /compile|build/.test(item.name)));
   assert.ok(!compile.matches.some((item: any) => /deploy|sign/.test(item.name)));
+  const security = await call('capability_search', { query: '检查合约源码安全' });
+  assert.ok(security.matches.some((item: any) => item.name === 'dev_slither_analyze'));
+  assert.ok(!security.matches.some((item: any) => item.name === 'dev_forge_verify'));
+  assert.ok(!security.providers.some((item: any) => ['openzeppelin', 'thirdweb'].includes(item.id)));
 
   const connected = await call('bridge_configure', { preset: 'dune', name: 'analytics', submit: true });
   assert.deepEqual(connected.missingEnvironment, ['BCA_DUNE_API_KEY']);
