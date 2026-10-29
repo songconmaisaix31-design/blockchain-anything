@@ -53,6 +53,26 @@ bca test contracts
 
 Agent 对应调用 `project_init` 和 `project_run`。本地编译、测试无需 RPC 或签名权限。编译/测试失败保留诊断，CLI 业务失败退出 2，执行失败退出 1；MCP 返回 `isError`。
 
+## 查询公开代币风险（GoPlus）
+
+GoPlus Token Security 公开 API 已验证可用于 Ethereum 与 Base 的只读代币风险查询；无需 GoPlus 账户、API Key 或交易签名。安装方式不同，命令入口也不同。
+
+**已安装到目标项目：** 在完成上方项目安装后，于项目根目录运行：
+
+```sh
+node .bca/runtime/node_modules/blockchain-anything/dist/cli/main.js call goplus_token_security --input '{"chainId":"1","address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}'
+```
+
+**源码 checkout：** 在仓库根目录先运行 `npm ci`，再运行：
+
+```sh
+node dist/cli/main.js call goplus_token_security --input '{"chainId":"1","address":"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"}'
+```
+
+结果中查看 `access`（应为 `public`）、`source`、`queriedAt` 和 `response.result[address]`。后者保留 GoPlus 上游风险字段；字段缺失或空值仅表示上游没有提供该项数据，**不代表无风险，也不构成安全保证**。本查询为只读 API 请求，不会发送链上交易。
+
+[GoPlus 查询指南与参数说明](docs/guides/goplus.md) · [实际运行记录](tasks/service-workflows.md)
+
 ## 从问题找到能力
 
 ```sh
