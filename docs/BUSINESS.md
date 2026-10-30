@@ -1,6 +1,6 @@
 # BCA 商业模式
 
-> 配套文档：[README](../README.md) · [在线文档](https://songconmaisaix31-design.github.io/blockchain-anything/) · [定价页](../../docs/index.html#business)
+> 配套文档：[README](../README.md) · [长期展望](VISION.md) · [在线文档](https://songconmaisaix31-design.github.io/blockchain-anything/) · [定价页](index.html#business)
 >
 > 本文用于对外沟通与评审应答。所有金额为美元，未特别说明处均为**目录价**（list price），不含折扣与渠道返点。标注「待验证」的数字是建模假设，不是实测值。
 

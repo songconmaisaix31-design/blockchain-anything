@@ -210,6 +210,6 @@ v1 的验证范围见[初始记录](docs/acceptance/2026-10-25-v1.md)，供应�
 
 ## 相关文档
 
-[开发规则](docs/TASKS.md) · [用户决定](docs/QUESTIONS.md) · [当前进度](STATUS.md) · [REA 参考](docs/REA-REFERENCE.md)
+[长期展望](docs/VISION.md) · [商业模式](docs/BUSINESS.md) · [开发规则](docs/TASKS.md) · [用户决定](docs/QUESTIONS.md) · [当前进度](STATUS.md) · [REA 参考](docs/REA-REFERENCE.md)
 
 MIT。各上游组件保留自身许可证；OpenZeppelin Contracts MCP 独立进程遵循其 AGPL-3.0-only 许可。
