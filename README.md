@@ -8,7 +8,7 @@
 
 **在 Codex、Claude Code 或终端中，找到区块链工具并完成真实任务。**
 
-[在线文档](https://songconmaisaix31-design.github.io/blockchain-anything/) · [安装说明](docs/guides/setup.md) · [依赖安全状态](docs/guides/dependency-security.md)
+[在线 Demo](https://songconmaisaix31-design.github.io/blockchain-anything/demo/) · [在线文档](https://songconmaisaix31-design.github.io/blockchain-anything/) · [安装说明](docs/guides/setup.md) · [依赖安全状态](docs/guides/dependency-security.md)
 
 BCA v1 把官方 SDK、CLI 和 MCP 接成一个入口。已有 Agent 负责对话、编辑代码和任务循环；BCA 提供工具发现、项目操作、连接管理与真实结果。CLI、MCP、TypeScript SDK 共用实现。
 
