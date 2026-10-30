@@ -10,3 +10,4 @@ coverage/
 examples/contracts/out/
 examples/contracts/cache/
 examples/contracts/artifacts/
+*.tgz

@@ -22,6 +22,7 @@ const conditions: Record<string, string[]> = {
   sui: ['BCA_SUI_RPC_URL'], aptos: ['BCA_APTOS_RPC_URL'], solana: ['BCA_SOLANA_RPC_URL'], sas: ['BCA_SOLANA_RPC_URL'],
   bankr: ['BCA_BANKR_API_KEY'], brian: ['BCA_BRIAN_API_KEY'], hummingbot: ['BCA_HUMMINGBOT_URL'],
   openlineage: ['BCA_OPENLINEAGE_URL'],
+  explorer: ['BCA_ETHERSCAN_API_KEY'], aa: ['BCA_BUNDLER_URL'], tx: ['BCA_TENDERLY_ACCESS_KEY'],
 };
 
 export const workstations = [
@@ -86,9 +87,15 @@ export function metadataFor(tool: ToolDefinition) {
   if (name === 'goplus_token_security') Object.assign(source, { type: 'HTTP API', name: 'GoPlus Token Security API', version: 'v1', official: true, url: 'https://docs.gopluslabs.io/reference/tokensecurityusingget_1' });
   if (name.startsWith('dev_hardhat')) Object.assign(source, { type: 'CLI', name: 'project-installed hardhat', version: null, official: true, url: 'https://hardhat.org/docs' });
   if (['evm_proxy', 'evm_contract_source'].includes(name)) Object.assign(source, { type: 'SDK/API', name: name === 'evm_proxy' ? 'viem / ERC-1967 / ERC-1167' : 'Sourcify v2 / local compiler artifact / viem', version: dependencies.viem, official: true, url: name === 'evm_proxy' ? 'https://viem.sh' : 'https://docs.sourcify.dev/docs/api/' });
+  if (name === 'chainlink_price') Object.assign(source, { type: 'SDK/API', name: 'Chainlink AggregatorV3 / ethers', version: dependencies.ethers, official: true, url: 'https://docs.chain.link/data-feeds' });
+  if (/^defillama_/.test(name)) Object.assign(source, { type: 'HTTP API', name: 'DefiLlama API', version: null, official: true, url: 'https://defillama.com/docs/api' });
+  if (name === 'jupiter_quote') Object.assign(source, { type: 'HTTP API', name: 'Jupiter Quote API', version: null, official: true, url: 'https://station.jup.ag/docs/apis/swap-api' });
+  if (name === 'explorer_abi') Object.assign(source, { type: 'HTTP API', name: 'Etherscan v2 API', version: null, official: true, url: 'https://docs.etherscan.io/etherscan-v2' });
+  if (name.startsWith('aa_')) Object.assign(source, { type: 'HTTP API', name: 'ERC-4337 bundler JSON-RPC', version: null, official: true, url: 'https://eips.ethereum.org/EIPS/eip-4337' });
+  if (name === 'tx_simulate') Object.assign(source, { type: 'HTTP API', name: 'Tenderly Simulation API', version: null, official: true, url: 'https://docs.tenderly.co/simulations' });
   return { source, workstations: workstations.filter((station) => [...station.required, ...station.optional].includes(name)).map((station) => station.id),
-    targets: /^(goplus_token_security|evm_|viem_|eas_|safe_|project_|dev_(forge|cast|solidity|hardhat|slither|erc721)|workstation_diagnose)/.test(name) ? ['evm']
-      : ['solana', 'sas'].includes(family) ? ['solana'] : ['sui', 'seal'].includes(family) ? ['sui'] : family === 'aptos' ? ['aptos'] : ['any'],
+    targets: /^(goplus_token_security|evm_|viem_|eas_|safe_|project_|chainlink_|explorer_|aa_|tx_simulate|dev_(forge|cast|solidity|hardhat|slither|erc721)|workstation_diagnose)/.test(name) ? ['evm']
+      : family === 'jupiter' ? ['solana'] : ['solana', 'sas'].includes(family) ? ['solana'] : ['sui', 'seal'].includes(family) ? ['sui'] : family === 'aptos' ? ['aptos'] : ['any'],
     impact: name === 'dev_erc721_mint_local' ? ['onchain-submit'] : name === 'dev_forge_deploy_local' ? ['local-files', 'onchain-submit'] : name === 'dev_forge_verify' ? ['source-upload'] :
       /^(dev_(forge|hardhat)|project_|system_setup|bridge_configure)/.test(name) ? ['local-files'] : tool.readOnly ? ['read'] : ['provider-defined-write-or-sign'],
     requirements: { executable: binary ?? null, projectDirectory: /^dev_/.test(name), authorization: tool.readOnly ? 'read' : 'host/operator authorization according to tool schema' } };
@@ -99,13 +106,14 @@ export async function capabilityStatus(tool: ToolDefinition, config: Config, dir
   let status = 'unverified'; let reason = '尚未在当前环境连接或执行该业务';
   const requirements: string[] = [];
   const easLocal = /^eas_(schema_encode|schema_decode|private_data_)/.test(name);
-  const group = !easLocal && /^viem_|^evm_(?!status|verify_message)|^eas_|^workstation_diagnose$/.test(name) ? 'evm' : family === 'ipfs' ? 'ipfs' : undefined;
+  const group = !easLocal && /^viem_|^evm_(?!status|verify_message)|^eas_|^chainlink_|^workstation_diagnose$/.test(name) ? 'evm' : family === 'ipfs' ? 'ipfs' : undefined;
   if (group && config.issues?.[group]?.length) { status = 'configuration_error'; reason = config.issues[group]!.join('；'); }
   else if (group === 'evm' && (!config.rpcUrl || !config.chainId)) { status = 'configuration_error'; reason = '需要 BCA_RPC_URL / BCA_CHAIN_ID'; requirements.push('BCA_RPC_URL', 'BCA_CHAIN_ID'); }
   else if (group === 'ipfs' && !config.ipfsUrl) { status = 'configuration_error'; reason = '需要 BCA_IPFS_URL'; requirements.push('BCA_IPFS_URL'); }
   else if (/^content_|^capability_|^workstation_(list|search|guide)$|^system_doctor$|^project_init$|^dev_(project|solidity_compile)$|^evm_(status|verify_message)$/.test(name)) { status = 'available'; reason = '本地内置能力；不要求外部账户'; }
   if (easLocal) { status = 'available'; reason = '本地 EAS 编码/PrivateData 功能'; }
   if (name === 'goplus_token_security') { status = 'available'; reason = 'GoPlus 官方公开 EVM 代币风险 API；无需账户，实际覆盖与限流由上游返回'; }
+  if (/^defillama_|^jupiter_/.test(name)) { status = 'available'; reason = '公开 HTTP API，无需账户；实际覆盖与限流由上游返回'; }
   if (family === 'eas' && !tool.readOnly) {
     if (config.issues?.signer?.length) { status = 'configuration_error'; reason = config.issues.signer.join('；'); }
     else if (!config.privateKey || !config.allowWrites) { status = 'missing_authorization'; reason = '需要签署配置与写入许可；全局开关不代表逐笔用户授权'; }

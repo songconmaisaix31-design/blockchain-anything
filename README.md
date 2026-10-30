@@ -32,7 +32,7 @@ Agent 不缺能力，缺的是「找得到」。
 | **MCP Agent** | 写进 Codex / Claude Code 的 MCP 配置，Agent 立刻多出一整套链上能力 | `bca setup --client both --install`<br>`bca mcp` |
 | **TypeScript SDK** | 嵌进你自己的平台，返回结构稳定，bigint 用十进制字符串，出错就抛异常 | `const tk = createToolkit()`<br>`await tk.invoke('evm_balance', { address })` |
 
-三个断点对应三层解法：**发现**交给工具目录（`capability_search` 统一检索 127 个工具，标注来源、只读/写性质与前置条件）；**鉴权**交给连接管理（`bca connect` 保存官方 MCP 与密钥引用，凭据不写进代码）；**边界**交给写入闸门（默认 `BCA_ALLOW_WRITES=false`，写操作需要显式 `submit: true` 和明确的发送地址）。
+三个断点对应三层解法：**发现**交给工具目录（`capability_search` 统一检索 135 个工具，标注来源、只读/写性质与前置条件）；**鉴权**交给连接管理（`bca connect` 保存官方 MCP 与密钥引用，凭据不写进代码）；**边界**交给写入闸门（默认 `BCA_ALLOW_WRITES=false`，写操作需要显式 `submit: true` 和明确的发送地址）。
 
 ## 一次完整的创造流程
 
@@ -63,7 +63,7 @@ NFT 是最直观的第一个入口——它是普通人最容易理解的链上�
 
 ## 能力工具集
 
-当前注册 **127 个工具**，全部标注来源组件、只读/写性质与前置要求，由 `capability_search` 统一检索：
+当前注册 **135 个工具**，全部标注来源组件、只读/写性质与前置要求，由 `capability_search` 统一检索：
 
 | 领域 | 工具前缀 | 覆盖能力 |
 | --- | --- | --- |
@@ -73,6 +73,8 @@ NFT 是最直观的第一个入口——它是普通人最容易理解的链上�
 | 资产与存储 | `ipfs_*`、`arweave_*`、`walrus_*`、`seal_*`、`content_*` | CID 计算、去中心化存储、加密访问控制 |
 | 多链生态 | `solana_*`、`sui_*`、`aptos_*`、`safe_*`、`x402_*` | 跨链读写、多签、链上支付 |
 | 交易与风控 | `ccxt_*`、`hummingbot_*`、`goplus_*`、`brian_*`、`ots_*`、`bankr_*` | 行情、策略、代币安全、区块浏览器数据 |
+| 价格与协议数据 | `chainlink_*`、`defillama_*`、`jupiter_*` | 链上喂价、协议 TVL、Solana 兑换报价 |
+| 交易前检查 | `tx_simulate`、`aa_*`、`explorer_abi` | 上链前模拟、账户抽象回执、合约 ABI |
 | 来源与审计 | `slsa_*`、`cosign_*`、`intoto_*`、`c2pa_*`、`risc0_*`、`provenance_*`、`openlineage_*` | 软件供应链证明、内容来源、零知识证明 |
 | Agent 与桥接 | `agent_*`、`bridge_*`、`capability_*`、`system_*` | 子 Agent 协作、官方 MCP 接入、工具发现 |
 

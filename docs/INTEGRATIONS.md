@@ -4,7 +4,7 @@
 >
 > 配套阅读：[长期展望](VISION.md) · [商业模式](BUSINESS.md) · [验证记录](../tasks/S2-progress.md)
 >
-> 盘点基线：2026-10-31，127 个工具 / 44 家上游。
+> 盘点基线：2026-10-31，135 个工具 / 50 家上游。
 
 ## 1. 现状盘点
 
@@ -20,7 +20,7 @@
 | 存储与内容 | IPFS/Kubo、Arweave、Walrus、Seal、CID 计算 | 完整 |
 | 身份与凭证 | EAS（20 个工具）、did:key、VC-JWT、cheqd、SAS、Sign Protocol | **过重**，一家占 16% |
 | 来源与审计 | SLSA、Sigstore、in-toto、C2PA、OTS、risc0、OpenLineage | 完整 |
-| 行情与 DeFi | CCXT（中心化交易所）、Hummingbot、Brian、Bankr、Heurist | 只有**交易所**行情，**没有链上协议** |
+| 行情与协议数据 | CCXT、Hummingbot、**Chainlink 喂价**、**DefiLlama**、**Jupiter** | v1.1 已补链上价格、协议 TVL 与 Solana 报价；**仍缺 NFT 与跨链报价** |
 | 钱包与支付 | Safe、x402 | 只读为主 |
 | Agent 协作 | AgentKit、MCP bridge | 完整 |
 
@@ -50,20 +50,28 @@
 
 已确认可走桥接的预设：Dune、Nansen、Chainstack、Thirdweb、Slither、OpenZeppelin。其余候选在接入前需先核实是否已有官方 MCP。
 
-## 4. P0：补齐 Agent 最常问但答不了的（v1.1，约 2 个月）
+## 4. P0：已交付（v1.1）
 
-目标：让「查价格、查持仓、查协议、模拟交易」四类高频问题有链上答案。
+八项已实现并合并进主分支，工具总数 127 → 135、上游 44 → 50。状态如实标注：
 
-| 项目 | 补什么 | 读/写 | 凭据 | 为什么是 P0 |
-| --- | --- | --- | --- | --- |
-| **Chainlink Price Feeds** | 链上价格喂价（按 feed 地址读最新价与 updatedAt） | 只读 | 公共 RPC | 现在价格只有 CEX 来源；链上价格是 DeFi 一切计算的基础，且**免费、无需密钥** |
-| **DefiLlama** | 协议 TVL、收益率池、链上收入 | 只读 | 公开 API | 一个工具顶半个数据平台，覆盖"这个协议大不大/安不安全"这类判断 |
-| **Etherscan v2（多链）** | 合约 ABI、交易解码、事件日志、内部交易 | 只读 | 免费 key | 直接补 Sourcify 的空缺：有源码不等于 Agent 能用，**有 ABI 才能构造调用** |
-| **Jupiter（Solana）** | 报价、路由、SPL 持仓 | 只读报价 | 公开 API | Solana 现在只有余额；报价是 Solana DeFi 的最高频入口 |
-| **ERC-4337（Pimlico / Alchemy）** | UserOperation 状态、智能账户余额、paymaster 报价 | 只读 | 免费额度 | 账户抽象是新一代钱包主流，Agent 迟早要读这类账户 |
-| **交易预执行（Tenderly / Blowfish）** | 上链前模拟：状态变化、余额增减、风险提示 | 只读模拟 | 免费额度 | **这是写链的前置安全闸**，比事后审计有价值得多 |
+| 项目 | 工具 | 补了什么 | 状态 |
+| --- | --- | --- | --- |
+| **Chainlink Price Feeds** | `chainlink_price` | 链上喂价（价格、精度、更新时间、陈旧判定），主网内置 8 个常用对 | ✅ 8 个交易对全部真实读数通过 |
+| **DefiLlama** | `defillama_protocol`、`defillama_chains` | 协议 TVL 与 7 日变化、各链 TVL 排名 | ✅ 实测 Uniswap 36 亿、Aave 155 亿；420 条链排名 |
+| **Jupiter** | `jupiter_quote` | Solana 兑换报价与路由 | ✅ 实测 1 SOL → 94.99 USDC |
+| **Etherscan v2** | `explorer_abi` | 已验证合约的 ABI 与函数清单 | ⏳ 需 `BCA_ETHERSCAN_API_KEY`，未配置时返回明确提示 |
+| **ERC-4337** | `aa_entrypoints`、`aa_userop_receipt` | EntryPoint 版本、UserOperation 回执 | ⏳ 需 `BCA_BUNDLER_URL` |
+| **交易预执行** | `tx_simulate` | 上链前模拟：是否回滚、gas、错误原因 | ⏳ 需 Tenderly 三个变量 |
 
-P0 的验收标准：六个工具，各用真实主网数据跑通一次；失败场景（地址无效、无数据、限流）能返回可区分的错误；credits 定价符合"只读 1、付费上游 3–4"的规则。
+设计上守住三条：
+
+1. **缺凭据必须说清缺哪个变量**，而不是笼统报错。实测四个需要密钥的工具都会直接点名环境变量。
+2. **缺数据不伪造结论**。`aa_userop_receipt` 查不到返回 `found: false`，`chainlink_price` 给出 `stale` 判定但说明"喂价按偏离阈值与心跳更新，不代表一定异常"。
+3. **只读，不进写入闸门**。八项全部 readOnly，模拟与报价都不构造、不签名、不广播。
+
+P0 的验收标准：八个工具各用真实主网数据跑通一次；失败场景（地址无效、无数据、限流、缺凭据）能返回可区分的错误；credits 定价符合"本地计算 0、只读 1、付费上游 3–4"的规则。
+
+已跑通的三项覆盖了原先最刺眼的空白：**链上价格、协议规模、Solana 报价**。三项加密钥才能验证的，接口已就位，等 operator 提供凭据即可点亮。
 
 ## 5. P1：把生态做深（约 3–6 个月）
 
@@ -106,7 +114,7 @@ P0 的验收标准：六个工具，各用真实主网数据跑通一次；失�
 
 | 版本 | 目标 | 集成量 | 判定标准 |
 | --- | --- | --- | --- |
-| v1.1 | 补齐四类高频问题 | P0 六项 | 每项真实主网跑通 + 错误可区分 |
+| v1.1 ✅ | 补齐四类高频问题 | P0 八项 | 已交付：三项真实跑通，三项等凭据 |
 | v1.2 | 生态做深 | P1 前四项 | NFT 与跨链报价有可演示路径 |
 | v2.0 | 结构治理 | 命名统一、EAS 收敛、缺口兜底 | 目录可被 Agent 稳定检索，无复合供应商名 |
 

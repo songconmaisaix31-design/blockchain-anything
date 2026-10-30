@@ -1,7 +1,7 @@
 import { getAddress, Wallet } from 'ethers';
 
 export interface Config {
-  issues?: Partial<Record<'evm' | 'signer' | 'eas' | 'ipfs', string[]>>;
+  issues?: Partial<Record<'evm' | 'signer' | 'eas' | 'ipfs' | 'explorer' | 'bundler' | 'simulator', string[]>>;
   rpcUrl?: string;
   chainId?: bigint;
   easAddress?: string;
@@ -10,6 +10,9 @@ export interface Config {
   allowWrites: boolean;
   workingRoot: string;
   ipfsUrl?: string;
+  etherscanApiKey?: string;
+  bundlerUrl?: string;
+  tenderly?: { account: string; project: string; accessKey: string };
   maxFileBytes: number;
   maxReadBytes: number;
   timeoutMs: number;
@@ -68,6 +71,19 @@ export function readConfig(): Config {
     allowWrites: env.BCA_ALLOW_WRITES === 'true',
     workingRoot: env.BCA_WORKING_ROOT || process.cwd(),
     ipfsUrl: vendor('ipfs', () => endpoint(env.BCA_IPFS_URL, 'BCA_IPFS_URL')),
+    etherscanApiKey: env.BCA_ETHERSCAN_API_KEY || undefined,
+    bundlerUrl: vendor('bundler', () => endpoint(env.BCA_BUNDLER_URL, 'BCA_BUNDLER_URL')),
+    // Tenderly 需要三个变量同时存在，缺一个就报配置错误，避免只配一半时静默失败。
+    tenderly: vendor('simulator', () => {
+      const account = env.BCA_TENDERLY_ACCOUNT;
+      const project = env.BCA_TENDERLY_PROJECT;
+      const accessKey = env.BCA_TENDERLY_ACCESS_KEY;
+      if (!account && !project && !accessKey) return undefined;
+      if (!account || !project || !accessKey) {
+        throw new Error('Tenderly 需要同时设置 BCA_TENDERLY_ACCOUNT、BCA_TENDERLY_PROJECT、BCA_TENDERLY_ACCESS_KEY');
+      }
+      return { account, project, accessKey };
+    }),
     maxFileBytes: positiveInteger(env.BCA_MAX_FILE_BYTES, 'BCA_MAX_FILE_BYTES', 16 * 1024 * 1024),
     maxReadBytes: positiveInteger(env.BCA_MAX_READ_BYTES, 'BCA_MAX_READ_BYTES', 1024 * 1024),
     timeoutMs: positiveInteger(env.BCA_TIMEOUT_MS, 'BCA_TIMEOUT_MS', 30_000),

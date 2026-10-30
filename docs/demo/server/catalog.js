@@ -793,6 +793,56 @@ export const TOOLS = [
     tags: ['x402', 'verify'],
     params: [],
   },
+
+  // ---------- v1.1：价格、协议数据、报价、ABI、账户抽象、交易模拟 ----------
+  {
+    name: 'chainlink_price', provider: 'Chainlink', category: 'market', credits: 1, readOnly: true, live: false,
+    zh: '读取 Chainlink 喂价合约的最新报价、精度与更新时间，并给出陈旧判定。走已配置 RPC，无需密钥。',
+    tags: ['价格', '喂价', 'price', 'chainlink', 'oracle', '预言机', '报价', 'eth', 'btc', '行情'],
+    params: [P('pair', 'string', false, '交易对，如 ETH/USD；主网支持 8 个常用对'), P('feed', 'address', false, '喂价合约地址，其他链用这个')],
+  },
+  {
+    name: 'defillama_protocol', provider: 'DefiLlama', category: 'market', credits: 1, readOnly: true, live: false,
+    zh: '查询单个协议的最新 TVL、类别、所属链与 7 日变化。公开接口，无需密钥。',
+    tags: ['tvl', '协议', 'defillama', '资金', '规模', '锁仓', 'protocol', '借贷', 'dex'],
+    params: [P('slug', 'string', true, '协议标识，如 uniswap、aave、lido')],
+  },
+  {
+    name: 'defillama_chains', provider: 'DefiLlama', category: 'market', credits: 1, readOnly: true, live: false,
+    zh: '按 TVL 排序查询各条链的规模。公开接口，无需密钥。',
+    tags: ['链', 'tvl', '排名', 'defillama', '公链', '生态', 'chains'],
+    params: [P('limit', 'number', false, '返回前 N 条，默认 10')],
+  },
+  {
+    name: 'jupiter_quote', provider: 'Jupiter', category: 'market', credits: 1, readOnly: true, live: false,
+    zh: '通过 Jupiter 获取 Solana 代币兑换报价（只读报价，不构造、不提交交易）。',
+    tags: ['solana', '报价', 'swap', 'jupiter', '滑点', '兑换', 'quote', 'sol'],
+    params: [P('inputMint', 'string', true, '输入代币，可用 SOL/USDC/USDT/JUP/BONK 简写'), P('outputMint', 'string', true, '输出代币'), P('amount', 'string', true, '输入数量，最小单位')],
+  },
+  {
+    name: 'explorer_abi', provider: 'Etherscan v2', category: 'dev', credits: 1, readOnly: true, live: false,
+    zh: '从 Etherscan v2 读取已验证合约的 ABI，供 Agent 构造调用。需要 BCA_ETHERSCAN_API_KEY。',
+    tags: ['abi', '合约', 'etherscan', '接口', '调用', '验证', '函数'],
+    params: [P('address', 'address', true, '合约地址'), P('chainId', 'string', false, '链 ID，默认 1')],
+  },
+  {
+    name: 'aa_entrypoints', provider: 'ERC-4337', category: 'chain', credits: 1, readOnly: true, live: false,
+    zh: '查询 bundler 支持的 EntryPoint 版本。需要 BCA_BUNDLER_URL。',
+    tags: ['4337', '账户抽象', 'entrypoint', 'bundler', 'aa', '智能账户'],
+    params: [],
+  },
+  {
+    name: 'aa_userop_receipt', provider: 'ERC-4337', category: 'chain', credits: 1, readOnly: true, live: false,
+    zh: '按 userOpHash 查询 UserOperation 执行回执；未打包时返回 found=false。需要 BCA_BUNDLER_URL。',
+    tags: ['4337', 'userop', '账户抽象', '回执', 'aa', 'bundler'],
+    params: [P('userOpHash', 'string', true, 'UserOperation 哈希')],
+  },
+  {
+    name: 'tx_simulate', provider: 'Tenderly', category: 'security', credits: 3, readOnly: true, live: false,
+    zh: '在上链前模拟一次合约调用，返回是否回滚、gas 消耗与错误原因。需要 Tenderly 三件套变量。',
+    tags: ['模拟', '预执行', 'simulate', 'tenderly', '安全', '回滚', 'gas'],
+    params: [P('to', 'address', true, '目标合约'), P('from', 'address', false, '模拟调用方'), P('input', 'string', false, '调用数据 0x…'), P('value', 'string', false, '附带的 wei 数量')],
+  },
 ];
 
 // ---------- 检索 ----------
