@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "成熟区块链工具的 TypeScript、CLI 与 MCP 入口",
+  "description": "面向 AI Agent、基于 MCP 协议的链上能力网关",
   "license": "MIT",
   "repository": {
     "type": "git",
