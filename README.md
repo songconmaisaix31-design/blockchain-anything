@@ -6,27 +6,37 @@
 >
 > 同系列：[mcpet](https://github.com/songconmaisaix31-design/mcpet) · [swarm-anything](https://github.com/songconmaisaix31-design/swarm-anything)
 
-**面向 AI Agent、基于 MCP 协议的链上能力网关。普通人第一次拥有了创造链上规则的能力。**
+**面向 AI Agent、基于 MCP 协议的链上能力网关。让 Agent 接上区块链，不用再写第 127 个适配器。**
 
 [在线 Demo](https://songconmaisaix31-design.github.io/blockchain-anything/demo/) · [在线文档](https://songconmaisaix31-design.github.io/blockchain-anything/) · [安装说明](docs/guides/setup.md) · [依赖安全状态](docs/guides/dependency-security.md) · [商业模式](docs/BUSINESS.md)
 
-市面上的 Web3 工具大多只面向懂合约的开发者。"所有人都可以写合约"是技术视角——它假设用户关心的是 Solidity、RPC 和 gas 参数。Blockchain Anything 站在用户视角：**所有人都可以创造自己的链上产品**。
+Agent 不缺能力，缺的是「找得到」。
 
-用户只需要用自然语言描述想法。剩下的交给 Agent 与 BCA：生成可交互预览、把规则跑一遍、核对权限与费用、连接钱包发布到公链。BCA 把以太坊等多条成熟公链的生态能力，封装成标准化 MCP 工具集；任意兼容 MCP 的 AI Agent 都可以直接调用，不必手写 Solidity、不必对接 RPC。
+链上生态有上千个 SDK、CLI 和 MCP 服务。每一家都有自己的鉴权方式、参数命名和错误格式。Agent 不缺手，缺的是一张能用的地图。
 
-## 两种视角
+## 三个断点
 
-| | 传统 Web3 工具 | Blockchain Anything |
+| | 断在哪 | 具体表现 |
 | --- | --- | --- |
-| 面向对象 | 懂 Solidity 的开发者 | 有想法的任何人 |
-| 表达方式 | 写合约、配环境、调 RPC | 用自然语言描述想法 |
-| 交付物 | 一份合约源码 | 一个可发布、可运行的链上产品 |
-| 失败成本 | 编译报错、部署踩坑 | 规则先跑一遍，通过再上链 |
-| 接入方式 | 逐个 SDK 集成 | 一套 MCP 工具集，任意 Agent 直接调用 |
+| **01 / 发现** | 工具散落在十几个生态里 | EVM 一套、Solana 一套、Sui 又一套。Agent 想查个余额，得先知道该用 viem 还是 Kit，还得知道参数叫 `address` 还是 `pubkey` |
+| **02 / 鉴权** | 每家都要自己去申请密钥 | Dune、Etherscan、RPC、Pinata…… 五个账号、五份配额、五种限流。撞墙时报错还不一样，排查一次能耗掉半天 |
+| **03 / 边界** | 没人敢让 Agent 自由写链 | 发现和授权混在一起最危险。一次幻觉就能让 Agent 把合约部署到主网，或者签一笔你不认识的交易 |
 
-这不是把合约编辑器包装得好看一点，而是把"写合约"这件事从用户的心智负担里拿出去。BCA 负责的是能力层，让上层的 Agent 可以把注意力放在理解人的意图上。
+## 一个入口，三个入口
+
+同一份工具定义，三种调用方式。你在终端里试，在 Agent 里用，在自己代码里集成——行为完全一致。
+
+| 入口 | 用来做什么 | 怎么跑 |
+| --- | --- | --- |
+| **CLI 终端** | 在项目目录里直接问、直接调，最适合验证一个想法值不值得做 | `bca find '这个代币安全吗'`<br>`bca call goplus_token_security` |
+| **MCP Agent** | 写进 Codex / Claude Code 的 MCP 配置，Agent 立刻多出一整套链上能力 | `bca setup --client both --install`<br>`bca mcp` |
+| **TypeScript SDK** | 嵌进你自己的平台，返回结构稳定，bigint 用十进制字符串，出错就抛异常 | `const tk = createToolkit()`<br>`await tk.invoke('evm_balance', { address })` |
+
+三个断点对应三层解法：**发现**交给工具目录（`capability_search` 统一检索 127 个工具，标注来源、只读/写性质与前置条件）；**鉴权**交给连接管理（`bca connect` 保存官方 MCP 与密钥引用，凭据不写进代码）；**边界**交给写入闸门（默认 `BCA_ALLOW_WRITES=false`，写操作需要显式 `submit: true` 和明确的发送地址）。
 
 ## 一次完整的创造流程
+
+三个断点解决之后，一个完整任务长这样——人说一句，Agent 在本地跑完，最后才上链：
 
 ```
 描述想法  →  Agent 理解意图
@@ -37,7 +47,7 @@
           →  钱包授权，发布上链      工作站 / 宿主钱包
 ```
 
-分工是明确的：**Agent 负责对话、理解与任务循环，BCA 提供工具发现、项目操作、连接管理与真实结果。** 二者通过 MCP 协议衔接，CLI、MCP 与 TypeScript SDK 共用同一套实现，所以同一份能力既能在终端里用，也能被任意 Agent 调用。
+分工是明确的：**Agent 负责对话、理解与任务循环，BCA 提供工具发现、项目操作、连接管理与真实结果。** 二者通过 MCP 协议衔接——这也是上面三个入口能共用同一套实现的原因。
 
 合约编译、单元测试、本地链试运行都在本机完成，不需要 RPC、不需要签名权限——这意味着"试运行规则"这件事是真实可用的，而不是一句宣传语。写操作则需要显式授权：公共链交易沿用宿主钱包授权流程，本地一键部署仅面向明确批准的 loopback Anvil 操作。
 
