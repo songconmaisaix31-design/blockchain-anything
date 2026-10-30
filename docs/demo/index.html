@@ -1063,6 +1063,11 @@ async function runAgent() {
       const key = Object.keys(OFFLINE).find((k) => q.includes(k)) || '余额';
       data = JSON.parse(JSON.stringify(OFFLINE[key]));
       data.query = q;
+      // 离线样本不得冒充实时结果：改写 mode 与步骤文案，避免「实时数据」出现在静态托管页上
+      data.mode = 'sample';
+      (data.steps || []).forEach((s) => {
+        if (s.detail) s.detail = s.detail.replace('实时数据', '预置样本');
+      });
       if (API) setStatus('demo', '本次调用走了离线样本 · 该问题暂无法实时处理');
     }
     await playTrace(data);
