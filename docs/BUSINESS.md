@@ -1,6 +1,6 @@
 # BCA 商业模式
 
-> 配套文档：[README](../README.md) · [长期展望](VISION.md) · [在线文档](https://songconmaisaix31-design.github.io/blockchain-anything/) · [定价页](index.html#business)
+> 配套文档：[README](../README.md) · [商业故事：做区块链的 AWS](STORY.md) · [长期展望](VISION.md) · [上游价目与定价对标](UPSTREAM-APIS.md) · [在线文档](https://songconmaisaix31-design.github.io/blockchain-anything/) · [定价页](index.html#business)
 >
 > 本文用于对外沟通与评审应答。所有金额为美元，未特别说明处均为**目录价**（list price），不含折扣与渠道返点。标注「待验证」的数字是建模假设，不是实测值。
 
@@ -35,6 +35,14 @@ BCA 是开源的链上能力网关：**框架免费、自带密钥免费、托�
 年付口径按 12 个月一次性支付，折扣约 17%（$19 → $16、$79 → $66、$299 → $249）。
 
 **关键设计：BYO 永久免费且不限量。** 自己提供上游密钥的用户，边际成本几乎为零，没有理由收费——这条既是定价策略，也是开源承诺的一部分。
+
+### 对标依据（2026-10-31 核对）
+
+这三档不是拍脑袋，是照着同类 API 产品的价格阶梯摆的：Firecrawl \$16/\$83/\$333/\$599，Composio \$0/\$29/\$229，Zerion \$149/\$499，GoPlus \$199–\$3,499。BCA 的 \$19/\$79/\$299 落在"个人负担得起、团队不心疼"的区间，年付 17% 折扣也与 Firecrawl 一致。
+
+但核完 33 家上游价目后有一处必须修正（详见 [UPSTREAM-APIS.md](UPSTREAM-APIS.md)）：**上游单次调用成本跨 5 个数量级**（\$0.005 → \$500 / 千次）。现行"1–8 credits"的粗分档会把红区工具（Nansen 标签、Dune 重查询）亏成负毛利。建议按 `credits = ceil(上游 $/千次 ÷ 0.28)` 改五档，并把 >\$5/千次的工具移出 credits 池、只做 BYO。
+
+**这条尚未实施**：现行价目与 credits 规则仍以本文为准，UPSTREAM-APIS.md 第六部分是待评审方案，不是已上线政策。
 
 ## credits 计量规则
 

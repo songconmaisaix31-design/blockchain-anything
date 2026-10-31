@@ -2,7 +2,7 @@
 
 > 这是一份**愿景文档**，不是功能清单。它回答两个问题：BCA 最终要做成什么，以及为什么现在做。
 >
-> 配套阅读：[README](../README.md)（做的是什么）· [商业模式](BUSINESS.md)（怎么活下去）· [在线文档](https://songconmaisaix31-design.github.io/blockchain-anything/)
+> 配套阅读：[README](../README.md)（做的是什么）· [商业故事](STORY.md)（产业位置与对标）· [商业模式](BUSINESS.md)（怎么活下去）· [在线文档](https://songconmaisaix31-design.github.io/blockchain-anything/)
 >
 > 黑客松路演可直接用第 6 节的 3 分钟口播稿。
 
