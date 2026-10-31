@@ -1,0 +1,1119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>链上六个跟钱有关的案例 · BCA</title>
+<meta name="description" content="悬赏告示、拆快递、两个摊位、演一遍、排队的小票、你家钥匙——六个跟钱直接有关的链上案例，全部只读，算法和结果都摊开给你看。">
+<style>
+  :root{
+    --paper:#f7f4ec;
+    --paper-2:#fffdf7;
+    --ink:#17160f;
+    --muted:#6f6a5c;
+    --faint:#9a9484;
+    --rule:#ded7c6;
+    --accent:#a8402d;
+    --pos:#3f6b52;
+    --neg:#a8402d;
+    --serif:"Songti SC","Noto Serif SC","Source Han Serif SC","STSong",Georgia,"Times New Roman",serif;
+    --sans:"Inter",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);font:16px/1.85 var(--sans);
+    -webkit-font-smoothing:antialiased;
+    background-image:repeating-linear-gradient(0deg,rgba(23,22,15,.018) 0 1px,transparent 1px 3px);
+  }
+  a{color:inherit}
+  ::selection{background:#a8402d;color:#fffdf7}
+
+  /* ---------- 顶部 ---------- */
+  .progress{position:fixed;inset:0 0 auto 0;height:2px;background:transparent;z-index:60}
+  .progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .12s linear}
+  .top{
+    position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--paper) 88%,transparent);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--rule);
+  }
+  .top .row{max-width:1120px;margin:auto;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:800;letter-spacing:-.3px}
+  .brand b{display:grid;place-items:center;width:26px;height:26px;background:var(--ink);color:var(--paper);font:700 12px/1 var(--mono);border-radius:3px}
+  .brand span{font:400 11px/1 var(--mono);letter-spacing:.18em;color:var(--muted);margin-left:2px}
+  .top nav{display:flex;gap:22px;font-size:13.5px}
+  .top nav a{text-decoration:none;color:var(--muted);border-bottom:1px solid transparent;padding-bottom:2px}
+  .top nav a:hover{color:var(--ink);border-color:var(--ink)}
+
+  /* ---------- 排版 ---------- */
+  .wrap{max-width:1120px;margin:auto;padding:0 28px}
+  .kicker{font:600 11.5px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin:0 0 22px}
+  h1{font-family:var(--serif);font-weight:600;font-size:clamp(32px,4.5vw,54px);line-height:1.22;letter-spacing:-.02em;margin:0 0 26px;text-wrap:balance}
+  h1 em{font-style:normal;color:var(--accent)}
+  .lede{font-size:clamp(16px,1.35vw,18.5px);line-height:1.9;color:#3a382e;max-width:44em;margin:0;overflow-wrap:anywhere}
+  .lede b{font-weight:600;box-shadow:inset 0 -.42em 0 #e9d9b8}
+
+  section.ch{padding:96px 0 8px;border-top:1px solid var(--rule)}
+  .chead{display:grid;grid-template-columns:96px minmax(0,1fr);gap:28px;align-items:start}
+  .chead>div{min-width:0}
+  .cno{font:600 13px/1 var(--mono);color:var(--faint);letter-spacing:.12em;padding-top:10px}
+  .cno s{display:block;width:26px;height:1px;background:var(--rule);margin-top:12px;text-decoration:none}
+  .clabel{font:600 11.5px/1 var(--mono);letter-spacing:.2em;color:var(--accent);margin:0 0 14px}
+  section.ch h2{font-family:var(--serif);font-weight:600;font-size:clamp(25px,3.1vw,38px);line-height:1.34;letter-spacing:-.01em;margin:0 0 18px}
+  .prose{max-width:40em}
+  .prose p{margin:0 0 16px;color:#332f26}
+  .prose p.small{font-size:14.5px;color:var(--muted)}
+  .term{
+    margin-top:18px;font-size:13.5px;color:var(--muted);padding-left:14px;border-left:2px solid var(--rule);
+  }
+  .term b{color:#4a4436;font-weight:600}
+
+  /* ---------- 数据条 ---------- */
+  .stats{display:flex;flex-wrap:wrap;gap:0;margin:30px 0 0;border-top:1px solid var(--rule)}
+  .stat{flex:1 1 130px;padding:14px 18px 14px 0;border-right:1px solid var(--rule)}
+  .stat:last-child{border-right:0}
+  .stat b{display:block;font:600 24px/1.1 var(--mono);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .stat span{display:block;margin-top:7px;font-size:12.5px;color:var(--muted);letter-spacing:.02em}
+  .stat.accent b{color:var(--accent)}
+  .stat.pos b{color:var(--pos)}
+
+  /* ---------- 舞台 ---------- */
+  .stage{
+    margin:44px 0 0;border:1px solid var(--rule);background:var(--paper-2);border-radius:3px;
+    padding:26px 24px 18px;position:relative;overflow:hidden;
+  }
+  .stage::after{
+    content:"";position:absolute;inset:10px;border:1px solid rgba(23,22,15,.045);pointer-events:none;
+  }
+  .stage svg{display:block;width:100%;height:auto}
+  .cap{margin:16px 2px 0;font:12px/1.7 var(--mono);color:var(--faint);display:flex;gap:14px;flex-wrap:wrap}
+  .cap b{color:var(--muted);font-weight:500}
+  .stagecanvas{display:block;width:100%;height:210px}
+
+  /* ---------- 各章专门样式 ---------- */
+  /* 悬赏告示 */
+  .poster{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:30px;align-items:center}
+  .poster-card{border:1px solid var(--ink);padding:22px 22px 18px;background:#fffef9;position:relative}
+  .poster-card h3{font-family:var(--serif);font-size:19px;margin:0 0 4px;letter-spacing:.02em}
+  .poster-card .sub{font:11.5px/1.6 var(--mono);color:var(--faint);letter-spacing:.08em;margin:0 0 16px}
+  .poster-row{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-top:1px dashed var(--rule);font-size:13.5px}
+  .poster-row span:last-child{font-family:var(--mono);letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+  .poster-row b{color:var(--accent)}
+  .in .poster-row{opacity:1;transform:none;transition:opacity .5s ease,transform .5s ease}
+  .in .poster-row:nth-child(2){transition-delay:.15s}
+  .in .poster-row:nth-child(3){transition-delay:.28s}
+  .in .poster-row:nth-child(4){transition-delay:.41s}
+  .in .poster-row:nth-child(5){transition-delay:.54s}
+  .in .poster-row:nth-child(6){transition-delay:.67s}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{
+    font:11.5px/1 var(--mono);padding:7px 9px;border:1px solid var(--rule);color:#5c5646;background:#fffdf7;
+    transition:border-color .4s,color .4s,background .4s,transform .4s
+  }
+  .chip.hit{border-color:var(--accent);color:var(--accent);background:#fbf0ec;transform:translateY(-1px)}
+
+  /* 价差条 */
+  .bars{display:grid;gap:14px}
+  .brow{display:grid;grid-template-columns:132px 1fr 92px;gap:14px;align-items:center;font:12.5px/1 var(--mono);color:var(--muted)}
+  .brow .track{height:10px;background:#f3eddd;position:relative;overflow:hidden;border-radius:1px}
+  .brow .fill{position:absolute;inset:0 auto 0 0;width:0;background:#c9bfa5;transition:width .9s cubic-bezier(.2,.9,.2,1)}
+  .brow .fill.gap{background:var(--ink)}
+  .brow .fill.fee{background:var(--accent)}
+  .brow .val{text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+  .brow.big{grid-template-columns:132px 1fr 92px}
+  .brow .lbl{color:#4a4436}
+  .bdiv{margin:16px 0 12px;display:flex;align-items:center;gap:12px;font:11.5px/1 var(--mono);color:var(--faint);letter-spacing:.08em}
+  .bdiv::before,.bdiv::after{content:"";height:1px;background:var(--rule);flex:1}
+  .verdict{margin-top:18px;display:flex;align-items:baseline;gap:14px;font:600 13px/1 var(--mono)}
+  .verdict .num{font-size:clamp(26px,3.4vw,40px);letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--neg)}
+  .verdict .txt{color:var(--muted);font-weight:400}
+
+  /* 沙盘 */
+  .replay{display:grid;gap:10px}
+  .chainrow{display:flex;align-items:center;gap:10px}
+  .chainrow .tag{width:62px;flex:0 0 62px;font:11.5px/1 var(--mono);color:var(--faint);letter-spacing:.06em}
+  .chainrow .blocks{display:flex;gap:5px;flex:1}
+  .chainrow .note{width:54px;flex:0 0 54px;text-align:right;font:11px/1 var(--mono);color:var(--faint)}
+  .blk{flex:1 1 auto;max-width:34px;height:17px;border:1px solid var(--rule);background:#fff;transition:background .45s,border-color .45s}
+  .blk.on{background:var(--ink);border-color:var(--ink)}
+  .blk.ghost{border-style:dashed;border-color:#cfc5ae;background:#fdfbf4}
+  .blk.ghost.on{background:#e7dcc4;border-color:#bcae90}
+  .copyrow{align-items:center}
+  .copyrow .copyline{font:11.5px/1.6 var(--mono);color:var(--muted);letter-spacing:.02em}
+  .deltas{margin-top:16px;border-top:1px solid var(--rule);padding-top:14px;display:grid;gap:9px}
+  .deltas div{display:flex;justify-content:space-between;gap:16px;font:12.5px/1 var(--mono);color:var(--muted)}
+  .deltas b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .deltas b.p{color:var(--pos)}
+  .deltas b.n{color:var(--neg)}
+
+  /* 钥匙 */
+  .keys{display:grid;grid-template-columns:1fr;gap:0}
+
+  /* 工具箱 */
+  .termbox{background:#17160f;color:#efe9da;border-radius:3px;padding:20px 22px;font:12.5px/1.95 var(--mono);overflow:auto;word-break:break-all;overflow-wrap:anywhere}
+  .termbox .p{color:#8f9c82}
+  .termbox .ok{color:#8fc0a0}
+  .termbox .dim{color:#8a8474}
+  .grid152{display:grid;grid-template-columns:repeat(38,1fr);gap:3px;margin-top:22px}
+  .grid152 i{aspect-ratio:1;background:#e8e1cf;transition:background .6s}
+  .grid152 i.hot{background:var(--accent)}
+
+  /* 收尾 */
+  .end{padding:96px 0 110px;border-top:1px solid var(--rule);margin-top:80px}
+  .end h2{font-family:var(--serif);font-size:clamp(26px,3.4vw,40px);line-height:1.3;margin:0 0 18px;letter-spacing:-.01em}
+  .cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+  .btn{
+    display:inline-block;padding:12px 22px;border:1px solid var(--ink);text-decoration:none;font-size:14px;
+    transition:background .25s,color .25s,transform .25s;
+  }
+  .btn:hover{background:var(--ink);color:var(--paper);transform:translateY(-1px)}
+  .btn.solid{background:var(--ink);color:var(--paper)}
+  .btn.solid:hover{background:var(--accent);border-color:var(--accent)}
+  .foot{border-top:1px solid var(--rule);padding:26px 0 40px;font-size:12.5px;color:var(--faint);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .foot a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--rule)}
+
+  /* 首屏 */
+  .hero{padding:78px 0 40px;position:relative}
+  .hero .grid{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(0,.68fr);gap:40px;align-items:end}
+  .canvasbox{position:relative;height:320px;border-left:1px solid var(--rule);padding-left:20px;overflow:hidden}
+  #ledger{width:100%;height:100%;display:block}
+  .canvasbox .note{position:absolute;left:20px;bottom:-2px;font:11px/1.6 var(--mono);color:var(--faint);letter-spacing:.04em}
+  .scrollhint{margin-top:34px;font:11.5px/1 var(--mono);letter-spacing:.2em;color:var(--faint);text-transform:uppercase}
+  .scrollhint i{display:inline-block;width:1px;height:16px;background:var(--faint);vertical-align:-3px;margin-left:8px;animation:beat 2.4s ease-in-out infinite}
+  @keyframes beat{0%,100%{opacity:.25;transform:scaleY(.6)}50%{opacity:.9;transform:scaleY(1)}}
+
+  @media (max-width:880px){
+    .hero .grid{grid-template-columns:1fr;gap:24px}
+    .canvasbox{height:190px;border-left:0;border-top:1px solid var(--rule);padding:16px 0 0}
+    .chead{grid-template-columns:minmax(0,1fr);gap:10px}
+    .cno{display:flex;align-items:center;gap:12px;padding:0}
+    .cno s{margin:0}
+    .poster{grid-template-columns:1fr;gap:22px}
+    .stat{flex:1 1 45%}
+    .grid152{grid-template-columns:repeat(19,1fr)}
+    section.ch{padding:64px 0 6px}
+    .stage{padding:18px 14px 12px}
+  }
+  @media (max-width:640px){
+    .top .row{padding:12px 18px;gap:12px}
+    .brand span{display:none}
+    .brand b{width:24px;height:24px}
+    .top nav{gap:14px;font-size:12.5px}
+    .top nav a{white-space:nowrap}
+    .wrap{padding:0 20px}
+    .hero{padding:44px 0 24px}
+    .stage{padding:16px 12px 10px}
+    .stat{flex:1 1 44%;padding:12px 12px 12px 0}
+    .stat b{font-size:20px}
+    .brow{grid-template-columns:96px 1fr 74px;gap:10px;font-size:11.5px}
+    .poster-card{padding:18px 16px 14px}
+    .termbox{font-size:11px;padding:16px 14px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+    .chip{transform:none!important}
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" aria-hidden="true"><i id="pbar"></i></div>
+
+<header class="top">
+  <div class="row">
+    <a class="brand" href="/"><b>BC</b>BCA<span>BLOCKCHAIN ANYTHING</span></a>
+    <nav>
+      <a href="/">工具箱</a>
+      <a href="/docs/">文档</a>
+      <a href="https://github.com/songconmaisaix31-design/blockchain-anything" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ================= 首屏 ================= -->
+  <section class="hero">
+    <div class="grid">
+      <div>
+        <p class="kicker">六个案例 · 都跟钱有关</p>
+        <h1>链上有钱的地方，<br>不一定是你以为的地方。</h1>
+        <p class="lede">下面六件事，听起来都很专业：白帽救援、交易复盘、价差套利、沙盘重放、交易排队、授权检查。
+          换个说法就全懂了——<b>悬赏告示、拆快递、两个摊位、演一遍、排队的小票、你家钥匙</b>。
+          我们不教你赚快钱，只把"能不能赚"算给你看，包括算出来是负数的时候。</p>
+        <p class="scrollhint">往下看<i></i></p>
+      </div>
+      <div class="canvasbox">
+        <canvas id="ledger" aria-hidden="true"></canvas>
+        <p class="note">链上每秒都在发生的事 · 我们只挑跟钱有关的看</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 01 悬赏告示 ================= -->
+  <section class="ch" id="ch1">
+    <div class="chead">
+      <div class="cno">01<s></s></div>
+      <div>
+        <p class="clabel">悬赏告示</p>
+        <h2>有人被偷之后，<br>会先在链上贴一张告示</h2>
+        <div class="prose">
+          <p>告示上写着：谁帮我把被偷的东西追回来，我分它 <b>10%</b>。金额有上限，期限是三天内必须归还。</p>
+          <p>这张告示不是私下发的，它写在链上，谁都能查，贴出去就不能反悔。所以"帮人把钱抢回来"这件事，第一次有了公开价码。</p>
+          <p class="small">我们做的事情很简单：把这张告示读出来。几秒钟，不用注册，不用付费。</p>
+          <p class="term">他们管这个叫 <b>白帽救援条款（Safe Harbor）</b>。你不需要记住这个词，记住"悬赏告示"就行。</p>
+        </div>
+        <div class="stats">
+          <div class="stat accent"><b data-count="23">23</b><span>链上公开贴出的告示</span></div>
+          <div class="stat"><b>10%</b><span>追回金额的赏金比例</span></div>
+          <div class="stat"><b>$1,000,000</b><span>单人单次上限（Aave）</span></div>
+          <div class="stat"><b>16</b><span>这一张覆盖的链</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="stage" data-anim="poster">
+      <div class="poster">
+        <div class="poster-card" id="posterCard">
+          <h3>白帽救援告示</h3>
+          <p class="sub">SEAL SAFE HARBOR · 链上登记 · 不可撤回</p>
+          <div class="poster-row"><span>协议</span><span>Aave</span></div>
+          <div class="poster-row"><span>追回后给出去</span><span><b>10%</b></span></div>
+          <div class="poster-row"><span>单人上限</span><span>$1,000,000</span></div>
+          <div class="poster-row"><span>归还期限</span><span>72 小时</span></div>
+          <div class="poster-row"><span>身份要求</span><span>实名 + 制裁名单筛查</span></div>
+        </div>
+        <div>
+          <p class="small" style="margin:0 0 12px;font-size:13px;color:var(--muted)">这是链上真实存在的 23 张告示，按顺序点亮：</p>
+          <div class="chips" id="chips"></div>
+        </div>
+      </div>
+      <p class="cap"><b>实测</b> 读取一张告示 0.7 秒 · 列出全部 23 张 7 秒 · 全程只读</p>
+    </div>
+  </section>
+
+  <!-- ================= 02 拆快递 ================= -->
+  <section class="ch" id="ch2">
+    <div class="chead">
+      <div class="cno">02<s></s></div>
+      <div>
+        <p class="clabel">拆快递</p>
+        <h2>一笔转账，<br>像一箱套娃的快递</h2>
+        <div class="prose">
+          <p>你以为自己只是"发了 1.33 个以太"。实际上那个箱子里套着十几个小盒子：换一种币、再换回来、付手续费、给中间人分一点。</p>
+          <p>不拆开，你永远不知道钱最后落在谁手里，也不知道自己那笔亏损是怎么发生的。</p>
+          <p class="small">这件事做起来不难，难的是愿意把每一层都摊开给人看——包括自己吃亏的那一层。</p>
+          <p class="term">他们管这个叫 <b>交易复盘 / 调用树</b>。你只要理解成"一个盒子套一个盒子"。</p>
+        </div>
+        <div class="stats">
+          <div class="stat"><b data-count="32">32</b><span>这笔交易里的动作</span></div>
+          <div class="stat"><b data-count="6">6</b><span>涉及几种代币</span></div>
+          <div class="stat"><b data-count="24">24</b><span>条"谁进谁出"</span></div>
+          <div class="stat accent"><b>0.00263</b><span>手续费（以太）</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="stage" data-anim="tree">
+      <svg id="tree" viewBox="0 0 720 300" role="img" aria-label="一笔交易被拆成多层：从一个入口分出多条路径，最后落在几个地址上">
+        <g stroke="#ded7c6" fill="none" stroke-width="1">
+          <path class="edge" d="M70 150 C 160 150, 150 60, 240 60"/>
+          <path class="edge" d="M70 150 C 160 150, 150 150, 240 150"/>
+          <path class="edge" d="M70 150 C 160 150, 150 240, 240 240"/>
+          <path class="edge" d="M240 60 C 330 60, 320 26, 410 26"/>
+          <path class="edge" d="M240 60 C 330 60, 320 96, 410 96"/>
+          <path class="edge" d="M240 150 C 330 150, 320 128, 410 128"/>
+          <path class="edge" d="M240 150 C 330 150, 320 176, 410 176"/>
+          <path class="edge" d="M240 240 C 330 240, 320 214, 410 214"/>
+          <path class="edge" d="M240 240 C 330 240, 320 268, 410 268"/>
+        </g>
+        <g id="treeNodes" font-family="ui-monospace,monospace" font-size="10" fill="#6f6a5c">
+          <circle class="node" cx="70" cy="150" r="7" fill="#17160f"/>
+          <text x="46" y="130">你的地址</text>
+          <circle class="node" cx="240" cy="60" r="5" fill="#fff" stroke="#17160f"/>
+          <circle class="node" cx="240" cy="150" r="5" fill="#fff" stroke="#17160f"/>
+          <circle class="node" cx="240" cy="240" r="5" fill="#fff" stroke="#17160f"/>
+          <circle class="node" cx="410" cy="26" r="4" fill="#fff" stroke="#a8402d"/>
+          <circle class="node" cx="410" cy="96" r="4" fill="#fff" stroke="#a8402d"/>
+          <circle class="node" cx="410" cy="128" r="4" fill="#fff" stroke="#a8402d"/>
+          <circle class="node" cx="410" cy="176" r="4" fill="#fff" stroke="#a8402d"/>
+          <circle class="node" cx="410" cy="214" r="4" fill="#fff" stroke="#a8402d"/>
+          <circle class="node" cx="410" cy="268" r="4" fill="#fff" stroke="#a8402d"/>
+          <text x="424" y="30" fill="#a8402d">换币池</text>
+          <text x="424" y="100" fill="#a8402d">中转合约</text>
+          <text x="424" y="132">过路费</text>
+          <text x="424" y="180">另一条路径</text>
+          <text x="424" y="218">拆回原生币</text>
+          <text x="424" y="272">最终去向</text>
+        </g>
+        <g id="treeDots"></g>
+      </svg>
+      <p class="cap"><b>实测</b> 一笔真实交易 · 32 个动作 · 24 条资金流向 · 1.5 秒拆完</p>
+    </div>
+  </section>
+
+  <!-- ================= 03 两个摊位 ================= -->
+  <section class="ch" id="ch3">
+    <div class="chead">
+      <div class="cno">03<s></s></div>
+      <div>
+        <p class="clabel">两个摊位</p>
+        <h2>同一个东西，<br>两个摊位价差 0.19%</h2>
+        <div class="prose">
+          <p>左边摊位 2244 收，右边摊位 2240 收。看起来从左搬到右就能赚一点。</p>
+          <p>但你忘了一件事：<b>两个摊位都要收手续费</b>。一个收 0.05%，一个收 0.30%，加起来 0.35%——比 0.19% 的价差还大。</p>
+          <p class="small">所以任何说"发现价差就能套利"的工具，都应该先把这道减法做完再开口。这也是我们把它放进产品里的原因：<b>先算清楚，再劝你别做。</b></p>
+          <p class="term">他们管这个叫 <b>净额套利扫描</b>。你只要记得：赚的是差价，赔的是手续费。</p>
+        </div>
+      </div>
+    </div>
+    <div class="stage" data-anim="bars">
+      <div class="bars">
+        <div class="brow"><span class="lbl">左边摊位</span><span class="track"><i class="fill" data-w="72%" style="width:72%"></i></span><span class="val">2244.78</span></div>
+        <div class="brow"><span class="lbl">右边摊位</span><span class="track"><i class="fill" data-w="71.6%" style="width:71.6%"></i></span><span class="val">2240.13</span></div>
+        <div class="bdiv">下面两根条，是同一把尺子放大了看</div>
+        <div class="brow"><span class="lbl">价差</span><span class="track"><i class="fill gap" data-w="20.75%" style="width:20.75%"></i></span><span class="val">0.19%</span></div>
+        <div class="brow"><span class="lbl">两个摊位的手续费</span><span class="track"><i class="fill fee" data-w="35%" style="width:35%"></i></span><span class="val">0.35%</span></div>
+      </div>
+      <div class="verdict">
+        <span class="num" id="netNum">−71</span>
+        <span class="txt">按 5 万美元本金算 · 手续费比价差还宽 · 结论：<b style="color:var(--neg)">不成立</b></span>
+      </div>
+      <p class="cap"><b>敏感度</b> 1 万 −14 ｜ 5 万 −71 ｜ 20 万 −285 ｜ 100 万 −1425（美元）　<b>每次快照数字会变，结论不变</b></p>
+    </div>
+  </section>
+
+  <!-- ================= 04 演一遍 ================= -->
+  <section class="ch" id="ch4">
+    <div class="chead">
+      <div class="cno">04<s></s></div>
+      <div>
+        <p class="clabel">演一遍</p>
+        <h2>在自己家搭个沙盘，<br>把那笔交易再演一遍</h2>
+        <div class="prose">
+          <p>把链上某一刻的样子复制一份到你的电脑上，然后把那笔交易原样重放一次。</p>
+          <p>砸坏了也无所谓——沙盘不是真世界。<b>钱一分没动，链上什么都没发生。</b></p>
+          <p class="small">这是"事后讲清楚"和"事前敢动手"之间的那道桥：先在沙盘里看一遍结果，再决定要不要真的做。</p>
+          <p class="term">他们管这个叫 <b>分叉重放（fork replay）</b>。你只要记得：复制一份，演一遍。</p>
+        </div>
+        <div class="stats">
+          <div class="stat"><b data-count="754124">754,124</b><span>沙盘里重算的步数</span></div>
+          <div class="stat"><b>38s</b><span>演完全程</span></div>
+          <div class="stat pos"><b>0</b><span>真钱动了</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="stage" data-anim="replay">
+      <div class="replay">
+        <div class="chainrow"><span class="tag">真实链</span><div class="blocks" id="chainReal"></div><span class="note">已发生</span></div>
+        <div class="chainrow copyrow"><span class="tag"></span><span class="copyline">↓ 把这一刻的状态原样复制一份</span></div>
+        <div class="chainrow"><span class="tag">你的沙盘</span><div class="blocks" id="chainFork"></div><span class="note">随便砸</span></div>
+        <div class="deltas">
+          <div><span>收款方拿到</span><b class="p" id="dPlus">+26,310,455 wei</b></div>
+          <div><span>付款方付出（含手续费）</span><b class="n" id="dMinus">−899,454,587,283,171 wei</b></div>
+        </div>
+      </div>
+      <p class="cap"><b>实测</b> 沙盘建在区块 26,310,454 上 · 重放结果与真实回执一致 · 全程没广播</p>
+    </div>
+  </section>
+
+  <!-- ================= 05 排队的小票 ================= -->
+  <section class="ch" id="ch5">
+    <div class="chead">
+      <div class="cno">05<s></s></div>
+      <div>
+        <p class="clabel">排队的小票</p>
+        <h2>还没写上账本的交易，<br>在门口排队</h2>
+        <div class="prose">
+          <p>每笔交易在被记进账本之前，会先在门口等一会儿。这个队伍是公开的：你能看见谁拿着大额在等，也能看见谁在同一个地方反复试。</p>
+          <p>很多事故最早的信号，不是"已经出事了"，而是<b>队伍里有一张不对劲的小票</b>。</p>
+          <p class="small">诚实说明：我们只看得见自己连的那个门口。别的门口、私下递进去的小票，看不见——所以"没看见"不等于"没有"。</p>
+          <p class="term">他们管这个叫 <b>内存池观察（mempool）</b>。你只要记得：门口排队的小票。</p>
+        </div>
+        <div class="stats">
+          <div class="stat"><b data-count="57">57</b><span>此刻在排队的交易</span></div>
+          <div class="stat"><b data-count="60">60</b><span>能读到的小票内容</span></div>
+          <div class="stat"><b>1.4s</b><span>读完一遍</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="stage" data-anim="queue">
+      <canvas class="stagecanvas" id="queue" aria-hidden="true"></canvas>
+      <p class="cap"><b>规则</b> 按金额、按目标、按动作筛选　<b>只读</b> 不插队、不提交、不签名</p>
+    </div>
+  </section>
+
+  <!-- ================= 06 你家的钥匙 ================= -->
+  <section class="ch" id="ch6">
+    <div class="chead">
+      <div class="cno">06<s></s></div>
+      <div>
+        <p class="clabel">你家的钥匙</p>
+        <h2>你把这把钥匙，<br>复制给了几个人？</h2>
+        <div class="prose">
+          <p>每次点"授权"，等于把家门钥匙复制一把交给某个程序。有的只能开一次门，有的写着"永久随便进"。</p>
+          <p>绝大多数人不知道自己复制出去了几把。我们把它们一把把列出来，并标清楚哪一把是永久的。</p>
+          <p class="small">知道不等于要马上做什么。但至少，你不该在出事那天才第一次听说这件事。</p>
+          <p class="term">他们管这个叫 <b>授权 / 无限授权（approval）</b>。你只要记得：复制出去几把钥匙。</p>
+        </div>
+        <div class="stats">
+          <div class="stat"><b data-count="1">1</b><span>这个地址复制出去的钥匙</span></div>
+          <div class="stat pos"><b data-count="0">0</b><span>其中"永久"的</span></div>
+          <div class="stat accent"><b>323,546</b><span>对方最多能动用的 USDC</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="stage" data-anim="keys">
+      <svg id="keys" viewBox="0 0 720 260" role="img" aria-label="钱包中心伸出多条授权线，其中两条标记为永久，一条正在被剪断">
+        <g id="keySpokes" stroke="#ded7c6" stroke-width="1" fill="none"></g>
+        <g id="keyNodes" font-family="ui-monospace,monospace" font-size="10.5" fill="#4a4436"></g>
+        <circle cx="360" cy="130" r="26" fill="#17160f"/>
+        <text x="360" y="134" text-anchor="middle" fill="#f7f4ec" font-family="ui-monospace,monospace" font-size="10">你</text>
+      </svg>
+      <p class="cap"><b>实扫</b> 8 个常见代币 · 1 条有效授权 · 0 条永久授权 · 一条条读回真实额度</p>
+    </div>
+  </section>
+
+  <!-- ================= 07 回到本体 ================= -->
+  <section class="ch" id="ch7">
+    <div class="chead">
+      <div class="cno">07<s></s></div>
+      <div>
+        <p class="clabel">回到本体</p>
+        <h2>这六个案例，<br>只用到 152 个工具里的 10 个</h2>
+        <div class="prose">
+          <p>BCA 本身不是一个"赚钱机器人"，它是一个<b>装在你电脑上的工具箱</b>。今天讲的白帽、复盘、价差、沙盘、排队、钥匙，只是箱子里最先被拿出来的十把工具。</p>
+          <p>它不需要你懂链。你把它装好，说一句话，它自己去找该用的工具、自己补参数、自己把结果翻成人话。</p>
+          <p class="small">跑在你自己机器上，密钥不出门；装好之后可以断网用本地链练习，一分钱不花。</p>
+          <p class="term">他们管这个叫 <b>MCP 工具层</b>。你只要记得：一个装在本地的工具箱。</p>
+        </div>
+      </div>
+    </div>
+    <div class="stage" data-anim="box">
+      <div class="termbox" id="term"></div>
+      <div class="grid152" id="grid152" aria-hidden="true"></div>
+      <p class="cap"><b>一条命令装好</b> 152 个工具 · 65 个上游来源 · MIT 开源 · 本地免费</p>
+    </div>
+  </section>
+
+  <section class="end">
+    <h2>它不会替你赚钱。<br>但它会让你少亏几次。</h2>
+    <p class="lede">讲完这六个案例，你会发现它们有一条共同底线：<b>全部只读</b>。不托管私钥、不代签名、不自动下单。
+      需要动手的那一步，永远留给你自己确认。</p>
+    <div class="cta">
+      <a class="btn solid" href="/">打开试用 Agent</a>
+      <a class="btn" href="/docs/">看安装文档</a>
+      <a class="btn" href="https://github.com/songconmaisaix31-design/blockchain-anything" target="_blank" rel="noopener">GitHub 仓库 ↗</a>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>Blockchain Anything · 给普通人和 Agent 用的链上工具箱</span>
+    <span>文中数字均来自 2026-10-31 的真实链上读取与本地重放　·　<a href="/">返回首页</a></span>
+  </footer>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  // ?nofx=1 直接给最终状态：方便截图、也方便不喜欢动画的人
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches || /[?&]nofx\b/.test(location.search);
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+
+  /* ---------- 顶部进度 ---------- */
+  var pbar = $('#pbar');
+  function onScroll() {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    pbar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  /* ---------- 进场 ---------- */
+  function whenVisible(el, fn) {
+    if (!el) return;
+    if (!('IntersectionObserver' in window)) { el.classList.add('in'); fn && fn(el); return; }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        io.unobserve(e.target);
+        e.target.classList.add('in');
+        if (fn) { try { fn(e.target); } catch (err) { console.warn(err); } }
+      });
+    }, { threshold: 0.22, rootMargin: '0px 0px -8% 0px' });
+    io.observe(el);
+  }
+
+  /* ---------- 数字滚动 ---------- */
+  // 用定时器而不是 rAF：后台标签页或省电模式下 rAF 会被暂停，数字会停在半路。
+  function countUp(el, to, dur) {
+    if (!el) return;
+    var int = Number.isInteger(to);
+    if (reduce) { el.textContent = fmt(to, int); return; }
+    var t0 = Date.now();
+    dur = dur || 900;
+    el.textContent = fmt(0, int);
+    (function step() {
+      var p = Math.min(1, (Date.now() - t0) / dur);
+      var eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = p < 1 ? fmt(to * eased, int) : fmt(to, int);
+      if (p < 1) setTimeout(step, 16);
+    })();
+  }
+  function fmt(n, int) {
+    var v = int ? Math.round(n) : Math.round(n * 10) / 10;
+    var s = Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-US') : String(v);
+    return (v < 0 ? '−' : '') + s;
+  }
+
+  /* ---------- 首屏：账本流 ---------- */
+  (function ledgerStream() {
+    var cv = $('#ledger');
+    if (!cv) return;
+    var ctx = cv.getContext('2d');
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var w = 0, h = 0, cols = [], raf = 0, acc = 0, last = 0, hotCol = 0, nextHot = 0;
+    var GLYPH = '0123456789abcdef×÷±';
+    var rows = 18;
+
+    function size() {
+      var r = cv.getBoundingClientRect();
+      w = Math.max(120, r.width); h = Math.max(120, r.height);
+      cv.width = w * dpr; cv.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      build();
+    }
+    function build() {
+      cols = [];
+      var n = Math.max(3, Math.floor(w / 36));
+      for (var i = 0; i < n; i++) {
+        var col = { x: 12 + i * (w - 24) / Math.max(1, n - 1), g: [], y: Math.random() * 40, speed: 0.12 + Math.random() * 0.22 };
+        for (var j = 0; j < rows + 6; j++) col.g.push(GLYPH[Math.floor(Math.random() * GLYPH.length)]);
+        cols.push(col);
+      }
+    }
+    function frame(now) {
+      raf = requestAnimationFrame(frame);
+      if (!last) last = now;
+      var dt = Math.min(64, now - last); last = now;
+      acc += dt;
+      if (acc < 45) return;      // ~22fps，够用且省电
+      acc = 0;
+
+      ctx.clearRect(0, 0, w, h);
+      var rowH = h / rows;
+      if (now > nextHot) { hotCol = Math.floor(Math.random() * cols.length); nextHot = now + 3600; }
+
+      // 账本式的竖线：让这一片数字像"账页"而不是一堵墙
+      ctx.strokeStyle = 'rgba(23,22,15,.055)';
+      ctx.lineWidth = 1;
+      cols.forEach(function (c) {
+        ctx.beginPath(); ctx.moveTo(Math.round(c.x) + 0.5, 0); ctx.lineTo(Math.round(c.x) + 0.5, h); ctx.stroke();
+      });
+
+      cols.forEach(function (c, ci) {
+        c.y += c.speed;
+        if (c.y > rows) { c.y = -1; c.g.shift(); c.g.push(GLYPH[Math.floor(Math.random() * GLYPH.length)]); }
+        var isHot = ci === hotCol;
+        for (var j = 0; j < rows; j++) {
+          var g = ((Math.floor(c.y + j) % c.g.length) + c.g.length) % c.g.length;
+          var ch = c.g[g];
+          if (!ch) continue;
+          var y = h - (j * rowH) - rowH * 0.5;
+          if (y < -rowH || y > h + rowH) continue;
+          var k = j / rows;
+          ctx.font = '400 ' + (10 + (1 - k) * 2) + 'px ui-monospace, monospace';
+          ctx.fillStyle = isHot
+            ? 'rgba(168,64,45,' + (0.22 + k * 0.30).toFixed(3) + ')'
+            : 'rgba(23,22,15,' + (0.05 + k * 0.09).toFixed(3) + ')';
+          ctx.fillText(ch, c.x - 5, y);
+        }
+        if (isHot) {
+          ctx.fillStyle = 'rgba(168,64,45,.9)';
+          ctx.fillRect(c.x - 6, 4, 3, 3);
+        }
+      });
+      // 一条缓慢下移的扫描线（只在这一屏内，不铺满）
+      var t = (now / 30) % (h + 80);
+      if (t > 40 && t < h) {
+        var grd = ctx.createLinearGradient(0, t - 44, 0, t);
+        grd.addColorStop(0, 'rgba(168,64,45,0)');
+        grd.addColorStop(1, 'rgba(168,64,45,.07)');
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, Math.max(0, t - 44), w, Math.min(44, t));
+      }
+    }
+    size();
+    window.addEventListener('resize', function () {
+      if (reduce) { drawStill(); return; }
+      cancelAnimationFrame(raf); size(); raf = requestAnimationFrame(frame);
+    });
+    // 静态版：等一帧让布局稳定，再画一遍就停
+    function drawStill() {
+      size();
+      ctx.clearRect(0, 0, w, h);
+      var rowH0 = h / rows;
+      ctx.strokeStyle = 'rgba(23,22,15,.05)';
+      cols.forEach(function (c) {
+        ctx.beginPath(); ctx.moveTo(Math.round(c.x) + 0.5, 0); ctx.lineTo(Math.round(c.x) + 0.5, h); ctx.stroke();
+      });
+      cols.forEach(function (c, ci) {
+        var hot = ci === 2 || ci === 5;
+        for (var j = 0; j < rows; j++) {
+          var y = h - j * rowH0 - rowH0 / 2;
+          var k = j / rows;
+          ctx.font = '400 ' + (10 + (1 - k) * 2) + 'px ui-monospace, monospace';
+          ctx.fillStyle = hot ? 'rgba(168,64,45,' + (0.18 + k * 0.22).toFixed(3) + ')' : 'rgba(23,22,15,' + (0.07 + k * 0.09).toFixed(3) + ')';
+          ctx.fillText(c.g[j], c.x - 5, y);
+        }
+      });
+    }
+
+    if (reduce) {
+      setTimeout(drawStill, 80);
+    } else {
+      raf = requestAnimationFrame(frame);
+      // 离开视口就停，回来再续
+      new IntersectionObserver(function (es) {
+        es.forEach(function (e) {
+          if (e.isIntersecting) { if (!raf) { last = 0; raf = requestAnimationFrame(frame); } }
+          else { cancelAnimationFrame(raf); raf = 0; }
+        });
+      }, { threshold: 0 }).observe(cv);
+    }
+  })();
+
+  /* ---------- 01 悬赏告示 ---------- */
+  (function poster() {
+    var stage = $('[data-anim="poster"]');
+    var chips = $('#chips');
+    var names = ['Aave', 'Uniswap', 'Balancer', 'Pendle', 'Sky', 'ENS', 'Euler', 'Reserve', '1inch', 'Silo', 'Alchemix', 'Monolith', 'Rheo', 'Cove', 'Pareto', 'Kleidi', 'Singularity', 'FlyingTulip'];
+    if (chips) {
+      names.forEach(function (n) {
+        var s = document.createElement('span');
+        s.className = 'chip'; s.textContent = n; chips.appendChild(s);
+      });
+      var more = document.createElement('span');
+      more.className = 'chip'; more.textContent = '+5'; chips.appendChild(more);
+    }
+    whenVisible(stage, function () {
+      $$('.chip', chips).forEach(function (c, i) {
+        c.style.transitionDelay = (i * 55) + 'ms';
+        c.style.transitionDelay = (i * 55) + 'ms';
+      });
+      if (reduce) return;
+      // 依次点亮，最后停在三张上
+      var idx = 0, order = [0, 2, 3, 5, 8, 10, 13, 16, 17];
+      var timer = setInterval(function () {
+        if (idx > 0) {
+          var prev = $('.chip.hit', chips);
+          var prevIdx = order[idx - 1];
+          if (prev && prevIdx !== 0 && prevIdx !== 3 && prevIdx !== 8) prev.classList.remove('hit');
+        }
+        if (idx >= order.length) { clearInterval(timer); return; }
+        var el = $$('.chip', chips)[order[idx]];
+        if (el) el.classList.add('hit');
+        idx++;
+      }, 420);
+    });
+  })();
+
+  /* ---------- 02 拆快递 ---------- */
+  (function tree() {
+    var stage = $('[data-anim="tree"]');
+    var svg = $('#tree');
+    if (!stage || !svg) return;
+    var paths = $$('.edge', svg);
+    var nodes = $$('.node', svg);
+    var dots = $('#treeDots');
+
+    paths.forEach(function (p) {
+      var len = p.getTotalLength();
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+      p.style.transition = 'stroke-dashoffset .7s cubic-bezier(.2,.9,.2,1)';
+    });
+    nodes.forEach(function (n) { n.style.opacity = '0'; n.style.transition = 'opacity .4s'; });
+
+    whenVisible(stage, function () {
+      paths.forEach(function (p, i) {
+        setTimeout(function () {
+          p.style.strokeDashoffset = '0';
+          p.style.stroke = i > 2 ? '#e0b7ad' : '#ded7c6';
+        }, i * 90);
+      });
+      nodes.forEach(function (n, i) {
+        setTimeout(function () { n.style.opacity = '1'; }, 200 + i * 60);
+      });
+      if (reduce) return;
+      // 沿每条边跑小点，表示钱在流动：统一一个 rAF 循环，避免几十个并发回调
+      setTimeout(function () {
+        var flow = [];
+        paths.forEach(function (p, i) {
+          var len = p.getTotalLength();
+          for (var k = 0; k < 2; k++) {
+            var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            c.setAttribute('r', i > 2 ? '2.4' : '2');
+            c.setAttribute('fill', i > 2 ? '#a8402d' : '#17160f');
+            c.setAttribute('opacity', '0');
+            dots.appendChild(c);
+            flow.push({ p: p, len: len, c: c, phase: k / 2 + (i % 3) * 0.11, dur: 1500 + (i % 3) * 240 });
+          }
+        });
+        var t0 = null, stopped = false;
+        function loop(now) {
+          if (stopped) return;
+          if (t0 === null) t0 = now;
+          flow.forEach(function (f) {
+            var pr = ((now - t0) / f.dur + f.phase) % 1;
+            var pt = f.p.getPointAtLength(pr * f.len);
+            f.c.setAttribute('cx', pt.x.toFixed(1));
+            f.c.setAttribute('cy', pt.y.toFixed(1));
+            f.c.setAttribute('opacity', String(0.18 + 0.55 * Math.sin(pr * Math.PI)));
+          });
+          if (!document.hidden) requestAnimationFrame(loop);
+          else { stopped = true; setTimeout(function () { stopped = false; t0 = null; requestAnimationFrame(loop); }, 1200); }
+        }
+        requestAnimationFrame(loop);
+      }, 900);
+    });
+  })();
+
+  /* ---------- 03 价差条 ---------- */
+  (function bars() {
+    var stage = $('[data-anim="bars"]');
+    var num = $('#netNum');
+    if (!stage) return;
+    whenVisible(stage, function () {
+      if (reduce) return;                       // 静态版直接保留最终宽度与最终数字
+      var fills = $$('.fill', stage);
+      fills.forEach(function (f) { f.style.transition = 'none'; f.style.width = '0'; });
+      void stage.offsetWidth;                   // 强制回流，让下一步的过渡生效
+      fills.forEach(function (f, i) {
+        f.style.transition = 'width .9s cubic-bezier(.2,.9,.2,1)';
+        setTimeout(function () { f.style.width = f.dataset.w; }, 140 + i * 220);
+      });
+      if (!num) return;
+      setTimeout(function () {
+        var start = 103.75, end = -71, t0 = Date.now(), dur = 1500;
+        (function step() {
+          var p2 = Math.min(1, (Date.now() - t0) / dur);
+          var v = start + (end - start) * (1 - Math.pow(1 - p2, 3));
+          num.textContent = (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(0);
+          num.style.color = v >= 0 ? 'var(--pos)' : 'var(--neg)';
+          if (p2 < 1) setTimeout(step, 16);
+          else { num.textContent = '−71'; num.style.color = 'var(--neg)'; }
+        })();
+      }, 900);
+    });
+  })();
+
+  /* ---------- 04 沙盘重放 ---------- */
+  (function replay() {
+    var stage = $('[data-anim="replay"]');
+    var real = $('#chainReal'), fork = $('#chainFork');
+    if (!stage || !real || !fork) return;
+    var N = 13;
+    for (var i = 0; i < N; i++) {
+      var a = document.createElement('i'); a.className = 'blk'; real.appendChild(a);
+      var b = document.createElement('i'); b.className = 'blk ghost'; fork.appendChild(b);
+    }
+    var r = $$('.blk', real), f = $$('.blk', fork);
+
+    whenVisible(stage, function () {
+      if (reduce) {
+        r.forEach(function (x) { x.classList.add('on'); });
+        f.forEach(function (x) { x.classList.add('on'); });
+        return;
+      }
+      r.forEach(function (x, i) { setTimeout(function () { x.classList.add('on'); }, i * 55); });
+      setTimeout(function () {
+        f.forEach(function (x, i) { setTimeout(function () { x.classList.add('on'); }, i * 55); });
+      }, 380);
+      var plus = $('#dPlus'), minus = $('#dMinus');
+      setTimeout(function () {
+        var t0 = Date.now(), dur = 1200, P = 26310455, M = 899454587283171;
+        (function step() {
+          var p = Math.min(1, (Date.now() - t0) / dur);
+          var e = 1 - Math.pow(1 - p, 3);
+          plus.textContent = '+' + Math.round(P * e).toLocaleString('en-US') + ' wei';
+          minus.textContent = '−' + Math.round(M * e).toLocaleString('en-US') + ' wei';
+          if (p < 1) setTimeout(step, 16);
+          else {
+            plus.textContent = '+' + P.toLocaleString('en-US') + ' wei';
+            minus.textContent = '−' + M.toLocaleString('en-US') + ' wei';
+          }
+        })();
+      }, 900);
+    });
+  })();
+
+  /* ---------- 05 排队 ---------- */
+  (function queue() {
+    var stage = $('[data-anim="queue"]');
+    var cv = $('#queue');
+    if (!stage || !cv) return;
+    var ctx = cv.getContext('2d');
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var w = 0, h = 210, items = [], raf = 0;
+
+    function size() {
+      var r = cv.getBoundingClientRect();
+      w = Math.max(240, Math.round(r.width || 600));
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function gateX() { return w * 0.66; }
+
+    function drawStatic() {
+      size();
+      ctx.clearRect(0, 0, w, h);
+      var gx = gateX();
+      ctx.strokeStyle = 'rgba(23,22,15,.16)';
+      ctx.beginPath(); ctx.moveTo(gx, 20); ctx.lineTo(gx, h - 20); ctx.stroke();
+      ctx.fillStyle = 'rgba(23,22,15,.32)';
+      ctx.font = '10px ui-monospace, monospace';
+      ctx.fillText('检查口', gx + 8, 16);
+      for (var i = 0; i < 30; i++) {
+        var x = 16 + i * (w - 40) / 30;
+        var y = h / 2 + Math.sin(i / 2.4) * 40;
+        var big = i % 9 === 4;
+        ctx.beginPath();
+        ctx.arc(x, y, big ? 6 : 3, 0, Math.PI * 2);
+        ctx.fillStyle = big ? 'rgba(168,64,45,.55)' : 'rgba(23,22,15,.15)';
+        ctx.fill();
+        if (big) {
+          ctx.strokeStyle = 'rgba(168,64,45,.30)';
+          ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2); ctx.stroke();
+        }
+      }
+    }
+
+    function spawn(seed) {
+      var big = Math.random() < 0.14;
+      items.push({
+        x: seed ? Math.random() * w * 0.6 : -20,
+        y: h / 2 + (Math.random() - 0.5) * 130,
+        vx: 0.55 + Math.random() * 0.6,
+        r: big ? 5.5 : 2.6 + Math.random() * 1.8,
+        big: big, lane: Math.random() < 0.5 ? -1 : 1,
+        checked: false, pass: false
+      });
+    }
+
+    function frame() {
+      raf = requestAnimationFrame(frame);
+      ctx.clearRect(0, 0, w, h);
+      var gx = gateX();
+      ctx.strokeStyle = 'rgba(23,22,15,.16)';
+      ctx.beginPath(); ctx.moveTo(gx, 20); ctx.lineTo(gx, h - 20); ctx.stroke();
+      ctx.fillStyle = 'rgba(23,22,15,.30)';
+      ctx.font = '10px ui-monospace, monospace';
+      ctx.fillText('检查口', gx + 8, 16);
+
+      items.forEach(function (it) {
+        it.x += it.vx;
+        it.y += Math.sin((it.x + it.lane * 40) / 60) * 0.35 * it.lane;
+        if (!it.checked && it.x > gx) { it.checked = true; it.pass = it.big; }
+        ctx.beginPath();
+        ctx.arc(it.x, it.y, it.r, 0, Math.PI * 2);
+        ctx.fillStyle = it.checked && it.pass ? 'rgba(168,64,45,.85)' : it.big ? 'rgba(168,64,45,.26)' : 'rgba(23,22,15,.16)';
+        ctx.fill();
+        if (it.checked && it.pass) {
+          ctx.strokeStyle = 'rgba(168,64,45,.32)';
+          ctx.beginPath(); ctx.arc(it.x, it.y, it.r + 6, 0, Math.PI * 2); ctx.stroke();
+        }
+      });
+      items = items.filter(function (it) { return it.x < w + 30; });
+      if (Math.random() < 0.16) spawn(false);
+    }
+
+    window.addEventListener('resize', function () { if (!raf) drawStatic(); else size(); });
+
+    whenVisible(stage, function () {
+      if (reduce) { drawStatic(); return; }
+      size();
+      for (var k = 0; k < 16; k++) spawn(true);
+      if (!raf) raf = requestAnimationFrame(frame);
+      new IntersectionObserver(function (es) {
+        es.forEach(function (e) {
+          if (e.isIntersecting) { if (!raf) raf = requestAnimationFrame(frame); }
+          else { cancelAnimationFrame(raf); raf = 0; }
+        });
+      }, { threshold: 0 }).observe(cv);
+    });
+  })();
+
+  /* ---------- 06 钥匙 ---------- */
+  (function keys() {
+    var stage = $('[data-anim="keys"]');
+    var spokes = $('#keySpokes'), nodes = $('#keyNodes');
+    if (!stage || !spokes) return;
+    var cx = 360, cy = 130;
+    var list = [
+      { label: '兑换路由', angle: -160, state: 'normal' },
+      { label: 'NFT 市场 A', angle: -128, state: 'forever' },
+      { label: '理财合约', angle: -96, state: 'normal' },
+      { label: '借贷池', angle: -64, state: 'normal' },
+      { label: '跨链桥', angle: -32, state: 'forever' },
+      { label: 'NFT 市场 B', angle: 6, state: 'normal' },
+      { label: '未知合约', angle: 44, state: 'cut' },
+      { label: '旧版路由', angle: 82, state: 'normal' },
+      { label: '聚合器', angle: 120, state: 'normal' },
+      { label: '支付通道', angle: 158, state: 'normal' }
+    ];
+    var els = [];
+    list.forEach(function (k, i) {
+      var rad = k.angle * Math.PI / 180;
+      var R = 96;
+      var x = cx + Math.cos(rad) * R, y = cy + Math.sin(rad) * R * 0.86;
+      var p = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      p.setAttribute('x1', cx); p.setAttribute('y1', cy);
+      p.setAttribute('x2', x); p.setAttribute('y2', y);
+      p.setAttribute('stroke-linecap', 'round');
+      if (k.state === 'forever') p.setAttribute('stroke', '#a8402d');
+      var len = Math.hypot(x - cx, y - cy);
+      p.dataset.len = String(len);          // 遮罩留给动画时再上，静态打开也能看见线
+      spokes.appendChild(p);
+
+      var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', (x + (x > cx ? 8 : -8)).toFixed(1));
+      t.setAttribute('y', (y + 3).toFixed(1));
+      t.setAttribute('text-anchor', x > cx ? 'start' : 'end');
+      t.textContent = k.label + (k.state === 'forever' ? ' · 永久' : '');
+      if (k.state === 'forever') t.setAttribute('fill', '#a8402d');
+      t.style.opacity = '0.85';
+      t.style.transition = 'opacity .4s';
+      nodes.appendChild(t);
+
+      var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', x.toFixed(1)); c.setAttribute('cy', y.toFixed(1)); c.setAttribute('r', '4');
+      c.setAttribute('fill', k.state === 'forever' ? '#a8402d' : '#fff');
+      c.setAttribute('stroke', k.state === 'forever' ? '#a8402d' : '#c9bfa5');
+      c.style.opacity = '1'; c.style.transition = 'opacity .4s';
+      nodes.appendChild(c);
+
+      els.push({ line: p, text: t, dot: c, state: k.state });
+    });
+
+    whenVisible(stage, function () {
+      if (reduce) return;
+      // 先上遮罩再放开，纯装饰：即使动画不跑，默认也是完整画出来的
+      els.forEach(function (e, i) {
+        if (!e.line) return;
+        var len = Number(e.line.dataset.len);
+        e.line.style.strokeDasharray = len;
+        e.line.style.strokeDashoffset = len;
+        e.line.style.transition = 'stroke-dashoffset .6s ease, opacity .5s';
+        e.text.style.opacity = '0';
+        e.dot.style.opacity = '0';
+        setTimeout(function () {
+          e.line.style.strokeDashoffset = '0';
+          setTimeout(function () { e.text.style.opacity = '1'; e.dot.style.opacity = '1'; }, 200);
+        }, 40 + i * 85);
+      });
+      if (reduce) return;
+      // 剪断那条"未知合约"
+      setTimeout(function () {
+        var cut = els.filter(function (e) { return e.state === 'cut'; })[0];
+        if (!cut) return;
+        cut.line.style.strokeDasharray = '0 1000';
+        cut.line.style.opacity = '.25';
+        cut.text.style.opacity = '.35';
+        cut.text.textContent = '未知合约 · 已剪断';
+        cut.dot.style.opacity = '.25';
+      }, 2200);
+    });
+  })();
+
+  /* ---------- 07 工具箱 ---------- */
+  (function box() {
+    var stage = $('[data-anim="box"]');
+    var term = $('#term'), grid = $('#grid152');
+    if (!stage || !term) return;
+
+    if (grid) {
+      for (var i = 0; i < 152; i++) {
+        var b = document.createElement('i');
+        if ([3, 11, 27, 44, 58, 77, 91, 103, 121, 140].indexOf(i) >= 0) b.className = 'hot';
+        b.style.transitionDelay = (i * 7) + 'ms';
+        grid.appendChild(b);
+      }
+    }
+
+    var lines = [
+      { t: '$ npm exec --yes --package=git+https://github.com/…/blockchain-anything.git#main \\', c: 'p' },
+      { t: '      -- bca setup --client both --install', c: 'p' },
+      { t: '✓ 依赖就绪', c: 'dim' },
+      { t: '✓ 152 个工具已注册（65 个上游来源）', c: 'ok' },
+      { t: '', c: '' },
+      { t: '$ bca ask "Aave 有没有登记白帽救援？"', c: 'p' },
+      { t: '→ 读到链上告示：赏金 10%，上限 $1,000,000，覆盖 16 条链', c: 'ok' },
+      { t: '', c: '' },
+      { t: '它不会替你赚钱，但它会让你少亏几次。', c: 'dim' }
+    ];
+
+    whenVisible(stage, function () {
+      if (reduce) {
+        term.innerHTML = lines.map(function (l) {
+          return '<div class="' + l.c + '">' + escapeHtml(l.t || '&nbsp;') + '</div>';
+        }).join('');
+        return;
+      }
+      var li = 0, ci = 0, cur = null;
+      function type() {
+        if (li >= lines.length) return;
+        var l = lines[li];
+        if (!cur) {
+          cur = document.createElement('div');
+          cur.className = l.c;
+          term.appendChild(cur);
+        }
+        if (ci <= l.t.length) {
+          cur.textContent = l.t.slice(0, ci);
+          ci++;
+          var ch = l.t[ci - 1] || '';
+          setTimeout(type, ch === ' ' ? 6 : 14 + Math.random() * 26);
+        } else {
+          if (l.t === '') cur.innerHTML = '&nbsp;';
+          li++; ci = 0; cur = null;
+          setTimeout(type, l.t.indexOf('$') === 0 ? 320 : 90);
+        }
+      }
+      type();
+    });
+
+    function escapeHtml(s) {
+      return InlineEscape(s);
+    }
+  })();
+
+  function InlineEscape(s) {
+    if (s === '&nbsp;') return s;
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  /* ---------- 章节数字 ---------- */
+  $$('section.ch').forEach(function (sec) {
+    whenVisible(sec, function (el) {
+      $$('[data-count]', el).forEach(function (n) {
+        countUp(n, Number(n.dataset.count), 1000);
+      });
+    });
+  });
+
+  /* ---------- 兜底：任何原因导致进场回调没触发，4 秒后也把内容放出来 ---------- */
+  setTimeout(function () {
+    $$('section.ch, .stage').forEach(function (el) {
+      el.classList.add('in');
+      $$('[data-count]', el).forEach(function (n) {
+        if (!n.textContent || n.textContent === '0') n.textContent = fmt(Number(n.dataset.count), true);
+      });
+    });
+  }, 4000);
+})();
+</script>
+</body>
+</html>
