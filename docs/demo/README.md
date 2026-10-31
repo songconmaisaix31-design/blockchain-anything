@@ -21,7 +21,7 @@ Node ≥ 20，无需 `npm install`。
 ```
 index.html          单文件产品站：hero / 三入口 / 试用 Agent / 工具目录 / 安全边界 / 定价 / FAQ
 ../story.html       六个跟钱有关的案例页：纯手写动画，一块画布 + 几段 SVG，无外部依赖
-server/catalog.js   152 个工具的名称与描述，逐条取自仓库 src/**/defineTool 定义
+server/catalog.js   工具名称与描述，逐条取自仓库 src/**/defineTool 定义
 server/executors.js 执行器：15 个接真实数据源，其余明确标记为 simulated
 server/agent.js     试用 Agent（规则引擎）：理解 → 检索 → 选工具 → 调用 → 回答
 server/agent-pi.js  试用 Agent（真实 agent loop）：BCA_AGENT=pi 时启用，pi + MCP 工具层
@@ -43,7 +43,7 @@ viem 只读调用、GoPlus 代币风险、CID 计算（CIDv1/raw/sha2-256）、D
 ## 数据来源
 
 工具目录不是手写的功能列表：名称与描述逐条抓自仓库源码的 `defineTool` 调用，
-共 127 条，覆盖 8 个类别。仓库新增工具后重新提取即可，不需要维护第二份清单。
+条目与仓库 defineTool 一一对应，按类别分组。仓库新增工具后重新提取即可，不需要维护第二份清单。
 
 ## 许可
 

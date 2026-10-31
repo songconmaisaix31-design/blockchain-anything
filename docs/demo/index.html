@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BCA · 让 Agent 接上区块链</title>
-<meta name="description" content="BCA 把官方 SDK、Foundry 与 MCP 服务收进一个入口。Agent 说一句话，它自己找到工具、补齐参数、拿到真实链上结果。">
+<title>BCA · 让你的 Agent 有成熟链上能力</title>
+<meta name="description" content="BCA 把官方 SDK、Foundry 与 MCP 服务收进一个入口，让你的 Agent 有成熟链上能力。Agent 说一句话，它自己找到工具、补齐参数、拿到真实链上结果。">
 <style>
   :root{
     --paper:#FAF9F6; --card:#FFFFFF; --ink:#111110; --ink2:#3B3A35; --muted:#6E6C64;
@@ -395,11 +395,11 @@
 <!-- ============ HERO ============ -->
 <header class="hero" id="top">
   <div class="wrap hero-in">
-    <div class="pill"><span class="dot"></span>MIT 开源 · <code>152 个工具 · 65 个上游来源</code></div>
-    <h1 class="hero-h">让 Agent 接上区块链，<br>不用再写<span class="hl">第 127 个适配器</span>。</h1>
+    <div class="pill"><span class="dot"></span>MIT 开源 · <code>能力持续增加 · 本地免费</code></div>
+    <h1 class="hero-h">让你的 Agent<br>有成熟链上能力，<br>不用再写<span class="hl">又一个适配器</span>。</h1>
     <p class="hero-sub">
       BCA 把官方 SDK、Foundry 和 MCP 服务收进一个入口。Agent 说一句「这个代币安全吗」，
-      它自己找到工具、补齐参数、拿到真实链上结果 —— 而不是让你先写三个适配器。
+      它自己找到工具、补齐参数、拿到真实链上结果 —— 而不是让你先写一堆适配器。
     </p>
     <div class="hero-cta">
       <a class="btn btn-accent" href="#play">试用 Agent
@@ -541,7 +541,7 @@ await tk.invoke('evm_balance', {address})</code>
   <div class="wrap">
     <div class="sec-head narrow reveal">
       <div class="eyebrow">目录</div>
-      <h2 class="sec">152 个工具，全部来自官方实现。</h2>
+      <h2 class="sec">一整套链上能力，全部来自官方实现。</h2>
       <p class="lede">BCA 不重写区块链逻辑 —— 它包装 viem、Foundry、OpenZeppelin、Safe、EAS 这些官方 SDK 和 CLI，把参数、错误和结果统一成 Agent 能读的形状。</p>
     </div>
     <div class="cat-bar reveal">
@@ -861,7 +861,7 @@ const TIERS = [
   {
     name: 'BYO', tag: '永久免费', desc: '本地全功能不限量，上游密钥自己管。',
     price: 0, credits: '本地工具无限 · 托管 0 credits',
-    feats: ['全部 152 个工具', 'CLI / MCP / SDK 三入口', '自带上游密钥调用', '社区支持'],
+    feats: ['全部工具，不限量', 'CLI / MCP / SDK 三入口', '自带上游密钥调用', '社区支持'],
     dim: ['托管密钥代持', '智能路由', '审计日志'],
     btn: '安装开始', solid: false,
   },
@@ -1197,7 +1197,7 @@ function renderTools() {
     </div>`).join('');
   $('#catMore').textContent = list.length > 18
     ? `显示 18 / ${list.length} 个。用搜索或分类缩小范围。`
-    : (API ? `共 ${list.length} 个工具` : `演示模式载入 ${list.length} 个样本工具 · 完整目录 152 个`);
+    : (API ? `共 ${list.length} 个工具` : `演示模式载入 ${list.length} 个样本工具 · 完整目录见 GitHub`);
   $$('.tool').forEach((el) => el.addEventListener('click', () => {
     const t = ALL_TOOLS.find((x) => x.name === el.dataset.tool);
     if (!t) return;
@@ -1222,7 +1222,7 @@ async function init() {
     if (r.ok) {
       const meta = await r.json();
       API = true;
-      setStatus('live', `已连接本地服务 · ${meta.stats.tools} 个工具 · ${meta.stats.live} 个可实时调用`);
+      setStatus('live', `已连接本地服务 · 目录实时同步`);
       renderChips(meta.suggestions.slice(0, 6));
       const tr = await fetch('/api/tools');
       if (tr.ok) { ALL_TOOLS = (await tr.json()).tools; }

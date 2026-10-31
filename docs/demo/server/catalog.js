@@ -373,7 +373,7 @@ export const TOOLS = [
     tags: ['mcp', '刷新', 'schema', '变更'],
     params: [P('server', 'string', true, '服务名')],
   },
-  // ---------- 其余已定义工具：覆盖仓库全部 127 个 defineTool ----------
+  // ---------- 其余已定义工具：覆盖仓库其余 defineTool ----------
   {
     name: 'agent_actions', provider: 'AgentKit / Solana Agent Kit', category: 'market', credits: 4, readOnly: true, live: false,
     zh: '加载操作者创建的官方 AgentKit / Solana Agent Kit 实例，列出实际 actions 与 schema。',
