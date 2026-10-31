@@ -11,6 +11,7 @@ export interface Config {
   workingRoot: string;
   ipfsUrl?: string;
   etherscanApiKey?: string;
+  graphApiKey?: string;
   bundlerUrl?: string;
   tenderly?: { account: string; project: string; accessKey: string };
   maxFileBytes: number;
@@ -72,6 +73,7 @@ export function readConfig(): Config {
     workingRoot: env.BCA_WORKING_ROOT || process.cwd(),
     ipfsUrl: vendor('ipfs', () => endpoint(env.BCA_IPFS_URL, 'BCA_IPFS_URL')),
     etherscanApiKey: env.BCA_ETHERSCAN_API_KEY || undefined,
+    graphApiKey: env.BCA_GRAPH_API_KEY || undefined,
     bundlerUrl: vendor('bundler', () => endpoint(env.BCA_BUNDLER_URL, 'BCA_BUNDLER_URL')),
     // Tenderly 需要三个变量同时存在，缺一个就报配置错误，避免只配一半时静默失败。
     tenderly: vendor('simulator', () => {

@@ -843,6 +843,50 @@ export const TOOLS = [
     tags: ['模拟', '预执行', 'simulate', 'tenderly', '安全', '回滚', 'gas'],
     params: [P('to', 'address', true, '目标合约'), P('from', 'address', false, '模拟调用方'), P('input', 'string', false, '调用数据 0x…'), P('value', 'string', false, '附带的 wei 数量')],
   },
+
+  // ---------- v1.2：NFT、跨链、Solana 持仓、子图 ----------
+  {
+    name: 'nft_balance', provider: 'ERC-721 / RPC', category: 'chain', credits: 1, readOnly: true, live: false,
+    zh: '查询地址在某个 ERC-721 合约下的持有数量。走已配置 RPC 直读合约，无需密钥。',
+    tags: ['nft', '持有', 'balance', 'erc721', '藏品', '数量'],
+    params: [P('collection', 'address', true, 'ERC-721 合约'), P('owner', 'address', true, '持有者地址')],
+  },
+  {
+    name: 'nft_owner', provider: 'ERC-721 / RPC', category: 'chain', credits: 1, readOnly: true, live: false,
+    zh: '查询某个 NFT tokenId 当前的所有者。走已配置 RPC，无需密钥。',
+    tags: ['nft', 'owner', '归属', 'erc721', '持有者'],
+    params: [P('collection', 'address', true, 'ERC-721 合约'), P('tokenId', 'string', true, 'tokenId')],
+  },
+  {
+    name: 'nft_metadata', provider: 'ERC-721 / RPC', category: 'content', credits: 1, readOnly: true, live: false,
+    zh: '读取 tokenURI 并解析元数据（名称、描述、图片）；ipfs:// 会走多网关回退。',
+    tags: ['nft', '元数据', 'metadata', 'tokenuri', 'ipfs', '图片'],
+    params: [P('collection', 'address', true, 'ERC-721 合约'), P('tokenId', 'string', true, 'tokenId')],
+  },
+  {
+    name: 'across_quote', provider: 'Across', category: 'market', credits: 1, readOnly: true, live: false,
+    zh: '跨链转账的费用与到账时间预估（只读报价，不构造交易）。公开接口。',
+    tags: ['跨链', '桥', 'bridge', 'across', '费用', '到账时间', 'quote'],
+    params: [P('token', 'address', true, '源链代币'), P('originChainId', 'string', true, '源链 ID'), P('destinationChainId', 'string', true, '目标链 ID'), P('amount', 'string', true, '数量，最小单位')],
+  },
+  {
+    name: 'wormhole_tx_status', provider: 'Wormholescan', category: 'chain', credits: 1, readOnly: true, live: false,
+    zh: '按源链交易哈希查询 Wormhole 跨链消息记录。公开接口。',
+    tags: ['wormhole', '跨链', '消息', 'vaa', '状态'],
+    params: [P('txHash', 'string', true, '源链交易哈希')],
+  },
+  {
+    name: 'solana_tokens', provider: 'Solana RPC', category: 'chain', credits: 1, readOnly: true, live: false,
+    zh: '列出 Solana 地址持有的 SPL 代币（可按 mint 过滤），走公共 RPC，无需密钥。',
+    tags: ['solana', 'spl', '代币', '持仓', 'token', '余额'],
+    params: [P('owner', 'string', true, 'Solana 地址'), P('mint', 'string', false, '只看某个代币'), P('limit', 'number', false, '返回条数，默认 20')],
+  },
+  {
+    name: 'subgraph_query', provider: 'The Graph', category: 'chain', credits: 1, readOnly: true, live: false,
+    zh: '向 The Graph 网关执行只读 GraphQL 查询（按子图 ID）。需要 BCA_GRAPH_API_KEY。',
+    tags: ['子图', 'subgraph', 'graphql', 'thegraph', '索引', '查询'],
+    params: [P('subgraphId', 'string', true, '子图 ID'), P('query', 'string', true, 'GraphQL 查询文档')],
+  },
 ];
 
 // ---------- 检索 ----------

@@ -23,6 +23,7 @@ const conditions: Record<string, string[]> = {
   bankr: ['BCA_BANKR_API_KEY'], brian: ['BCA_BRIAN_API_KEY'], hummingbot: ['BCA_HUMMINGBOT_URL'],
   openlineage: ['BCA_OPENLINEAGE_URL'],
   explorer: ['BCA_ETHERSCAN_API_KEY'], aa: ['BCA_BUNDLER_URL'], tx: ['BCA_TENDERLY_ACCESS_KEY'],
+  graph: ['BCA_GRAPH_API_KEY'],
 };
 
 export const workstations = [
@@ -93,8 +94,13 @@ export function metadataFor(tool: ToolDefinition) {
   if (name === 'explorer_abi') Object.assign(source, { type: 'HTTP API', name: 'Etherscan v2 API', version: null, official: true, url: 'https://docs.etherscan.io/etherscan-v2' });
   if (name.startsWith('aa_')) Object.assign(source, { type: 'HTTP API', name: 'ERC-4337 bundler JSON-RPC', version: null, official: true, url: 'https://eips.ethereum.org/EIPS/eip-4337' });
   if (name === 'tx_simulate') Object.assign(source, { type: 'HTTP API', name: 'Tenderly Simulation API', version: null, official: true, url: 'https://docs.tenderly.co/simulations' });
+  if (/^nft_/.test(name)) Object.assign(source, { type: 'SDK/API', name: 'ERC-721 / ethers', version: dependencies.ethers, official: true, url: 'https://eips.ethereum.org/EIPS/eip-721' });
+  if (name === 'across_quote') Object.assign(source, { type: 'HTTP API', name: 'Across Suggested Fees API', version: null, official: true, url: 'https://docs.across.to' });
+  if (name === 'wormhole_tx_status') Object.assign(source, { type: 'HTTP API', name: 'Wormholescan API', version: null, official: true, url: 'https://wormholescan.io' });
+  if (name === 'solana_tokens') Object.assign(source, { type: 'JSON-RPC', name: 'Solana getTokenAccountsByOwner', version: null, official: true, url: 'https://solana.com/docs/rpc/http/gettokenaccountsbyowner' });
+  if (name === 'subgraph_query') Object.assign(source, { type: 'HTTP API', name: 'The Graph Gateway', version: null, official: true, url: 'https://thegraph.com/docs' });
   return { source, workstations: workstations.filter((station) => [...station.required, ...station.optional].includes(name)).map((station) => station.id),
-    targets: /^(goplus_token_security|evm_|viem_|eas_|safe_|project_|chainlink_|explorer_|aa_|tx_simulate|dev_(forge|cast|solidity|hardhat|slither|erc721)|workstation_diagnose)/.test(name) ? ['evm']
+    targets: /^(goplus_token_security|evm_|viem_|eas_|safe_|project_|chainlink_|explorer_|aa_|tx_simulate|nft_|across_|wormhole_|dev_(forge|cast|solidity|hardhat|slither|erc721)|workstation_diagnose)/.test(name) ? ['evm']
       : family === 'jupiter' ? ['solana'] : ['solana', 'sas'].includes(family) ? ['solana'] : ['sui', 'seal'].includes(family) ? ['sui'] : family === 'aptos' ? ['aptos'] : ['any'],
     impact: name === 'dev_erc721_mint_local' ? ['onchain-submit'] : name === 'dev_forge_deploy_local' ? ['local-files', 'onchain-submit'] : name === 'dev_forge_verify' ? ['source-upload'] :
       /^(dev_(forge|hardhat)|project_|system_setup|bridge_configure)/.test(name) ? ['local-files'] : tool.readOnly ? ['read'] : ['provider-defined-write-or-sign'],
@@ -113,7 +119,8 @@ export async function capabilityStatus(tool: ToolDefinition, config: Config, dir
   else if (/^content_|^capability_|^workstation_(list|search|guide)$|^system_doctor$|^project_init$|^dev_(project|solidity_compile)$|^evm_(status|verify_message)$/.test(name)) { status = 'available'; reason = '本地内置能力；不要求外部账户'; }
   if (easLocal) { status = 'available'; reason = '本地 EAS 编码/PrivateData 功能'; }
   if (name === 'goplus_token_security') { status = 'available'; reason = 'GoPlus 官方公开 EVM 代币风险 API；无需账户，实际覆盖与限流由上游返回'; }
-  if (/^defillama_|^jupiter_/.test(name)) { status = 'available'; reason = '公开 HTTP API，无需账户；实际覆盖与限流由上游返回'; }
+  if (/^defillama_|^jupiter_|^across_|^wormhole_|^solana_tokens$/.test(name)) { status = 'available'; reason = '公开 HTTP API，无需账户；实际覆盖与限流由上游返回'; }
+  if (/^nft_/.test(name)) { status = config.rpcUrl && config.chainId ? 'available' : 'configuration_error'; reason = config.rpcUrl && config.chainId ? '走已配置 RPC 直读合约，无需密钥' : '需要 BCA_RPC_URL / BCA_CHAIN_ID'; if (!(config.rpcUrl && config.chainId)) requirements.push('BCA_RPC_URL', 'BCA_CHAIN_ID'); }
   if (family === 'eas' && !tool.readOnly) {
     if (config.issues?.signer?.length) { status = 'configuration_error'; reason = config.issues.signer.join('；'); }
     else if (!config.privateKey || !config.allowWrites) { status = 'missing_authorization'; reason = '需要签署配置与写入许可；全局开关不代表逐笔用户授权'; }

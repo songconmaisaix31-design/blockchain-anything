@@ -4,7 +4,7 @@
 >
 > 配套阅读：[长期展望](VISION.md) · [商业模式](BUSINESS.md) · [验证记录](../tasks/S2-progress.md)
 >
-> 盘点基线：2026-10-31，135 个工具 / 50 家上游。
+> 盘点基线：2026-10-31，142 个工具 / 55 家上游。
 
 ## 1. 现状盘点
 
@@ -15,7 +15,9 @@
 | EVM 基础读写 | viem（余额/区块/链信息/日志）、RPC trace | 够用 |
 | 合约开发 | Foundry（init/build/test/deploy/verify）、Cast、Anvil、solc、Hardhat、Slither | 完整 |
 | 源码与验证 | Sourcify | 仅源码，**缺 ABI 与交易解码** |
-| 其他公链 | Solana（Kit / AgentKit）、Sui（gRPC / SDK）、Aptos（SDK） | 只有余额与对象读取，**很浅** |
+| 其他公链 | Solana（Kit / AgentKit / **SPL 持仓**）、Sui（gRPC / SDK）、Aptos（SDK） | v1.2 补了 SPL 持仓；仍缺 Solana NFT 与交易历史 |
+| NFT | **ERC-721 直读**（balance / owner / metadata） | 合约层够用；**缺市场数据**（地板价、挂单） |
+| 跨链 | **Across 报价**、**Wormholescan 消息** | 只读报价与状态；执行仍留给宿主钱包 |
 | 安全检测 | GoPlus 代币安全、Slither 静态分析 | 代币维度够，**缺交易/地址维度** |
 | 存储与内容 | IPFS/Kubo、Arweave、Walrus、Seal、CID 计算 | 完整 |
 | 身份与凭证 | EAS（20 个工具）、did:key、VC-JWT、cheqd、SAS、Sign Protocol | **过重**，一家占 16% |
@@ -73,17 +75,24 @@ P0 的验收标准：八个工具各用真实主网数据跑通一次；失败�
 
 已跑通的三项覆盖了原先最刺眼的空白：**链上价格、协议规模、Solana 报价**。三项加密钥才能验证的，接口已就位，等 operator 提供凭据即可点亮。
 
-## 5. P1：把生态做深（约 3–6 个月）
+## 5. P1：已交付（v1.2）
 
-| 项目 | 补什么 | 读/写 | 备注 |
+原本的 P1 清单里，凡是能靠公开接口或已配置 RPC 完成的都已实现，共 7 个工具，工具总数 135 → 142、上游 50 → 55。
+
+| 项目 | 工具 | 补了什么 | 状态 |
 | --- | --- | --- | --- |
-| **Reservoir / SimpleHash** | NFT 持仓、地板价、元数据、挂单 | 只读 | 对应"NFT 是入口"的产品主线，现在**完全没有 NFT 数据** |
-| **The Graph / Goldsky** | 子图查询（任意协议的自定义数据） | 只读 | 一个工具解决长尾协议，避免一个个接 |
-| **跨链报价（Across / LayerZero / Wormhole）** | 桥接报价与路径、跨链消息状态 | 只读报价 | 只做 quote 与状态查询，**执行留给宿主钱包** |
-| **Solana 深度（Helius DAS / Metaplex）** | 资产清单、NFT 元数据、交易历史 | 只读 | 把 Solana 从"查余额"补到"能读懂资产" |
-| **Snapshot** | 提案、投票状态、投票权 | 只读 | DAO 治理是 Agent 做研究的高频入口 |
-| **地址风险（Chainalysis / TRM / GoPlus 扩展）** | 制裁名单、资金来源风险评分 | 只读 | 合规向；GoPlus 已有部分能力，先扩再考虑换 |
-| **Uniswap / Aave / Lido 协议读** | 池子状态、借贷头寸、质押收益 | 只读 | 优先走官方 MCP（如有），否则用子图或直接读合约 |
+| **NFT 数据** | `nft_balance`、`nft_owner`、`nft_metadata` | ERC-721 持仓数量、持有者、tokenURI 解析（含元数据 JSON） | ✅ 直读合约，无需密钥；BAYC 实测通过 |
+| **跨链报价** | `across_quote` | 跨链费用与到账时间预估 | ✅ 实测 0.1 ETH 主网→Base，费率 0.0114%、2 秒到账 |
+| **跨链消息** | `wormhole_tx_status` | 按交易哈希查 Wormhole 消息记录 | ✅ 实测返回 10 条消息 |
+| **Solana 深度** | `solana_tokens` | SPL 代币持仓（支持 Token-2022，可按 mint 过滤） | ✅ 实测；大钱包 3125 个账户场景已处理 |
+| **子图** | `subgraph_query` | 任意子图的 GraphQL 查询 | ⏳ 需 `BCA_GRAPH_API_KEY` |
+
+**为什么 NFT 不走 Reservoir**：Reservoir 需要 API key，而且从当前网络不可达；ERC-721 的 `balanceOf` / `ownerOf` / `tokenURI` 用已配置的 RPC 就能直读，零密钥、零第三方依赖。代价是没有地板价、挂单这类市场数据——那部分等接入带 key 的市场聚合器再补。
+
+**踩到的两个坑**：
+
+1. 公共 IPFS 网关对共享出口 IP 限流（`ipfs.io`、`dweb.link` 直接 429，`cloudflare-ipfs.com` 不可达），只有 `gateway.pinata.cloud` 能用。现在按候选列表逐个回退，并支持 `BCA_IPFS_GATEWAY` 指定自建网关。
+2. Token-2022 的程序地址如果写错，RPC 会报 `Invalid parameter: String is the wrong size`——这类"地址看起来对但长度不对"的错误很容易被忽略。
 
 ## 6. P2：观察名单（不排期）
 
@@ -115,7 +124,7 @@ P0 的验收标准：八个工具各用真实主网数据跑通一次；失败�
 | 版本 | 目标 | 集成量 | 判定标准 |
 | --- | --- | --- | --- |
 | v1.1 ✅ | 补齐四类高频问题 | P0 八项 | 已交付：三项真实跑通，三项等凭据 |
-| v1.2 | 生态做深 | P1 前四项 | NFT 与跨链报价有可演示路径 |
+| v1.2 ✅ | 生态做深 | P1 六项 | 已交付：NFT 直读、跨链报价与消息、Solana 持仓；子图等 key |
 | v2.0 | 结构治理 | 命名统一、EAS 收敛、缺口兜底 | 目录可被 Agent 稳定检索，无复合供应商名 |
 
 不追求工具数量增长。**127 个能用的工具，比 300 个注册但跑不通的有价值。**

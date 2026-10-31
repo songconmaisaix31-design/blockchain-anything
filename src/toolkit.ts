@@ -27,6 +27,10 @@ import { marketTools } from './providers/market.js';
 import { explorerTools } from './providers/explorer.js';
 import { accountTools } from './providers/account.js';
 import { simulatorTools } from './providers/simulator.js';
+import { nftTools } from './providers/nft.js';
+import { crosschainTools } from './providers/crosschain.js';
+import { solanaTools2 } from './providers/solana.js';
+import { subgraphTools } from './providers/subgraph.js';
 import type { Toolkit } from './types.js';
 
 export function createToolkit(): Toolkit {
@@ -34,7 +38,7 @@ export function createToolkit(): Toolkit {
   const sessions = new BridgeSessions(config);
   let toolkit: Toolkit;
   const invoke = (name: string, input: unknown) => toolkit.invoke(name, input);
-  const implementations = [...evmTools(config), ...easTools(config), ...contentTools(config), ...ipfsTools(config), ...goplusTools(config), ...chainlinkTools(config), ...marketTools(config), ...explorerTools(config), ...accountTools(config), ...simulatorTools(config), ...bridgeTools(config, sessions), ...developmentTools(config), ...chainTools(config), ...storageTools(config), ...walletTools(config), ...tradingTools(config), ...provenanceTools(config), ...identityTools(config), ...agentTools(config)];
+  const implementations = [...evmTools(config), ...easTools(config), ...contentTools(config), ...ipfsTools(config), ...goplusTools(config), ...chainlinkTools(config), ...marketTools(config), ...explorerTools(config), ...accountTools(config), ...simulatorTools(config), ...nftTools(config), ...crosschainTools(config), ...solanaTools2(config), ...subgraphTools(config), ...bridgeTools(config, sessions), ...developmentTools(config), ...chainTools(config), ...storageTools(config), ...walletTools(config), ...tradingTools(config), ...provenanceTools(config), ...identityTools(config), ...agentTools(config)];
   implementations.push(...projectTools(config, invoke), ...bridgeManagementTools(config), ...workspaceTools(config), ...evmWorkstationTools(config, invoke), ...setupTools(config, invoke));
   implementations.push(...catalogTools(config, () => toolkit.tools), ...searchTools(config, () => toolkit.tools, sessions));
   const tools = implementations.map((tool) => ({ name: tool.name, description: tool.description, inputSchema: tool.inputSchema, readOnly: tool.readOnly, metadata: metadataFor(tool) }));

@@ -394,7 +394,7 @@
 <!-- ============ HERO ============ -->
 <header class="hero" id="top">
   <div class="wrap hero-in">
-    <div class="pill"><span class="dot"></span>MIT 开源 · <code>135 个工具 · 50 家供应商</code></div>
+    <div class="pill"><span class="dot"></span>MIT 开源 · <code>142 个工具 · 55 家供应商</code></div>
     <h1 class="hero-h">让 Agent 接上区块链，<br>不用再写<span class="hl">第 127 个适配器</span>。</h1>
     <p class="hero-sub">
       BCA 把官方 SDK、Foundry 和 MCP 服务收进一个入口。Agent 说一句「这个代币安全吗」，
@@ -540,7 +540,7 @@ await tk.invoke('evm_balance', {address})</code>
   <div class="wrap">
     <div class="sec-head narrow reveal">
       <div class="eyebrow">目录</div>
-      <h2 class="sec">135 个工具，全部来自官方实现。</h2>
+      <h2 class="sec">142 个工具，全部来自官方实现。</h2>
       <p class="lede">BCA 不重写区块链逻辑 —— 它包装 viem、Foundry、OpenZeppelin、Safe、EAS 这些官方 SDK 和 CLI，把参数、错误和结果统一成 Agent 能读的形状。</p>
     </div>
     <div class="cat-bar reveal">
@@ -856,7 +856,7 @@ const TIERS = [
   {
     name: 'BYO', tag: '永久免费', desc: '本地全功能不限量，上游密钥自己管。',
     price: 0, credits: '本地工具无限 · 托管 0 credits',
-    feats: ['全部 135 个工具', 'CLI / MCP / SDK 三入口', '自带上游密钥调用', '社区支持'],
+    feats: ['全部 142 个工具', 'CLI / MCP / SDK 三入口', '自带上游密钥调用', '社区支持'],
     dim: ['托管密钥代持', '智能路由', '审计日志'],
     btn: '安装开始', solid: false,
   },
@@ -1150,7 +1150,7 @@ function renderTools() {
     </div>`).join('');
   $('#catMore').textContent = list.length > 18
     ? `显示 18 / ${list.length} 个。用搜索或分类缩小范围。`
-    : (API ? `共 ${list.length} 个工具` : `演示模式载入 ${list.length} 个样本工具 · 完整目录 135 个`);
+    : (API ? `共 ${list.length} 个工具` : `演示模式载入 ${list.length} 个样本工具 · 完整目录 142 个`);
   $$('.tool').forEach((el) => el.addEventListener('click', () => {
     const t = ALL_TOOLS.find((x) => x.name === el.dataset.tool);
     if (!t) return;
