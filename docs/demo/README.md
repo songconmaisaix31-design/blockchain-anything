@@ -20,7 +20,7 @@ Node ≥ 20，无需 `npm install`。
 
 ```
 index.html          单文件产品站：hero / 三入口 / 试用 Agent / 工具目录 / 安全边界 / 定价 / FAQ
-server/catalog.js   142 个工具的名称与描述，逐条取自仓库 src/**/defineTool 定义
+server/catalog.js   152 个工具的名称与描述，逐条取自仓库 src/**/defineTool 定义
 server/executors.js 执行器：15 个接真实数据源，其余明确标记为 simulated
 server/agent.js     试用 Agent：理解 → 检索 → 选工具 → 调用 → 回答
 server/server.js    静态托管 + /api/{meta,tools,find,call,agent}

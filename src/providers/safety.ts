@@ -74,6 +74,11 @@ function padAddress(address: string): string {
   return address.toLowerCase().replace(/^0x/, '').padStart(64, '0');
 }
 
+// 公共只读节点常对历史 eth_getLogs 直接 403；扫日志优先走归档节点，没配就退回主 RPC。
+function logConfig(config: Config): Config {
+  return config.archiveRpcUrl ? { ...config, rpcUrl: config.archiveRpcUrl } : config;
+}
+
 function hexQuantity(value: number | bigint): string {
   return `0x${BigInt(value).toString(16)}`;
 }
@@ -176,7 +181,8 @@ export function safetyTools(config: Config) {
         includeZero: z.boolean().default(false).describe('是否把额度已归零的历史授权也列出来'),
       }),
       true,
-      async ({ owner, tokens, spenders, windowBlocks, includeZero }) => withProvider(config, async (provider) => {
+      // 走日志扫描时优先用归档节点：公共只读节点常对历史 eth_getLogs 直接 403。
+      async ({ owner, tokens, spenders, windowBlocks, includeZero }) => withProvider(spenders?.length ? config : logConfig(config), async (provider) => {
         const chainId = config.chainId;
         const tokenList = tokens ?? (chainId === 1n ? Object.values(MAINNET_TOKENS) : undefined);
         if (!tokenList?.length) throw new Error('非主网没有内置代币表，请用 tokens 显式传入要扫描的 ERC-20 地址');
@@ -418,7 +424,7 @@ export function safetyTools(config: Config) {
         windowBlocks: z.number().int().min(1000).max(5_000_000).default(500_000).describe('无 Etherscan key 时授权扫描的区块窗口'),
       }),
       true,
-      async ({ address, tokens, collections, windowBlocks }) => withProvider(config, async (provider) => {
+      async ({ address, tokens, collections, windowBlocks }) => withProvider(logConfig(config), async (provider) => {
         const holder = getAddress(address);
         const code = await provider.getCode(holder);
         const isContract = Boolean(code && code !== '0x');

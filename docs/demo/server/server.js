@@ -5,7 +5,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TOOLS, CATEGORIES, STATS, searchTools, getTool } from './catalog.js';
 import { runTool } from './executors.js';
-import { runAgent, SUGGESTIONS } from './agent.js';
+import { runAgent as runAgentRule, SUGGESTIONS } from './agent.js';
+
+// BCA_AGENT=pi 时用真实 agent loop（pi + BCA MCP 工具层）；否则走内置规则引擎。
+// 两者返回同样的轨迹结构，前端不需要区分。
+const piAgent = process.env.BCA_AGENT === 'pi' ? await import('./agent-pi.js') : null;
+const runAgent = piAgent ? (query, session) => piAgent.runAgentPi(query, session) : runAgentRule;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // 兼容两种布局：bca-site/{site,server} 与仓库内 docs/demo/{index.html,server}

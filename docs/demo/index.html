@@ -394,7 +394,7 @@
 <!-- ============ HERO ============ -->
 <header class="hero" id="top">
   <div class="wrap hero-in">
-    <div class="pill"><span class="dot"></span>MIT 开源 · <code>142 个工具 · 55 家供应商</code></div>
+    <div class="pill"><span class="dot"></span>MIT 开源 · <code>152 个工具 · 65 个上游来源</code></div>
     <h1 class="hero-h">让 Agent 接上区块链，<br>不用再写<span class="hl">第 127 个适配器</span>。</h1>
     <p class="hero-sub">
       BCA 把官方 SDK、Foundry 和 MCP 服务收进一个入口。Agent 说一句「这个代币安全吗」，
@@ -540,7 +540,7 @@ await tk.invoke('evm_balance', {address})</code>
   <div class="wrap">
     <div class="sec-head narrow reveal">
       <div class="eyebrow">目录</div>
-      <h2 class="sec">142 个工具，全部来自官方实现。</h2>
+      <h2 class="sec">152 个工具，全部来自官方实现。</h2>
       <p class="lede">BCA 不重写区块链逻辑 —— 它包装 viem、Foundry、OpenZeppelin、Safe、EAS 这些官方 SDK 和 CLI，把参数、错误和结果统一成 Agent 能读的形状。</p>
     </div>
     <div class="cat-bar reveal">
@@ -679,6 +679,10 @@ await tk.invoke('evm_balance', {address})</code>
       <details>
         <summary>为什么本地功能免费？</summary>
         <div class="ans">因为成本结构如此。BCA 跑在你机器上，<code>bca find</code> 和 <code>bca build</code> 不花我们一分钱，收钱没有道理。真正有成本的是上游 API 调用 —— 那部分你现在是自己申请密钥直接付给上游，我们只是提供一个「帮你代持、统一计量」的可选方案。</div>
+      </details>
+      <details>
+        <summary>它能帮我赚钱吗？比如套利或者白帽救援？</summary>
+        <div class="ans">它不会替你做交易，但会把"能不能赚"算清楚。五个新工具都只读：<code>safeharbor_registry</code> 查协议是否在链上登记了白帽救援与赏金条款；<code>tx_call_tree</code> 还原一笔交易到底做了什么；<code>arb_scan</code> 算价差，但**必须扣掉两条腿的手续费与 gas**；<code>fork_replay</code> 在本地 fork 上重放验证；<code>mempool_watch</code> 看内存池。现场实测：WETH/USDC 两个池子毛价差 5.77 bps，扣 35 bps 手续费后净额为负——工具的第一句结论就是"不成立"。自己钱包安不安全也可以一起查：<code>approval_scan</code>、<code>wallet_posture</code>、<code>contract_posture</code>。</div>
       </details>
       <details>
         <summary>为什么还没发布到 npm？</summary>
@@ -856,7 +860,7 @@ const TIERS = [
   {
     name: 'BYO', tag: '永久免费', desc: '本地全功能不限量，上游密钥自己管。',
     price: 0, credits: '本地工具无限 · 托管 0 credits',
-    feats: ['全部 142 个工具', 'CLI / MCP / SDK 三入口', '自带上游密钥调用', '社区支持'],
+    feats: ['全部 152 个工具', 'CLI / MCP / SDK 三入口', '自带上游密钥调用', '社区支持'],
     dim: ['托管密钥代持', '智能路由', '审计日志'],
     btn: '安装开始', solid: false,
   },
@@ -924,6 +928,8 @@ const FALLBACK_SUGGESTIONS = [
   '计算 README.md 的 CID',
   '创建一个 ERC20 合约并测试',
   'BTC 现在什么价格',
+  'Aave 有没有登记白帽救援？条款是什么',
+  '查一下我的地址有哪些无限授权',
 ];
 
 function setStatus(mode, text) {
@@ -1038,6 +1044,32 @@ const OFFLINE = {
     answer: '算出的 CID 是 `bafkreiftgvrqkulifqm2panp5phu2b57s6h3d6fmatdl7b2cr3kra2dq6u`（CIDv1 / raw / sha2-256，9 字节）。这个 CID 标识完整原字节，不等于 IPFS UnixFS 导入结果。',
     result: { ms: 1, credits: 0, data: { cid: 'bafkreiftgvrqkulifqm2panp5phu2b57s6h3d6fmatdl7b2cr3kra2dq6u', codec: 'raw', bytes: 9 } },
   },
+  '白帽': {
+    query: 'Aave 有没有登记白帽救援？条款是什么',
+    tool: 'safeharbor_registry', credits: 1, mode: 'live', ok: true,
+    steps: [
+      { step: 'parse', label: '理解任务', ms: 90, detail: '目标 Aave 治理地址 0x5300A1a1…192A · 链 Ethereum' },
+      { step: 'find', label: '检索能力', ms: 130, detail: '命中 2 个：safeharbor_registry、workstation_guide' },
+      { step: 'select', label: '选择工具', ms: 100, detail: 'safeharbor_registry · 1 credit · 只读 · 直读链上注册表' },
+      { step: 'call', label: '调用成功', ms: 695, detail: '实时数据 · 695ms · 消耗 1 credit' },
+      { step: 'answer', label: '回答', ms: 80, detail: '' },
+    ],
+    answer: '**已登记。**\n\n协议：Aave · 赏金：追回金额的 **10%**，每人每事件上限 **$1,000,000** · 身份要求：**Named**（KYC + 全球制裁筛查）· 覆盖 **16 条链**，每条链都有独立的 assetRecoveryAddress · 资金须在 72 小时内归还到登记地址，赏金条款自动生效、不可谈判。\n\n边界：只覆盖"正在发生或迫在眉睫"的攻击；自己发起攻击再"救援"仍算黑帽。本工具只读，不构造、不提交救援交易。',
+    result: { ms: 695, credits: 1, data: { registered: true, protocolName: 'Aave', bounty: { percentage: 10, capUsd: 1000000, identity: 'Named', retainable: false }, chains: 16 } },
+  },
+  '授权': {
+    query: '查一下我的地址有哪些无限授权',
+    tool: 'approval_scan', credits: 2, mode: 'live', ok: true,
+    steps: [
+      { step: 'parse', label: '理解任务', ms: 90, detail: '目标地址 0xa8B347dD…4Fd6 · 扫描 ERC-20 授权' },
+      { step: 'find', label: '检索能力', ms: 130, detail: '命中 4 个：approval_scan、allowance_check、wallet_posture' },
+      { step: 'select', label: '选择工具', ms: 100, detail: 'approval_scan · 2 credit · 只读 · 先找授权对象再读回 allowance' },
+      { step: 'call', label: '调用成功', ms: 6400, detail: '实时数据 · 6400ms · 消耗 2 credit' },
+      { step: 'answer', label: '回答', ms: 80, detail: '' },
+    ],
+    answer: '扫描到 **1 条**仍生效的授权，其中无限授权 **0** 条。\n\n· USDC → 0xeF4fB24a…EB66，当前额度 323546（有限额度，不是无限）\n\n说明：未配置 Etherscan key 时只扫描最近区块窗口，覆盖范围会写在返回值的 scannedFromBlock 与 warnings 里——**没扫到不等于没有**。',
+    result: { ms: 6400, credits: 2, data: { approvalCount: 1, unlimitedCount: 0, approvals: [{ symbol: 'USDC', spender: '0xeF4fB24aD0916217251F553c0596F8Edc630EB66', allowance: '323546', unlimited: false }] } },
+  },
 };
 
 async function runAgent() {
@@ -1103,6 +1135,20 @@ const OFFLINE_TOOLS = [
   ['ipfs_add','IPFS / Kubo','content',10,0,'将文件传输到 Kubo 并固定保存。'],
   ['ccxt_ticker','CCXT','market',1,1,'通过官方 CCXT 查询公开行情。'],
   ['bridge_call','MCP','bridge',5,1,'调用配置的 MCP 服务上的真实工具；保留上游错误。'],
+
+  // 靠近钱：白帽救援与复盘
+  ['safeharbor_registry','SEAL Safe Harbor','money',1,1,'查协议是否登记白帽救援：赏金比例与上限、身份要求、资产归还地址、覆盖链。也可列举全部已登记协议。'],
+  ['mempool_watch','EVM txpool','money',1,1,'读取节点 mempool 的待处理交易并按金额、目标合约、选择器过滤。只读观察，不提交交易。'],
+  ['tx_call_tree','EVM trace / logs','money',1,1,'还原一笔交易做了什么：调用树与可读资产流向，含转账、授权、swap。用于攻击复盘。'],
+  ['arb_scan','Uniswap V3 + Chainlink','money',2,1,'扫两个池的价差，扣两条腿手续费与 gas 后给出净额和不同本金的敏感度。'],
+  ['fork_replay','anvil fork','money',5,1,'本机 fork 指定区块重放一笔已发生的交易，返回各地址余额变化。不进主网。'],
+
+  // 自身安全
+  ['allowance_check','ERC-20 / RPC','security',1,1,'查某个 ERC-20 的授权额度，并判断是否为无限授权。'],
+  ['approval_scan','ERC-20 / RPC','security',2,1,'扫描地址对外授予的 ERC-20 授权，标出无限授权；配 Etherscan key 可扫全历史。'],
+  ['nft_approval_check','ERC-721 / RPC','security',1,1,'检查 NFT 集合上的 setApprovalForAll 与单枚授权。'],
+  ['contract_posture','EVM RPC','security',1,1,'合约静态体检：是否代理、能否升级、owner 是谁、是否 paused、有无 7702 委托。'],
+  ['wallet_posture','EVM RPC','security',2,1,'钱包体检：余额、nonce、生效授权与无限授权数量、NFT 集合级授权。'],
 ].map(([name, provider, category, credits, live, zh]) => ({ name, provider, category, credits, live: !!live, readOnly: credits < 30, zh }));
 
 let ALL_TOOLS = [];
@@ -1110,7 +1156,7 @@ let curCat = 'all', curQ = '';
 
 const CAT_LABEL = {
   all: '全部', dev: '合约开发', chain: '链上查询', security: '安全检测',
-  content: '存储与内容', identity: '身份与证明', market: '交易与行情',
+  money: '靠近钱', content: '存储与内容', identity: '身份与证明', market: '交易与行情',
   system: '发现与诊断', bridge: '外部服务',
 };
 
@@ -1150,7 +1196,7 @@ function renderTools() {
     </div>`).join('');
   $('#catMore').textContent = list.length > 18
     ? `显示 18 / ${list.length} 个。用搜索或分类缩小范围。`
-    : (API ? `共 ${list.length} 个工具` : `演示模式载入 ${list.length} 个样本工具 · 完整目录 142 个`);
+    : (API ? `共 ${list.length} 个工具` : `演示模式载入 ${list.length} 个样本工具 · 完整目录 152 个`);
   $$('.tool').forEach((el) => el.addEventListener('click', () => {
     const t = ALL_TOOLS.find((x) => x.name === el.dataset.tool);
     if (!t) return;
@@ -1175,7 +1221,7 @@ async function init() {
     if (r.ok) {
       const meta = await r.json();
       API = true;
-      setStatus('live', `已连接本地服务 · ${meta.stats.tools} 个工具 / ${meta.stats.providers} 家供应商`);
+      setStatus('live', `已连接本地服务 · ${meta.stats.tools} 个工具 · ${meta.stats.live} 个可实时调用`);
       renderChips(meta.suggestions.slice(0, 6));
       const tr = await fetch('/api/tools');
       if (tr.ok) { ALL_TOOLS = (await tr.json()).tools; }

@@ -77,6 +77,12 @@ function padAddress(address: string): string {
   return address.toLowerCase().replace(/^0x/, '').padStart(64, '0');
 }
 
+// 公共只读节点普遍拒绝历史 eth_getLogs（403 或 "archive requests require a token"），
+// 所以凡是扫日志的路径，优先走 BCA_ARCHIVE_RPC_URL；没配就退回主 RPC。
+function logConfig(config: Config): Config {
+  return config.archiveRpcUrl ? { ...config, rpcUrl: config.archiveRpcUrl } : config;
+}
+
 function hexQuantity(value: number | bigint): string {
   return `0x${BigInt(value).toString(16)}`;
 }
@@ -141,7 +147,7 @@ export function defenseTools(config: Config) {
         resolveLimit: z.number().int().min(0).max(25).default(8).describe('列举时最多解析多少个协议名称'),
       }),
       true,
-      async ({ protocol, registry, list, fromBlock, resolveLimit }) => withProvider(config, async (provider) => {
+      async ({ protocol, registry, list, fromBlock, resolveLimit }) => withProvider(list ? logConfig(config) : config, async (provider) => {
         const target = registry ?? SAFE_HARBOR_REGISTRY;
         const code = await provider.getCode(target);
         if (!code || code === '0x') throw new Error(`地址 ${target} 在当前链没有合约代码；SEAL Safe Harbor Registry 未部署在这条链上`);
@@ -264,6 +270,11 @@ export function defenseTools(config: Config) {
           agreementUri: decoded ? (decoded[4] as string) : null,
           bounty,
           contacts: decoded ? (decoded[1] as any[]).map((contact) => ({ name: contact[0] as string, contact: contact[1] as string })) : [],
+          // 显式给出条数与一句话条款，避免模型自己数链条数时数错。
+          chainCount: decoded ? (decoded[2] as any[]).length : 0,
+          bountySummary: bounty
+            ? `${bounty.percentage}% 追回金额，每人每事件上限 $${bounty.capUsd}${bounty.identity ? `，身份要求 ${bounty.identity}` : ''}${bounty.retainable ? '，可自留赏金' : ''}`
+            : null,
           chains: decoded ? (decoded[2] as any[]).map((chain) => ({
             caip2ChainId: typeof chain[2] === 'string' ? chain[2] as string : String(chain[2]),
             assetRecoveryAddress: chain[0] as string,
@@ -441,10 +452,16 @@ export function defenseTools(config: Config) {
             .map(([holder, delta]) => ({ token, holder, deltaWei: delta.toString() })),
         ).sort((a, b) => (BigInt(b.deltaWei) > 0n ? 1 : -1) - (BigInt(a.deltaWei) > 0n ? 1 : -1));
 
+        // 一句话结论放在最前面：模型读长 JSON 时最容易把 from/to 弄反。
+        const short = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)}`;
+        const statusText = receipt.status === 1 ? '成功' : receipt.status === 0 ? '回滚' : '未知';
+        const headline = `${short(tx.from)} ${tx.to ? `→ ${short(tx.to)}` : '（合约创建）'} · ${statusText} · gas ${receipt.gasUsed.toString()} · ${events.length} 个可读事件 · ${assetFlows.length} 条资产净流向`;
+
         return {
           provider: 'rpc/trace',
           access: 'public',
           chainId: config.chainId?.toString() ?? null,
+          headline,
           transactionHash,
           blockNumber: receipt.blockNumber,
           from: tx.from,
@@ -453,6 +470,9 @@ export function defenseTools(config: Config) {
           status: receipt.status === 1 ? 'success' : receipt.status === 0 ? 'reverted' : 'unknown',
           gasUsed: receipt.gasUsed.toString(),
           effectiveGasPriceWei: receipt.gasPrice?.toString() ?? null,
+          // 手续费单独算好给出来，模型自己乘容易出错（例如把 gas 数当 ETH）。
+          gasCostWei: receipt.gasPrice ? (receipt.gasUsed * receipt.gasPrice).toString() : null,
+          gasCostEth: receipt.gasPrice ? Number(receipt.gasUsed * receipt.gasPrice) / 1e18 : null,
           traceSource,
           traceUnavailableReason: trace?.unavailable ?? null,
           callTree,
