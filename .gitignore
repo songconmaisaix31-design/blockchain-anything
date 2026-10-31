@@ -11,3 +11,11 @@ examples/contracts/out/
 examples/contracts/cache/
 examples/contracts/artifacts/
 *.tgz
+
+# bca setup 在仓库目录生成的本地配置
+.codex/
+.pi/
+.mcp.json
+AGENTS.md
+CLAUDE.md
+BCA-WORKFLOW.md
