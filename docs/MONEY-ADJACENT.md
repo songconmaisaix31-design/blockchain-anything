@@ -221,6 +221,25 @@ gas                      0.09 gwei（25 万 gas ≈ $0.05）
 
 `bundle_submit`（需要签名密钥，**默认关闭，必须显式 submit**）、`entity_label`、`incident_search`（对接 DeFiHackLabs 894 个 PoC 做检索）
 
+### 5.1 已落地情况（2026-10-31，v1.3）
+
+P0 四项全部实现并跑通；P1 里 `arb_scan` 已实现且**内置净额**；另补了六个"检查自身安全"的工具。全部只读，不提交交易。
+
+| 工具 | 状态 | 实测 |
+| --- | --- | --- |
+| `safeharbor_registry` | ✅ | 主网注册表 `version()=3.0.0`；Aave 登记 10%/$1M/Named/16 链；`list` 模式 7.1s 返回 23 个协议（Aave、Uniswap、Balancer、Pendle、Sky、ENS、Euler、Reserve、1inch…） |
+| `mempool_watch` | ✅ | 公共节点 `txpool_status` pending 0x39 / queued 0x4d0b、`eth_pendingTransactions` 60 条；节点不支持时如实返回 warning |
+| `tx_call_tree` | ✅ | 40 条日志全解码（Transfer/Swap/Sync/Deposit），输出每地址净变化；无 trace 时降级并说明 |
+| `arb_scan` | ✅ | 池 A 2238.70、池 B 2239.99 USDC/WETH，毛 5.77 bps，扣 35 bps 手续费与 gas 后净额 **−$146.30** |
+| `fork_replay` | ✅ | anvil fork 到 26310454 重放 0xcdafd0d7…，status success、gasUsed 754124、logCount 40，收款方 +26310455 wei，38s |
+| `allowance_check` | ✅ | USDC allowance 直读，识别无限授权 |
+| `approval_scan` | ✅ | 无 key 时按窗口扫（8 代币 / 80 万区块 17.4s）；真实地址扫出 323546 USDC 授权；有 Etherscan key 走全历史 |
+| `nft_approval_check` | ✅ | 对 Seaport 1.5/1.6、Blur、LooksRare v2、OpenSea Conduit 检查集合级授权 |
+| `contract_posture` | ✅ | USDC：2186 字节、proxy 槽、owner、paused、代币信息；EOA 场景识别出 **EIP-7702 委托**（23 字节码） |
+| `wallet_posture` | ✅ | 余额/nonce/是否合约/生效授权/无限授权数量一次返回 |
+
+**未实现且刻意留空**：`attack_pattern_match`（需要自建模式库，DeFiHackLabs 894 个 PoC 是现成训练集）、`float_health`、`stablecoin_peg`、`fund_trace`（需 Arkham/Nansen，付费）、`bundle_submit`（需签名密钥）。
+
 ## 6. 风险清单（这部分比机会更重要）
 
 | 风险 | 说明 | 对策 |

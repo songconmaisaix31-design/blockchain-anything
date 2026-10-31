@@ -4,7 +4,8 @@
 export const CATEGORIES = {
   dev: { label: '合约开发', zh: '脚手架、编译、测试、静态分析' },
   chain: { label: '链上查询', zh: '余额、区块、交易、日志、代理、trace' },
-  security: { label: '安全检测', zh: '代币风险、合约源码比对' },
+  security: { label: '安全检测', zh: '代币风险、合约源码比对、授权与钱包体检' },
+  money: { label: '靠近钱', zh: '白帽救援登记、mempool、复盘、价差净额、fork 重放' },
   content: { label: '存储与内容', zh: 'CID、IPFS、Arweave、Walrus、Seal' },
   identity: { label: '身份与证明', zh: 'EAS、DID、VC、来源校验' },
   market: { label: '交易与行情', zh: 'CCXT 行情、订单簿、Agent 交易' },
@@ -886,6 +887,70 @@ export const TOOLS = [
     zh: '向 The Graph 网关执行只读 GraphQL 查询（按子图 ID）。需要 BCA_GRAPH_API_KEY。',
     tags: ['子图', 'subgraph', 'graphql', 'thegraph', '索引', '查询'],
     params: [P('subgraphId', 'string', true, '子图 ID'), P('query', 'string', true, 'GraphQL 查询文档')],
+  },
+
+  // ---------- 靠近钱：白帽救援与复盘（v1.3） ----------
+  {
+    name: 'safeharbor_registry', provider: 'SEAL Safe Harbor', category: 'money', credits: 1, readOnly: true, live: false,
+    zh: '查协议是否在 SEAL 白帽 Safe Harbor 链上登记：赏金比例与上限、身份要求、资产归还地址、覆盖链与联系人。也可列举全部已登记协议。零凭据。',
+    tags: ['白帽', '救援', 'safe harbor', '赏金', 'bounty', 'whitehat', 'rescue', '协议登记', '被黑'],
+    params: [P('protocol', 'address', false, '协议登记地址'), P('list', 'boolean', false, '列举全部登记记录'), P('fromBlock', 'string', false, '列举起始区块'), P('resolveLimit', 'number', false, '最多解析多少个协议名')],
+  },
+  {
+    name: 'mempool_watch', provider: 'EVM txpool', category: 'money', credits: 1, readOnly: true, live: false,
+    zh: '读取节点 mempool 中的待处理交易并按金额、目标合约、函数选择器过滤。只读观察，不提交交易。',
+    tags: ['mempool', '待处理', 'pending', '交易池', '监控', '抢跑', '异动'],
+    params: [P('minValueWei', 'string', false, '最小金额'), P('to', 'address', false, '目标合约'), P('selector', 'string', false, '4 字节函数选择器'), P('limit', 'number', false, '返回条数')],
+  },
+  {
+    name: 'tx_call_tree', provider: 'EVM trace / logs', category: 'money', credits: 1, readOnly: true, live: false,
+    zh: '还原一笔交易做了什么：调用树（节点支持时）与可读的资产流向，含 ERC-20/721 转移、授权、swap。用于攻击复盘与被抽了多少。',
+    tags: ['调用树', 'trace', '复盘', '资产流向', 'swap', '攻击', 'postmortem', '被抽'],
+    params: [P('transactionHash', 'string', true, '交易哈希'), P('maxDepth', 'number', false, '调用树展开层级')],
+  },
+  {
+    name: 'arb_scan', provider: 'Uniswap V3 + Chainlink', category: 'money', credits: 1, readOnly: true, live: false,
+    zh: '扫描同一交易对两个 Uniswap V3 池之间的价差，扣除两条腿手续费与 gas 后给出净额和不同本金的敏感度。只读，不提交交易。',
+    tags: ['套利', '价差', 'arb', '净额', '手续费', 'gas', '机会', 'spread'],
+    params: [P('poolA', 'address', false, '第一个池'), P('poolB', 'address', false, '第二个池'), P('feed', 'address', false, 'Chainlink 喂价'), P('notionalUsd', 'string', false, '本金规模'), P('gasUnits', 'string', false, 'gas 估算')],
+  },
+  {
+    name: 'fork_replay', provider: 'anvil fork', category: 'money', credits: 2, readOnly: true, live: false,
+    zh: '在本机 anvil 上 fork 指定区块并重放一笔已发生的交易，返回回执与各地址余额变化。用于攻击复盘与救援推演，不进主网。',
+    tags: ['fork', '重放', 'replay', '复盘', '救援推演', 'delta', 'anvil', '模拟'],
+    params: [P('transactionHash', 'string', true, '交易哈希'), P('blockNumber', 'string', false, 'fork 区块高度'), P('watch', 'array', false, '额外观察地址'), P('token', 'address', false, '一并报告该代币余额变化')],
+  },
+
+  // ---------- 自身安全（v1.3） ----------
+  {
+    name: 'allowance_check', provider: 'ERC-20 / RPC', category: 'security', credits: 1, readOnly: true, live: false,
+    zh: '查询某 ERC-20 的授权额度：owner 授权给 spender 还能动多少，是否为无限授权。零凭据。',
+    tags: ['授权', 'allowance', '额度', '无限授权', '风险', '检查'],
+    params: [P('token', 'address', true, '代币合约'), P('owner', 'address', true, '持有者'), P('spender', 'address', true, '被授权方')],
+  },
+  {
+    name: 'approval_scan', provider: 'ERC-20 / RPC', category: 'security', credits: 2, readOnly: true, live: false,
+    zh: '扫描一个地址对外授予的 ERC-20 授权：从 Approval 事件找出授权对象，再读回当前 allowance，标出无限授权。配了 Etherscan key 可扫全历史。',
+    tags: ['授权扫描', '无限授权', 'approval', '钱包体检', '撤销', '风险', 'spender'],
+    params: [P('owner', 'address', true, '要体检的地址'), P('tokens', 'array', false, '要扫的代币'), P('spenders', 'array', false, '直接轮询这些被授权方'), P('windowBlocks', 'number', false, '扫描区块窗口'), P('includeZero', 'boolean', false, '是否列出已归零授权')],
+  },
+  {
+    name: 'nft_approval_check', provider: 'ERC-721 / RPC', category: 'security', credits: 1, readOnly: true, live: false,
+    zh: '检查某 NFT 集合上的授权：常见市场的 setApprovalForAll（可一次转走整个集合）与指定 tokenId 的单枚授权。',
+    tags: ['nft', '授权', 'approvalforall', '集合授权', '市场', 'seaport', 'blur', '风险'],
+    params: [P('collection', 'address', true, 'ERC-721 合约'), P('owner', 'address', true, '持有者'), P('tokenId', 'string', false, 'tokenId'), P('operators', 'array', false, '额外 operator')],
+  },
+  {
+    name: 'contract_posture', provider: 'EVM RPC', category: 'security', credits: 1, readOnly: true, live: false,
+    zh: '合约静态体检：是否合约、字节码大小、是否代理/可升级（ERC-1967/1822/1167/Beacon）、owner、是否 paused、7702 委托。不做源码审计。',
+    tags: ['合约体检', '代理', '可升级', 'proxy', 'owner', '7702', '风险', '审计'],
+    params: [P('address', 'address', true, '要体检的地址')],
+  },
+  {
+    name: 'wallet_posture', provider: 'EVM RPC', category: 'security', credits: 2, readOnly: true, live: false,
+    zh: '钱包体检：余额、nonce、是否合约、仍生效的 ERC-20 授权与无限授权数量、指定 NFT 集合的集合级授权。',
+    tags: ['钱包体检', 'wallet', '健康检查', '授权', '无限授权', '余额', '风险'],
+    params: [P('address', 'address', true, '要体检的地址'), P('tokens', 'array', false, '要扫的代币'), P('collections', 'array', false, '要检查的 NFT 集合'), P('windowBlocks', 'number', false, '扫描区块窗口')],
   },
 ];
 

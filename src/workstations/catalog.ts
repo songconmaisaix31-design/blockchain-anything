@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { z } from 'zod';
 import type { Config } from '../config.js';
 import { defineTool, type ToolDefinition } from '../types.js';
-import { resolveExecutable } from '../development/exec.js';
+import { binaryAvailable, resolveExecutable } from '../development/exec.js';
 import { inspectProject } from '../development/workspace.js';
 import { resolveWorkingDir } from '../development/exec.js';
 import { identifyChains, includesAlias, inspectProviders, type ProviderMatch } from '../bridge/config.js';
@@ -22,9 +22,21 @@ const conditions: Record<string, string[]> = {
   sui: ['BCA_SUI_RPC_URL'], aptos: ['BCA_APTOS_RPC_URL'], solana: ['BCA_SOLANA_RPC_URL'], sas: ['BCA_SOLANA_RPC_URL'],
   bankr: ['BCA_BANKR_API_KEY'], brian: ['BCA_BRIAN_API_KEY'], hummingbot: ['BCA_HUMMINGBOT_URL'],
   openlineage: ['BCA_OPENLINEAGE_URL'],
-  explorer: ['BCA_ETHERSCAN_API_KEY'], aa: ['BCA_BUNDLER_URL'], tx: ['BCA_TENDERLY_ACCESS_KEY'],
+  explorer: ['BCA_ETHERSCAN_API_KEY'], aa: ['BCA_BUNDLER_URL'],
   graph: ['BCA_GRAPH_API_KEY'],
 };
+
+// v1.3 新增：靠近钱的能力与自身安全检查的上游来源标注
+const NEW_SOURCES: Array<[RegExp, Record<string, unknown>]> = [
+  [/^safeharbor_registry$/, { type: 'on-chain registry', name: 'SEAL Safe Harbor Registry V3', version: '3.0.0', official: true, url: 'https://frameworks.securityalliance.org/safe-harbor/' }],
+  [/^mempool_watch$/, { type: 'JSON-RPC', name: 'EVM node txpool API', version: null, official: true, url: 'https://geth.ethereum.org/docs/interacting-with-geth/rpc/ns-txpool' }],
+  [/^tx_call_tree$/, { type: 'JSON-RPC', name: 'debug_traceTransaction / receipt logs', version: null, official: true, url: 'https://geth.ethereum.org/docs/interacting-with-geth/rpc/ns-debug' }],
+  [/^arb_scan$/, { type: 'SDK/API', name: 'Uniswap V3 pool + Chainlink AggregatorV3', version: 'ethers', official: true, url: 'https://docs.uniswap.org/contracts/v3/reference/core/interfaces/pool/IUniswapV3PoolState' }],
+  [/^fork_replay$/, { type: 'CLI', name: 'anvil fork', version: null, official: true, url: 'https://book.getfoundry.sh/reference/anvil/' }],
+  [/^(allowance_check|approval_scan)$/, { type: 'SDK/API', name: 'ERC-20 allowance / Etherscan v2 logs', version: 'ethers', official: true, url: 'https://eips.ethereum.org/EIPS/eip-20' }],
+  [/^nft_approval_check$/, { type: 'SDK/API', name: 'ERC-721 isApprovedForAll / getApproved', version: 'ethers', official: true, url: 'https://eips.ethereum.org/EIPS/eip-721' }],
+  [/^(contract_posture|wallet_posture)$/, { type: 'SDK/API', name: 'EVM RPC + ERC-1967 / ERC-1822 / ERC-1167', version: 'ethers', official: true, url: 'https://eips.ethereum.org/EIPS/eip-1967' }],
+];
 
 export const workstations = [
   { id: 'evm-diagnose', name: 'EVM 交易诊断', target: 'evm',
@@ -54,8 +66,14 @@ export const workstations = [
   { id: 'security-check', name: '安全检查', target: 'input-specific',
     description: '按代币、地址、源码或待执行交易选择 GoPlus 风险查询、Slither 分析或 Tenderly 模拟',
     aliases: ['安全', '风险', '漏洞', '审计', '模拟交易', '交易模拟', 'security', 'risk', 'audit', 'simulate'],
-    required: [], optional: ['goplus_token_security', 'dev_slither_analyze', 'bridge_refresh', 'capability_search', 'bridge_call'],
+    required: [], optional: ['goplus_token_security', 'dev_slither_analyze', 'bridge_refresh', 'capability_search', 'bridge_call', 'allowance_check', 'approval_scan', 'nft_approval_check', 'contract_posture', 'wallet_posture'],
     facts: ['securityInput'], officialSkills: ['https://github.com/GoPlusSecurity/goplus-mcp', 'https://github.com/crytic/slither', 'https://tenderly.co/blog/validating-agentic-workflows-with-tenderly-mcp-server/'],
+  },
+  { id: 'fund-defense', name: '资金防御与白帽救援', target: 'evm',
+    description: '查协议是否已公开授权白帽救援、还原攻击交易的资产流向与净额、扫跨池价差，以及检查自身钱包与合约的授权风险',
+    aliases: ['白帽', '救援', 'safe harbor', 'safeharbor', '被黑', '攻击', '套利', '价差', 'mempool', '待处理交易', '无限授权', '授权检查', '钱包体检', '合约体检', 'whitehat', 'rescue', 'exploit', 'arb', 'wallet health', 'approval'],
+    required: [], optional: ['safeharbor_registry', 'mempool_watch', 'tx_call_tree', 'arb_scan', 'fork_replay', 'allowance_check', 'approval_scan', 'nft_approval_check', 'contract_posture', 'wallet_posture', 'goplus_token_security', 'bridge_call', 'capability_search'],
+    facts: ['protocol / hash / address'], officialSkills: ['https://frameworks.securityalliance.org/safe-harbor/', 'https://book.getfoundry.sh/reference/anvil/'],
   },
 ];
 
@@ -99,8 +117,9 @@ export function metadataFor(tool: ToolDefinition) {
   if (name === 'wormhole_tx_status') Object.assign(source, { type: 'HTTP API', name: 'Wormholescan API', version: null, official: true, url: 'https://wormholescan.io' });
   if (name === 'solana_tokens') Object.assign(source, { type: 'JSON-RPC', name: 'Solana getTokenAccountsByOwner', version: null, official: true, url: 'https://solana.com/docs/rpc/http/gettokenaccountsbyowner' });
   if (name === 'subgraph_query') Object.assign(source, { type: 'HTTP API', name: 'The Graph Gateway', version: null, official: true, url: 'https://thegraph.com/docs' });
+  for (const [pattern, override] of NEW_SOURCES) if (pattern.test(name)) Object.assign(source, override);
   return { source, workstations: workstations.filter((station) => [...station.required, ...station.optional].includes(name)).map((station) => station.id),
-    targets: /^(goplus_token_security|evm_|viem_|eas_|safe_|project_|chainlink_|explorer_|aa_|tx_simulate|nft_|across_|wormhole_|dev_(forge|cast|solidity|hardhat|slither|erc721)|workstation_diagnose)/.test(name) ? ['evm']
+    targets: /^(goplus_token_security|evm_|viem_|eas_|safe_|project_|chainlink_|explorer_|aa_|tx_|nft_|across_|wormhole_|safeharbor_|mempool_|arb_|fork_|allowance_|approval_|contract_|wallet_|dev_(forge|cast|solidity|hardhat|slither|erc721)|workstation_diagnose)/.test(name) ? ['evm']
       : family === 'jupiter' ? ['solana'] : ['solana', 'sas'].includes(family) ? ['solana'] : ['sui', 'seal'].includes(family) ? ['sui'] : family === 'aptos' ? ['aptos'] : ['any'],
     impact: name === 'dev_erc721_mint_local' ? ['onchain-submit'] : name === 'dev_forge_deploy_local' ? ['local-files', 'onchain-submit'] : name === 'dev_forge_verify' ? ['source-upload'] :
       /^(dev_(forge|hardhat)|project_|system_setup|bridge_configure)/.test(name) ? ['local-files'] : tool.readOnly ? ['read'] : ['provider-defined-write-or-sign'],
@@ -120,6 +139,33 @@ export async function capabilityStatus(tool: ToolDefinition, config: Config, dir
   if (easLocal) { status = 'available'; reason = '本地 EAS 编码/PrivateData 功能'; }
   if (name === 'goplus_token_security') { status = 'available'; reason = 'GoPlus 官方公开 EVM 代币风险 API；无需账户，实际覆盖与限流由上游返回'; }
   if (/^defillama_|^jupiter_|^across_|^wormhole_|^solana_tokens$/.test(name)) { status = 'available'; reason = '公开 HTTP API，无需账户；实际覆盖与限流由上游返回'; }
+  // v1.3：靠近钱的能力与自身安全检查，全部走已配置 RPC 直读链上状态。
+  if (/^safeharbor_|^arb_|^allowance_|^approval_|^nft_approval_check$|^contract_posture$|^wallet_posture$|^tx_call_tree$/.test(name)) {
+    status = config.rpcUrl && config.chainId ? 'available' : 'configuration_error';
+    reason = config.rpcUrl && config.chainId ? '走已配置 RPC 直读链上状态，无需密钥' : '需要 BCA_RPC_URL / BCA_CHAIN_ID';
+    if (!(config.rpcUrl && config.chainId)) requirements.push('BCA_RPC_URL', 'BCA_CHAIN_ID');
+  }
+  if (name === 'mempool_watch') {
+    status = config.rpcUrl && config.chainId ? 'available' : 'configuration_error';
+    reason = config.rpcUrl && config.chainId ? '走已配置 RPC 的 txpool API；节点可能不暴露该方法' : '需要 BCA_RPC_URL / BCA_CHAIN_ID';
+    if (!(config.rpcUrl && config.chainId)) requirements.push('BCA_RPC_URL', 'BCA_CHAIN_ID');
+  }
+  if (name === 'tx_simulate') {
+    status = config.tenderly ? 'available' : 'missing_authorization';
+    reason = config.tenderly ? '已配置 Tenderly 三件套' : '需要 BCA_TENDERLY_ACCOUNT、BCA_TENDERLY_PROJECT、BCA_TENDERLY_ACCESS_KEY';
+    if (!config.tenderly) requirements.push('BCA_TENDERLY_ACCOUNT', 'BCA_TENDERLY_PROJECT', 'BCA_TENDERLY_ACCESS_KEY');
+  }
+  if (name === 'fork_replay') {
+    const hasAnvil = binaryAvailable('anvil');
+    const hasArchive = Boolean(config.archiveRpcUrl);
+    status = hasAnvil && hasArchive ? 'available' : hasAnvil ? 'configuration_error' : 'not_installed';
+    reason = hasAnvil && hasArchive ? '已配置归档节点，本机 foundry 可用' : hasAnvil ? '需要 BCA_ARCHIVE_RPC_URL（能读历史状态的归档节点）' : '未安装 anvil；执行 setup --install 或安装 Foundry';
+    if (!hasAnvil) requirements.push('anvil');
+    if (!hasArchive) requirements.push('BCA_ARCHIVE_RPC_URL');
+  }
+  if (['approval_scan', 'wallet_posture'].includes(name) && !config.etherscanApiKey) {
+    requirements.push('BCA_ETHERSCAN_API_KEY（可选：配了才能扫全历史授权，否则只扫最近区块窗口）');
+  }
   if (/^nft_/.test(name)) { status = config.rpcUrl && config.chainId ? 'available' : 'configuration_error'; reason = config.rpcUrl && config.chainId ? '走已配置 RPC 直读合约，无需密钥' : '需要 BCA_RPC_URL / BCA_CHAIN_ID'; if (!(config.rpcUrl && config.chainId)) requirements.push('BCA_RPC_URL', 'BCA_CHAIN_ID'); }
   if (family === 'eas' && !tool.readOnly) {
     if (config.issues?.signer?.length) { status = 'configuration_error'; reason = config.issues.signer.join('；'); }
@@ -310,12 +356,29 @@ export function catalogTools(config: Config, getTools: () => ToolDefinition[]) {
     return { ...plan, task: 'security', facts, request: { securityInput: kind, chainId: context.chainId, chain: context.chain, address: context.address, transaction: context.transaction,
       execution: '宿主按工具 Schema 调用 bridge_call，保留各服务原始检查结果及未检查字段；模拟不提交链上交易' } };
   }
+  async function defenseGuide(context: Context): Promise<Plan> {
+    const mismatches = evmMismatches(context, true);
+    if (context.protocol) return { task: 'safeharbor', provider: 'rpc', facts: [], mismatches,
+      steps: [{ tool: 'safeharbor_registry', input: { protocol: context.protocol }, purpose: '读取链上登记：是否授权白帽救援、赏金比例与上限、资产归还地址' }] };
+    if (context.hash) return { task: 'postmortem', provider: 'rpc', facts: [], mismatches,
+      steps: [
+        { tool: 'tx_call_tree', input: { transactionHash: context.hash }, purpose: '还原调用树与资产流向，给出每个地址的净变化' },
+        { tool: 'fork_replay', input: { transactionHash: context.hash }, purpose: '在本机 fork 上重放，验证 delta（需要 BCA_ARCHIVE_RPC_URL 与 anvil）' },
+      ] };
+    if (context.address) return { task: 'self-defense', provider: 'rpc', facts: [], mismatches,
+      steps: [
+        { tool: 'approval_scan', input: { owner: context.address }, purpose: '列出仍生效的 ERC-20 授权，标出无限授权' },
+        { tool: 'wallet_posture', input: { address: context.address }, purpose: '汇总余额、nonce 与授权风险' },
+        { tool: 'contract_posture', input: { address: context.address }, purpose: '若该地址是合约，检查代理/可升级与 owner 权限' },
+      ] };
+    return { task: 'defense', provider: 'rpc', facts: ['protocol（查救援授权）/ hash（复盘交易）/ address（自检钱包）'], mismatches, steps: [] };
+  }
   async function guide(id: string, context: Context) {
     const station = workstations.find((item) => item.id === id);
     if (!station) throw new Error('未知工作站');
     const normalizedFamily = identifyChains('', context.chainFamily).families[0];
     context = { ...context, chainFamily: normalizedFamily };
-    const plan = await ({ 'evm-develop': developGuide, 'evm-diagnose': diagnoseGuide, 'nft-create': nftGuide, 'onchain-data': dataGuide, 'security-check': securityGuide }[id]!(context));
+    const plan = await ({ 'evm-develop': developGuide, 'evm-diagnose': diagnoseGuide, 'nft-create': nftGuide, 'onchain-data': dataGuide, 'security-check': securityGuide, 'fund-defense': defenseGuide }[id]!(context));
     const { steps } = plan; const required = [...new Set(steps.map((step) => step.tool))];
     const requiredCapabilities = await statuses(required, context.dir);
     const missing = requiredCapabilities.filter((item) => !['available', 'unverified'].includes(item.status));

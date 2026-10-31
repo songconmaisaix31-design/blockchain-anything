@@ -3,6 +3,7 @@ import { getAddress, Wallet } from 'ethers';
 export interface Config {
   issues?: Partial<Record<'evm' | 'signer' | 'eas' | 'ipfs' | 'explorer' | 'bundler' | 'simulator', string[]>>;
   rpcUrl?: string;
+  archiveRpcUrl?: string;
   chainId?: bigint;
   easAddress?: string;
   registryAddress?: string;
@@ -65,6 +66,7 @@ export function readConfig(): Config {
   return {
     issues,
     rpcUrl: vendor('evm', () => endpoint(env.BCA_RPC_URL, 'BCA_RPC_URL')),
+    archiveRpcUrl: vendor('evm', () => endpoint(env.BCA_ARCHIVE_RPC_URL, 'BCA_ARCHIVE_RPC_URL')),
     chainId,
     easAddress: vendor('eas', () => address(env.BCA_EAS_ADDRESS, 'BCA_EAS_ADDRESS')),
     registryAddress: vendor('eas', () => address(env.BCA_SCHEMA_REGISTRY_ADDRESS, 'BCA_SCHEMA_REGISTRY_ADDRESS')),
