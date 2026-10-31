@@ -81,6 +81,28 @@ export function resolveExecutable(command: string, cwd = process.env.BCA_WORKING
 
 export const WINDOWS_PROCESS_CLEANUP_TIMEOUT_MS = 10_000;
 
+// 编译/测试类工具在缺程序时会一直等到超时，体验很差。这里先做一次存在性检查，
+// 缺失时立刻给出安装指引，而不是让调用方等几十秒。
+export function binaryAvailable(command: string, cwd = process.env.BCA_WORKING_ROOT || process.cwd()): boolean {
+  if (existsSync(resolveExecutable(command, cwd))) return true;
+  const extensions = process.platform === 'win32' ? ['.exe', '.cmd', '.bat', ''] : [''];
+  const dirs = (process.env.PATH ?? '').split(process.platform === 'win32' ? ';' : ':');
+  for (const dir of dirs) {
+    if (!dir) continue;
+    for (const extension of extensions) {
+      if (existsSync(join(dir, `${command}${extension}`))) return true;
+    }
+  }
+  return false;
+}
+
+export function requireBinary(command: string, installHint: string, cwd?: string): void {
+  if (!binaryAvailable(command, cwd)) {
+    throw new Error(`未安装 ${command}；${installHint}`);
+  }
+}
+
+
 export function terminateWindowsProcessTree(pid: number): Promise<void> {
   if (process.platform !== 'win32' || !Number.isSafeInteger(pid) || pid <= 0 || pid === process.pid) throw new Error('需要本次启动的 Windows 子进程 PID');
   // 为调用方确认管道关闭预留时间；Windows 进程树结束本身可能耗时数秒。
