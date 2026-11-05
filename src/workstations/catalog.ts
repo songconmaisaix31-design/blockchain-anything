@@ -96,6 +96,45 @@ function binaryFor(name: string) {
   return undefined;
 }
 
+// BCA-L1: 成本与可信度标注（账单层）。定价为待验证假设，不伪装成已验证经营数据。
+const CREDIT_USD = 79 / 90_000;
+const COST_TIERS = {
+  green: { credits: 1, label: '本地或公开读' },
+  yellow: { credits: 3, label: '外部服务或组合查询' },
+  red: { credits: null, label: '直采或自带密钥' },
+} as const;
+type CostTier = keyof typeof COST_TIERS;
+function costTier(name: string): CostTier {
+  if (/^(dune_|nansen_)/.test(name)) return 'red';
+  if (/^(bridge_|goplus_|hummingbot_|safe_|eas_|wallet_|bankr_|brian_|ccxt_)/.test(name)) return 'yellow';
+  return 'green';
+}
+let verificationCache: Record<string, Record<string, unknown>> | undefined;
+function verificationRuns(): Record<string, Record<string, unknown>> {
+  if (verificationCache) return verificationCache;
+  try {
+    const root = process.env.BCA_WORKING_ROOT;
+    const file = process.env.BCA_VERIFICATION_PATH ?? (root ? join(root, '.bca', 'verification.json') : null);
+    const parsed: { runs?: Record<string, Record<string, unknown>> } = file && existsSync(file)
+      ? JSON.parse(readFileSync(file, 'utf8')) as { runs?: Record<string, Record<string, unknown>> } : {};
+    verificationCache = parsed.runs ?? {};
+  } catch { verificationCache = {}; }
+  return verificationCache;
+}
+function costFor(name: string, tier: CostTier) {
+  const credits = COST_TIERS[tier].credits;
+  return { credits, usd: credits === null ? null : Math.round(credits * CREDIT_USD * 1e6) / 1e6,
+    tier, tierLabel: COST_TIERS[tier].label, upstreamCostUsd: null,
+    basis: 'Pro $79 / 90,000 credits', estimated: true, pricingSource: 'catalog-estimate-v1',
+    note: 'upstreamCostUsd 未接入对账，保持 null；estimated=true 表示定价假设待验证' };
+}
+function trustFor(tool: ToolDefinition, source: { official?: boolean }) {
+  const run = verificationRuns()[tool.name] ?? null;
+  return { score: null, sources: [] as string[], official: source.official === true,
+    verifiedAt: (run?.at as string | undefined) ?? null, lastRun: run,
+    note: 'score 未接入 M8ven / Mirko 评分源，保持 null；official 与 lastRun 为可验证事实' };
+}
+
 export function metadataFor(tool: ToolDefinition) {
   const name = tool.name; const family = name.split('_')[0]!;
   const binary = binaryFor(name);
@@ -123,7 +162,8 @@ export function metadataFor(tool: ToolDefinition) {
       : family === 'jupiter' ? ['solana'] : ['solana', 'sas'].includes(family) ? ['solana'] : ['sui', 'seal'].includes(family) ? ['sui'] : family === 'aptos' ? ['aptos'] : ['any'],
     impact: name === 'dev_erc721_mint_local' ? ['onchain-submit'] : name === 'dev_forge_deploy_local' ? ['local-files', 'onchain-submit'] : name === 'dev_forge_verify' ? ['source-upload'] :
       /^(dev_(forge|hardhat)|project_|system_setup|bridge_configure)/.test(name) ? ['local-files'] : tool.readOnly ? ['read'] : ['provider-defined-write-or-sign'],
-    requirements: { executable: binary ?? null, projectDirectory: /^dev_/.test(name), authorization: tool.readOnly ? 'read' : 'host/operator authorization according to tool schema' } };
+    requirements: { executable: binary ?? null, projectDirectory: /^dev_/.test(name), authorization: tool.readOnly ? 'read' : 'host/operator authorization according to tool schema' },
+    cost: costFor(name, costTier(name)), trust: trustFor(tool, source) };
 }
 
 export async function capabilityStatus(tool: ToolDefinition, config: Config, dir = '.') {
