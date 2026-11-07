@@ -176,6 +176,7 @@ async function main() {
     writeFileSync(htmlPath, renderReport({ result }, {
       dataSource: dataSourceLabel,
       exchange: opts.csv ? undefined : config.exchange,
+      costBps: { fee: config.costs.feeBps, slippage: config.costs.slippageBps },
       warnings: config.source === 'synthetic' && !opts.csv
         ? ['合成数据结果不能用于判断策略是否盈利；请用真实数据重跑。']
         : [],
@@ -195,6 +196,8 @@ async function main() {
     const htmlPath = join(config.outputDir, `walkforward-${config.strategy}-${stamp}.html`);
     writeFileSync(htmlPath, renderReport({ walkforward: wf }, {
       dataSource: opts.csv ? 'csv' : config.source === 'synthetic' ? 'synthetic' : `ccxt/${config.exchange ?? 'auto'}`,
+      exchange: opts.csv ? undefined : config.exchange,
+      costBps: { fee: config.costs.feeBps, slippage: config.costs.slippageBps },
     }));
     writeFileSync(join(config.outputDir, `walkforward-${config.strategy}-${stamp}.json`), JSON.stringify(wf, null, 2));
     for (const cell of wf.cells) {
