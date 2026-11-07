@@ -5,6 +5,7 @@ export type ReportMeta = {
   generatedAt?: string;
   exchange?: string;
   warnings?: string[];
+  costBps?: { fee: number; slippage: number };
 };
 
 const esc = (value: string) => value.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
@@ -93,6 +94,8 @@ export function renderReport(input: { result?: BacktestResult; walkforward?: Wal
   const generatedAt = meta.generatedAt ?? new Date().toISOString();
   const synthetic = /synthetic/i.test(meta.dataSource);
   const warnings = meta.warnings ?? [];
+  const feeText = meta.costBps ? `${meta.costBps.fee} bps/边` : '按单边 bps 计';
+  const slipText = meta.costBps ? `${meta.costBps.slippage} bps/边` : '按单边 bps 计';
   const wf = input.walkforward;
   const wfBlock = wf ? `<h2>样本内 / 样本外</h2>
     <p class="muted">切分点 ${esc(wf.splitDate)}，样本内 ${wf.inSampleDays} 根，样本外 ${wf.outOfSampleDays} 根。</p>
@@ -146,10 +149,10 @@ export function renderReport(input: { result?: BacktestResult; walkforward?: Wal
 <h1>BCA Quant EA · 回测报告</h1>
 <p class="muted">策略 ${esc(result?.strategy ?? wf?.strategy ?? '-')} ｜ 数据源 ${esc(meta.dataSource)}${meta.exchange ? ` ｜ 交易所 ${esc(meta.exchange)}` : ''} ｜ 生成于 ${esc(generatedAt)}</p>
 ${synthetic ? `<div class="banner warn"><b>合成数据（SYNTHETIC）</b>：本报告用确定性生成的行情验证引擎的成交时序、成本与风控逻辑，<b>不能</b>作为策略盈利能力的证据。真实结论必须在真实历史数据上跑样本外验证。</div>`
-  : `<div class="banner ok">真实交易所数据：${esc(meta.dataSource)}。回测已计入手续费、滑点与数据成本；历史表现不代表未来收益。</div>`}
+  : `<div class="banner ok">真实历史数据：${esc(meta.dataSource)}。回测已计入手续费、滑点与数据成本；历史表现不代表未来收益。</div>`}
 ${warnings.map((w) => `<div class="banner warn">${esc(w)}</div>`).join('')}
 ${body}
-<footer>成本口径：手续费 ${result ? result.ledger.feesUsd >= 0 ? '按单边 bps 计' : '' : ''}，滑点按单边 bps 计，数据成本按 BCA credits 估算。回测采用「收盘决策、次日开盘成交」，不包含前视偏差；期末按最后收盘价强制平仓。<br>
+<footer>成本口径：手续费 ${feeText}，滑点 ${slipText}，数据成本按 BCA credits 估算。回测采用「收盘决策、次日开盘成交」，不包含前视偏差；期末按最后收盘价强制平仓。<br>
 本报告不构成投资建议。任何策略都存在亏损可能，历史回测无法保证未来收益。</footer>
 </div></body></html>`;
 }
