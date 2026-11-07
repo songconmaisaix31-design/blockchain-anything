@@ -175,7 +175,7 @@ async function main() {
     const htmlPath = join(config.outputDir, `backtest-${config.strategy}-${stamp}.html`);
     writeFileSync(htmlPath, renderReport({ result }, {
       dataSource: dataSourceLabel,
-      exchange: config.exchange,
+      exchange: opts.csv ? undefined : config.exchange,
       warnings: config.source === 'synthetic' && !opts.csv
         ? ['合成数据结果不能用于判断策略是否盈利；请用真实数据重跑。']
         : [],
