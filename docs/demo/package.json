@@ -1,0 +1,14 @@
+{
+  "name": "bca-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "BCA 体验站：产品页 + 可运行的试用 Agent（静态页 + 零依赖 Node 服务）",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// tools/call 的 structuredContent 增加 usage（credits / tier / usd / estimated / upstreamCostUsd / latencyMs），成功与失败都回带。
 import { McpServer } from '@modelcontextprotocol/server';
 import { serveStdio, type StdioServerHandle } from '@modelcontextprotocol/server/stdio';
 import { createToolkit } from '../toolkit.js';
@@ -7,6 +8,8 @@ import { realpathSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { VERSION } from '../version.js';
 import { resultExitCode } from '../outcome.js';
+
+type CostMetadata = { cost?: { credits?: number | null; tier?: string | null; usd?: number | null; estimated?: boolean } };
 
 export function createMcpServer(): McpServer {
   const toolkit = createToolkit();
@@ -20,14 +23,19 @@ export function createMcpServer(): McpServer {
       inputSchema: tool.inputSchema,
       annotations: { readOnlyHint: tool.readOnly },
     }, async (input) => {
+      const started = Date.now();
+      const cost = (tool.metadata as CostMetadata | undefined)?.cost;
+      const usage = () => ({ credits: cost?.credits ?? null, tier: cost?.tier ?? null,
+        usd: cost?.usd ?? null, estimated: cost?.estimated ?? true,
+        upstreamCostUsd: null, latencyMs: Date.now() - started });
       try {
         const result = await toolkit.invoke(tool.name, input);
-        return { isError: resultExitCode(result) !== 0, content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: { result } };
+        return { isError: resultExitCode(result) !== 0, content: [{ type: 'text', text: JSON.stringify(result) }],
+          structuredContent: { result, usage: usage() } };
       } catch (error) {
-        return {
-          isError: true,
-          content: [{ type: 'text', text: error instanceof Error ? error.message : '工具调用失败' }],
-        };
+        const message = error instanceof Error ? error.message : '工具调用失败';
+        return { isError: true, content: [{ type: 'text', text: message }],
+          structuredContent: { result: null, usage: usage(), error: message } };
       }
     });
   }

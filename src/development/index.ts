@@ -8,7 +8,7 @@ import { z } from 'zod';
 import type { Config } from '../config.js';
 import { defineTool } from '../types.js';
 import { addressSchema } from '../providers/common.js';
-import { parseJsonOutput, resolveWorkingDir, resolveWorkingPath, run, runVersion } from './exec.js';
+import { parseJsonOutput, requireBinary, resolveWorkingDir, resolveWorkingPath, run, runVersion } from './exec.js';
 
 function solc() { return createRequire(import.meta.url)('solc') as {
   version(): string;
@@ -144,6 +144,7 @@ export function developmentTools(config: Config) {
       }), false,
       async ({ dir, offline, timeoutMs }) => {
         const cwd = await resolveWorkingDir(config, dir);
+        requireBinary('forge', '执行 bca setup --install 安装官方 Foundry，或参考 https://getfoundry.sh', cwd);
         const args = ['build', '--json'];
         if (offline) args.push('--offline');
         const result = await run('forge', args, { cwd, timeoutMs: timeoutMs ?? config.timeoutMs });
@@ -164,6 +165,7 @@ export function developmentTools(config: Config) {
       }), false,
       async ({ dir, matchPath, offline, timeoutMs }) => {
         const cwd = await resolveWorkingDir(config, dir);
+        requireBinary('forge', '执行 bca setup --install 安装官方 Foundry，或参考 https://getfoundry.sh', cwd);
         const args = ['test', '--json'];
         if (matchPath) args.push('--match-path', matchPath);
         if (offline) args.push('--offline');
@@ -197,6 +199,7 @@ export function developmentTools(config: Config) {
         const relativeTarget = relative(cwd, resolved).split(sep).join('/') || '.';
         const args = [relativeTarget, '--json', '-'];
         if (process.env.BCA_SOLC_PATH) args.push('--solc', process.env.BCA_SOLC_PATH);
+        requireBinary('slither', '执行 pip install slither-analyzer 安装 Slither', cwd);
         const result = await run('slither', args, { cwd, timeoutMs: timeoutMs ?? config.timeoutMs });
         let parsed: unknown = null;
         try { parsed = parseJsonOutput(result, 'slither'); } catch { /* 原样返回 */ }
@@ -220,6 +223,7 @@ export function developmentTools(config: Config) {
       async () => {
         const cwd = await resolveWorkingDir(config);
         const { rpcUrl, chainId } = await checkChain(config, cwd);
+        requireBinary('cast', '执行 bca setup --install 安装官方 Foundry，或参考 https://getfoundry.sh', cwd);
         const result = await run('cast', ['block-number', '--rpc-url', rpcUrl], { cwd, timeoutMs: config.timeoutMs });
         if (result.exitCode !== 0) throw new Error(`cast block-number 失败：${result.stderr.trim()}`);
         return { chainId, blockNumber: result.stdout.trim() };
@@ -230,6 +234,7 @@ export function developmentTools(config: Config) {
       async ({ address }) => {
         const cwd = await resolveWorkingDir(config);
         const { rpcUrl, chainId } = await checkChain(config, cwd);
+        requireBinary('cast', '执行 bca setup --install 安装官方 Foundry，或参考 https://getfoundry.sh', cwd);
         const result = await run('cast', ['balance', address, '--rpc-url', rpcUrl], { cwd, timeoutMs: config.timeoutMs });
         if (result.exitCode !== 0) throw new Error(`cast balance 失败：${result.stderr.trim()}`);
         return { chainId, address, balanceWei: result.stdout.trim() };
@@ -247,6 +252,7 @@ export function developmentTools(config: Config) {
         const { rpcUrl, chainId } = await checkChain(config, cwd);
         const commandArgs = ['call', to, signature, ...args, '--rpc-url', rpcUrl, '--json'];
         if (block) commandArgs.push('--block', block);
+        requireBinary('cast', '执行 bca setup --install 安装官方 Foundry，或参考 https://getfoundry.sh', cwd);
         const result = await run('cast', commandArgs, { cwd, timeoutMs: config.timeoutMs });
         if (result.exitCode !== 0) throw new Error(`cast call 失败：${result.stderr.trim() || result.stdout.trim()}`);
         let parsed: unknown = null;
