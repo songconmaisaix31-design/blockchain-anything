@@ -58,6 +58,7 @@
     "check:goplus": "node --import tsx scripts/check-goplus.ts",
     "check:quant": "node --import tsx scripts/check-quant.ts",
     "quant": "node --import tsx src/quant/cli.ts",
+    "quant:data": "bash scripts/fetch-binance-archive.sh",
     "prepare": "node scripts/prepare.mjs"
   },
   "dependencies": {

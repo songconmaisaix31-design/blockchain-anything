@@ -31,6 +31,7 @@ src/quant/
   report.ts      HTML 报告（净值、回撤、月度收益、成本、成交）
   cli.ts         命令行入口
 scripts/check-quant.ts  引擎自检（7 项）
+scripts/fetch-binance-archive.sh  公开归档日线下载（绕开交易所 API 地域限制）
 ```
 
 ## 3. 数据源
@@ -39,7 +40,7 @@ scripts/check-quant.ts  引擎自检（7 项）
 | --- | --- | --- |
 | `bca` | 调用仓库内 `ccxt_ohlcv` 工具，复用 PR #19 的多交易所兜底与结构化错误 | 默认，和 MCP 工具同一实现 |
 | `ccxt` | 直接用 ccxt 拉取并缓存到 `.quant/cache` | 离线复用缓存 |
-| `csv` | `--csv path.csv` 导入任意 OHLCV | 网络受限时最实用 |
+| `csv` | `--csv a.csv,b.csv,c.csv` 导入任意 OHLCV，多标的按逗号分隔（标的名从文件名推断） | 网络受限时最实用，也是当前真实回测所用通道 |
 | `synthetic` | 确定性合成行情（牛熊切换 + 波动聚集） | **只用于验证引擎，不是收益证据** |
 
 ## 4. 成本与风控口径
@@ -66,34 +67,81 @@ npm run quant -- fetch                  # 拉取并缓存真实 K 线
 npm run quant -- backtest               # 回测，输出 JSON + HTML
 npm run quant -- walkforward            # 样本内选参 + 样本外验证
 npm run quant -- paper                  # 跑一个 paper 周期（状态落盘，不碰真钱）
-npm run quant -- backtest --csv data/btc.csv --symbol BTC/USDT
+npm run quant -- backtest --csv data/btc.csv --symbols BTC/USDT
+npm run quant -- backtest --csv data/btc.csv,data/eth.csv,data/sol.csv   # 多标的组合
 npm run check:quant                     # 引擎自检
+
+scripts/fetch-binance-archive.sh        # 下载 Binance 公开归档日线 → CSV（无需 API Key）
 ```
 
-常用参数：`--source bca|ccxt|synthetic`、`--strategy tsmom|donchian|meanrev`、`--symbols BTC/USDT,ETH/USDT`、`--limit 1200`、`--csv <path>`。
+常用参数：`--source bca|ccxt|synthetic`、`--strategy tsmom|donchian|meanrev`、`--symbols BTC/USDT,ETH/USDT`、`--limit 1200`、`--csv <path[,path...]>`。
 
 产物在 `.quant/out/`：`backtest-*.json`（机器可读）、`backtest-*.html`（人工看）。paper 状态在 `.quant/state.json`。
 
-## 6. 当前验证状态（务必看清）
+## 6. 当前验证状态（已用真实历史数据跑过）
+
+数据：Binance 公开归档（`data.binance.vision`）现货日线，`BTCUSDT` / `ETHUSDT` / `SOLUSDT`。
+三品种按时间取交集后为 **2020-08-11 → 2025-11-30，共 1937 天**（SOL 上市晚，是对齐后的起点）。
+成本：手续费 15 bps/边 + 滑点 3 bps/边 + 数据 API 成本，全部计入净值。
+
+### 6.1 全区间回测（已扣成本）
+
+| 策略 | 年化 | 年化波动 | Sharpe | 最大回撤 | 笔数 | 成本合计（占初始资金） |
+| --- | --- | --- | --- | --- | --- | --- |
+| tsmom（动量 + 波动率目标） | **34.0%** | 31.9% | **1.08** | -32.0% | 174 | $19,197（19.2%） |
+| donchian（通道突破） | 8.3% | 54.3% | 0.42 | -50.7% | 74 | $4,122（4.1%） |
+| meanrev（均值回归） | 8.7% | 32.5% | 0.42 | -38.9% | 267 | $26,514（26.5%） |
+
+`tsmom` 全区间 19.2% 的成本 ≈ 每年 3.6%，这就是「回测赚钱实盘亏钱」最常丢掉的那部分。
+
+### 6.2 样本内选参 → 样本外验证（split = 2024-04-27，OOS 582 天）
+
+| 策略 | 选中参数（按 IS Sharpe） | IS Sharpe | **OOS Sharpe** | OOS 年化 | OOS 最大回撤 |
+| --- | --- | --- | --- | --- | --- |
+| tsmom | `lookback=30, targetVol=0.25` | 1.69 | **+0.42** | +8.2% | -24.0% |
+| donchian | `lookback=60, targetVol=0.15` | 0.68 | **+1.01** | +31.6% | -22.9% |
+| meanrev | `lookback=30, targetVol=0.15` | 0.45 | **-0.18** | -9.4% | -36.7% |
+
+### 6.3 怎么读这些数字
+
+- **tsmom 的 12 组参数样本外全部为正**（OOS Sharpe 0.34–0.58），说明动量信号在这段样本外不依赖某个特定参数；但 IS 挑出来的最优组合（0.42）并不是 OOS 最优（`lookback=60, targetVol=0.20` 为 0.58），说明**参数选择本身不稳定**，应按 OOS 区间表现取稳健区间而非最优点。
+- **donchian 选中的参数 OOS 1.01、回撤仅 -22.9%**，全区间却只有 0.42，说明它吃的是 2024-2025 这段趋势；`lookback=120` 的 OOS 掉到 0.06，**参数敏感性很高**，不要只信一个点。
+- **meanrev 样本外为负**，在所有参数下一致为负 —— 直接淘汰，保留在代码里作为负对照（能跑出负结果，才说明这套引擎不是「什么都赚」）。
+- **诚实边界**：三套策略 × 12 组参数都是在**同一段样本外**上比较的，所以这些 OOS 数字对「策略/参数选择」这一步已不再是干净的样本外。真正的新样本外只能靠向前推进的 paper / 实盘累积。
+
+### 6.4 仍然未验证的部分
 
 | 项 | 状态 |
 | --- | --- |
-| 引擎自检 | **7/7 PASS** —— 含「篡改未来价格不影响历史净值」的前视检验、成本单调性、期末清仓、确定性、仓位上限、台账自洽、paper 跨周期成交 |
-| 真实数据回测 | **未完成**：当前环境所有交易所公开端点（okx / kraken / coinbase / binance / coingecko）均不可达，DNS 与 TLS 均失败 |
-| 合成数据回测 | 可运行，但**结果不构成盈利证据**；合成行情没有可利用的真实 edge，跑出负收益是正常的 |
+| 引擎自检 | **7/7 PASS**（含前视检验：篡改未来价格不影响历史净值） |
+| 真实数据回测 / 样本外 | **已完成**（上表），数据来源为交易所公开归档 |
+| 交易所实时 API 通道 | 本机网络对 okx / kraken / coinbase / binance API 全部不可达（DNS/TLS 失败），`--source bca|ccxt` 未能在本机跑通；已用归档数据绕开 |
+| 资金费率 / 永续合约 | 未建模（当前为现货只做多） |
+| 实盘下单 | 未接入，只有 paper |
 
-所以：**没有真实数据的样本外结果之前，不要下「这个 EA 能赚钱」的结论。**
+**结论口径**：可以说的是一句有边界的话 ——「在 2020-08 至 2025-11 的 Binance 现货日线上、扣掉 15+3 bps 双边成本后，动量与通道突破两类策略的样本外 Sharpe 为正（0.4–1.0 量级），均值回归为负」。不能说「这个 EA 会赚钱」。
 
-## 7. 拿到真实数据后怎么验证
+## 7. 复现与下一步验证
 
-1. 换一台能访问交易所的网络，或设置 `BCA_CCXT_PROXY`。
-2. `npm run quant -- doctor`，确认至少一家交易所返回 K 线。
-3. `npm run quant -- backtest --source bca --strategy tsmom`，看**成本占比**与**最大回撤**，不要只看年化。
-4. `npm run quant -- walkforward --source bca`，以**样本外 Sharpe** 为准。样本内很好、样本外崩掉，就是过拟合。
-5. 在 `quant.config.json` 里把手续费改成你账户的真实 VIP 费率，再跑一遍；如果收益消失，说明策略在赚「手续费假设」的钱。
-6. 通过后先跑 paper（`npm run quant -- paper`）至少 4–8 周，对比 paper 与回测的滑点差异，再谈实盘。
+```bash
+# 1) 取真实历史数据（走公开归档，不需要 API Key，不受 API 451 影响）
+SYMBOLS="BTCUSDT ETHUSDT SOLUSDT" START=2019-01 END=2025-11 OUT=.quant/data \
+  bash scripts/fetch-binance-archive.sh
 
-没有网络时，用 `--csv` 导入任意来源的历史数据同样可以完成 3–6 步。
+# 2) 回测（多标的用逗号分隔，标的名从文件名推断）
+npm run quant -- backtest --csv .quant/data/BTCUSDT-1d.csv,.quant/data/ETHUSDT-1d.csv,.quant/data/SOLUSDT-1d.csv --strategy tsmom
+
+# 3) 样本外验证
+npm run quant -- walkforward --csv .quant/data/BTCUSDT-1d.csv,.quant/data/ETHUSDT-1d.csv,.quant/data/SOLUSDT-1d.csv --strategy tsmom
+```
+
+再往下：
+
+1. 把 `quant.config.json` 的手续费改成你账户的真实 VIP 费率再跑一遍；收益消失 = 策略在赚手续费假设的钱。
+2. 换更长历史 / 更多标的（`SYMBOLS="BTCUSDT ETHUSDT BNBUSDT XRPUSDT"`）看结论是否还在。
+3. 用 `--source bca` 在可访问交易所的网络（或设 `BCA_CCXT_PROXY`）跑一次，确认实时通道与归档数据结论一致。
+4. 通过后先跑 paper（`npm run quant -- paper`）至少 4–8 周，对比 paper 与回测的滑点差异，再谈实盘。
+
 
 ## 8. 部署
 

@@ -69,10 +69,19 @@ function flags(argv: string[]) {
   return out;
 }
 
+/** 从文件名推断标的：BTCUSDT-1d.csv → BTCUSDT，BTC_USDT.csv → BTC/USDT。 */
+export function csvSymbolOf(path: string): string {
+  const bare = path.replace(/^.*[\\/]/, '').replace(/\.csv$/i, '');
+  const head = bare.split('-')[0] ?? bare;
+  return /^[A-Za-z]{2,10}_[A-Za-z]{2,10}$/.test(head) ? head.toUpperCase().replace('_', '/') : head.toUpperCase();
+}
+
 async function buildAligned(config: Config, refresh: boolean, csvPath?: string): Promise<Aligned> {
   if (csvPath) {
-    // 单文件 CSV 视为单标的；多标的请分别导入或用 ccxt/bca 源。
-    return alignSeries([loadCsvSeries(csvPath, config.symbols[0] ?? 'ASSET')]);
+    // --csv 支持逗号分隔的多个文件，按顺序对应 --symbols；未给 --symbols 时用文件名推断。
+    const paths = csvPath.split(',').map((p) => p.trim()).filter(Boolean);
+    const series = paths.map((path, i) => loadCsvSeries(path, config.symbols[i] ?? csvSymbolOf(path)));
+    return alignSeries(series);
   }
   if (config.source === 'synthetic') {
     const series = syntheticSeries({ symbols: config.symbols, days: config.limit });
@@ -114,6 +123,9 @@ async function main() {
   if (opts.strategy) config.strategy = opts.strategy as StrategyId;
   if (opts.source) config.source = opts.source as Config['source'];
   if (opts.symbols) config.symbols = opts.symbols.split(',').map((s) => s.trim()).filter(Boolean);
+  if (opts.csv && !opts.symbols) {
+    config.symbols = opts.csv.split(',').map((p) => p.trim()).filter(Boolean).map(csvSymbolOf);
+  }
   if (opts.limit) config.limit = Math.max(60, Number(opts.limit));
   mkdirSync(config.outputDir, { recursive: true });
 
@@ -154,7 +166,7 @@ async function main() {
     const result = backtest({
       strategy: config.strategy, params: config.params, symbols: config.symbols,
       aligned, capital: config.capital, costs: config.costs,
-      apiCalls: config.symbols.length * 2 + 2, dataSource: config.source,
+      apiCalls: config.symbols.length * 2 + 2, dataSource: opts.csv ? 'csv' : config.source,
     });
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
     const jsonPath = join(config.outputDir, `backtest-${config.strategy}-${stamp}.json`);
@@ -182,15 +194,14 @@ async function main() {
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
     const htmlPath = join(config.outputDir, `walkforward-${config.strategy}-${stamp}.html`);
     writeFileSync(htmlPath, renderReport({ walkforward: wf }, {
-      dataSource: config.source === 'synthetic' ? 'synthetic' : `ccxt/${config.exchange ?? 'auto'}`,
+      dataSource: opts.csv ? 'csv' : config.source === 'synthetic' ? 'synthetic' : `ccxt/${config.exchange ?? 'auto'}`,
     }));
     writeFileSync(join(config.outputDir, `walkforward-${config.strategy}-${stamp}.json`), JSON.stringify(wf, null, 2));
     for (const cell of wf.cells) {
       console.log(JSON.stringify(cell.params), 'IS', cell.isSharpe.toFixed(2), 'OOS', cell.oosSharpe.toFixed(2));
     }
     console.log('\n' + wf.note);
-    console.log(`HTML  ${htmlPath}`);
-    return;
+    console.log(`HTML  ${htmlPath}`);    return;
   }
 
   if (command === 'paper') {
