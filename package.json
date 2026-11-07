@@ -56,6 +56,8 @@
     "check:discovery": "node --import tsx scripts/check-discovery.ts",
     "check:workstations": "node --import tsx scripts/check-workstations.ts",
     "check:goplus": "node --import tsx scripts/check-goplus.ts",
+    "check:quant": "node --import tsx scripts/check-quant.ts",
+    "quant": "node --import tsx src/quant/cli.ts",
     "prepare": "node scripts/prepare.mjs"
   },
   "dependencies": {
