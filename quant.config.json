@@ -1,0 +1,31 @@
+{
+  "symbols": ["BTC/USDT", "ETH/USDT", "SOL/USDT"],
+  "strategy": "tsmom",
+  "capital": 100000,
+  "timeframe": "1d",
+  "source": "bca",
+  "exchange": "okx",
+  "limit": 1200,
+  "cacheDir": ".quant/cache",
+  "outputDir": ".quant/out",
+  "statePath": ".quant/state.json",
+  "params": {
+    "lookback": 60,
+    "exitLookback": 20,
+    "volWindow": 30,
+    "targetVol": 0.2,
+    "maxWeight": 0.5,
+    "maxGross": 1.0,
+    "rebalanceDays": 5,
+    "regimeSma": 200
+  },
+  "costs": {
+    "feeBps": 15,
+    "slippageBps": 3,
+    "apiCostUsdPerCall": 0.000878,
+    "note": "fee 取交易所公开 taker 费率；slippage 为保守估计；两者都可用真实订单簿标定"
+  },
+  "risk": {
+    "maxDrawdownStop": 0.25
+  }
+}
